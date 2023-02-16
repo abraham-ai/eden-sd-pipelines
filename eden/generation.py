@@ -106,7 +106,6 @@ def load_pipe(args, img2img = False):
         print("Failed to load from pretrained, trying to load from checkpoint")
         pipe = load_pipeline_from_original_stable_diffusion_ckpt(args.ckpt, image_size = 512)
 
-    set_sampler(args.sampler, pipe)
     pipe.safety_checker = None
     print(f"Created new pipe in {(time.time() - start_time):.2f} seconds")
     return pipe.to(_device)
@@ -196,6 +195,7 @@ def generate(
     
     # Load model
     pipe = get_pipe(args)
+    set_sampler(args.sampler, pipe)
     
     # if init image strength == 1, just return the initial image
     if args.init_image_strength == 1.0 and args.init_image:
@@ -223,7 +223,7 @@ def generate(
     )
 
     generator = torch.Generator(device=_device).manual_seed(args.seed)
-    generator = None
+    #generator = None
 
     if args.c is not None:
         prompt, negative_prompt = None, None
