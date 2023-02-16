@@ -1,0 +1,41 @@
+build:
+  gpu: true
+  cuda: "11.6"
+  python_version: "3.10"
+
+  system_packages:
+    - "libgl1-mesa-glx"
+    - "libglib2.0-0"
+    # - "ffmpeg"
+    # - "cmake"
+
+  python_packages:
+    - "git+https://www.github.com/abraham-ai/diffusers"
+    - "torch==1.13.1"
+    - "ftfy==6.1.1"
+    - "scipy==1.10.0"
+    - "transformers==4.26.1"
+    - "accelerate==0.16.0"
+    - "lpips==0.1.4"
+    - "moviepy==1.0.3"
+    - "opencv-python==4.7.0.68"
+    - "einops==0.6.0"
+    - "fire==0.5.0"
+    - "safetensors==0.2.8"
+    - "mediapipe==0.9.1.0"
+    - "scikit-image==0.19.3"
+    - "open_clip_torch==2.7.0"
+    - "xformers==0.0.17.dev446"
+    - "tokenizers==0.13.2"
+    - "triton==2.0.0a1"
+
+  pre_install:
+   - git clone https://github.com/pharmapsychotic/BLIP
+   - pip install -e ./BLIP
+   - git clone https://github.com/pharmapsychotic/clip-interrogator
+   - pip install -e ./clip-interrogator --no-deps
+   - git clone https://github.com/cloneofsimo/lora
+
+predict: "predict.py:Predictor"
+
+image: "r8.im/abraham-ai/eden-sd-pipelines"
