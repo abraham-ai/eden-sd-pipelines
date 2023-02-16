@@ -5,7 +5,7 @@ from pathlib import Path
 SD_PATH = Path(os.path.dirname(os.path.realpath(__file__))).parents[0]
 ROOT_PATH = SD_PATH.parents[0]
 MODELS_PATH = os.path.join(ROOT_PATH, 'models')
-LORA_PATH = os.path.join(ROOT_PATH, 'lora')
+LORA_PATH = '/lora' #os.path.join(ROOT_PATH, 'lora')
 sys.path.append(LORA_PATH)
 
 from _thread import start_new_thread
@@ -447,13 +447,38 @@ def make_interpolation(args, force_timepoints = None):
 
 
 
-
-
-
-
-
-
 def make_images(args, steps_per_update=None):
+
+    if args.mode == "remix":
+        enable_random_lr_flipping = True  # randomly flip the init img for remixing?
+
+        if args.init_image_data:
+            args.init_image = load_img(args.init_image_data, 'RGB')
+
+        assert args.init_image is not None, "Must provide an init image in order to remix it!"
+        
+        if random.random() > 0.5 and enable_random_lr_flipping:
+            args.init_image = args.init_image.transpose(Image.FLIP_LEFT_RIGHT)
+
+        args.W, args.H = match_aspect_ratio(args.W * args.H, args.init_image)
+        args.aesthetic_target = [args.init_image]
+        args.text_input = clip_interrogate(args.ckpt, args.init_image, args.clip_interrogator_mode)
+
+        del_clip_interrogator_models()
+
+    assert args.text_input is not None
+
+    global pipe            
+    pipe = get_pipe(args)
+    #pipe = update_aesthetic_gradient_settings(pipe, args)
+    
+    _, images_pil = generate(args)
+    
+    return images_pil
+
+
+
+def make_images22(args, steps_per_update=None):
 
     if args.mode == "remix":
         enable_random_lr_flipping = True  # randomly flip the init img for remixing?
@@ -485,7 +510,7 @@ def make_images(args, steps_per_update=None):
         
     def run_make_images():
         try:
-            global pipe            
+            global pipe       
             pipe = get_pipe(args)
             #pipe = update_aesthetic_gradient_settings(pipe, args)
 
