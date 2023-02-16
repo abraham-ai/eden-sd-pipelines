@@ -278,6 +278,7 @@ def generate(
                 )
         
     pil_images = pipe_output.images
+
     try:
         final_latents = pipe_output.final_latents
     except:

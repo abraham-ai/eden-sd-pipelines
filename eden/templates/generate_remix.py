@@ -28,7 +28,7 @@ def remix(init_image_data, outdir,
         steps = 40,
         scale = 12,
         seed = seed,
-        n_samples = 4,
+        n_samples = 2,
         upscale_f = 1.0,
         init_image_strength = 0.175,
         init_image_data = init_image_data,
@@ -46,12 +46,10 @@ def remix(init_image_data, outdir,
     name = f'remix_{args.seed}_{args.sampler}_{args.steps}_{int(time.time())}'
 
     generator = make_images(args, steps_per_update=steps_per_update)
-    for i, result in enumerate(generator):
-        img = result[0]
-        for b in range(args.n_samples):
-            frame = f'{name}_{b}_{i}.jpg'
-            os.makedirs(outdir, exist_ok = True)
-            img[b].save(os.path.join(outdir, frame))
+    for i, img in enumerate(generator):
+        frame = f'{name}_{i}.jpg'
+        os.makedirs(outdir, exist_ok = True)
+        img.save(os.path.join(outdir, frame))
 
     # Also save the original image:
     args.init_image.save(os.path.join(outdir, f'remix_original.jpg'), quality=95)

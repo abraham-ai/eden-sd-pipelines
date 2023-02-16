@@ -32,7 +32,7 @@ def generate_basic(text_input, outdir,
     args = StableDiffusionSettings(
         ckpt = random.choice(checkpoint_options),
         mode = "generate",
-        W = 768,
+        W = 512,
         H = 512,
         sampler = "euler",
         steps = 40,
@@ -40,7 +40,7 @@ def generate_basic(text_input, outdir,
         upscale_f = 1.0,
         text_input = text_input,
         seed = seed,
-        n_samples = 2,
+        n_samples = 1,
         lora_path = None,
         #init_image_data = init_image_data,
         #init_image_strength = 0.25,
@@ -51,15 +51,10 @@ def generate_basic(text_input, outdir,
     name = name.replace("/", "_")
     generator = make_images(args, steps_per_update=steps_per_update)
 
-    for i, result in enumerate(generator):
-        img = result[0]
-        for b in range(args.n_samples):
-            if args.n_samples > 1:
-                frame = f'{name}_{i}_{b}.jpg'
-            else:
-                frame = f'{name}_{i}.jpg'
-            os.makedirs(outdir, exist_ok = True)
-            img[b].save(os.path.join(outdir, frame), quality=95)
+    for i, img in enumerate(generator):
+        frame = f'{name}_{i}.jpg'
+        os.makedirs(outdir, exist_ok = True)
+        img.save(os.path.join(outdir, frame), quality=95)
 
     # save settings
     settings_filename = f'{outdir}/{name}.json'
