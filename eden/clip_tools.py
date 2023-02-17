@@ -7,16 +7,13 @@ import sys, os, time
 
 from clip_interrogator import Interrogator, Config
 
-#from dotenv import load_dotenv
-#load_dotenv()
-
 ci = None
 
 v1_model_names = [
-        "runwayml/stable-diffusion-v1-5",
-        "prompthero/openjourney-v2",
-        "dreamlike-art/dreamlike-photoreal-2.0",
-    ]
+    "runwayml/stable-diffusion-v1-5",
+    "prompthero/openjourney-v2",
+    "dreamlike-art/dreamlike-photoreal-2.0",
+]
 
 def load_ci(sd_model_name, force_reload=False, clip_model_path=None):
     global ci
@@ -51,6 +48,6 @@ def del_clip_interrogator_models():
 
 
 if __name__ == "__main__":
-    init_img = Image.open("/home/xander/Projects/cog/diffusers/eden/imgs/out_000_seed_0.jpg")
+    init_img = Image.open("eden/assets/eden_logo.png")
     prompt = clip_interrogate("v1", init_img, "fast")
     print(prompt)

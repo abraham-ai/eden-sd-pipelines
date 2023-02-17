@@ -118,7 +118,7 @@ class Interpolator():
         if self.seeds is None:
             self.seeds = np.random.randint(0, high=9999, size=self.n)
         if self.scales is None:
-            self.scales = [args.scale] * self.n
+            self.scales = [args.guidance_scale] * self.n
         
         assert len(self.seeds) == len(self.prompts), "Number of given seeds must match number of prompts!"
         assert len(self.scales) == len(self.prompts), "Number of given scales must match number of prompts!"
@@ -157,7 +157,7 @@ class Interpolator():
                 prompt,
                 self.device,
                 1,
-                self.args.scale > 1.0,
+                self.args.guidance_scale > 1.0,
                 negative_prompt = self.args.uc_text
             )
 

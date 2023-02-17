@@ -16,7 +16,7 @@ class StableDiffusionSettings:
     #ckpt: str = "prompthero/openjourney-v2"    # https://huggingface.co/prompthero/openjourney-v2
     ckpt: str = "dreamlike-art/dreamlike-photoreal-2.0"  # https://huggingface.co/dreamlike-art/dreamlike-photoreal-2.0
 
-    precision: str = 'autocast'
+    #precision: str = 'autocast'
     half_precision: bool = True
     activate_tileable_textures: bool = False
 
@@ -24,19 +24,19 @@ class StableDiffusionSettings:
     mode: str = "generate"
     
     # dimensions, quantity
-    W: int = 512
-    H: int = 512
+    W: int = 768
+    H: int = 768
 
     # sampler params
     sampler: str = "euler"
-    steps: int = 50
+    steps: int = 60
     min_steps: int = 7  # low_n steps often give artifacts, so adopt a min-n-steps
-    scale: float = 12.0
-    ddim_eta: float = 0.0
+    guidance_scale: float = 10.0
+    # ddim_eta: float = 0.0
     C: int = 4
     f: int = 8   
-    dynamic_threshold: float = None
-    static_threshold: float = None
+    #dynamic_threshold: float = None
+    #static_threshold: float = None
     upscale_f: float = 1.0   # when != 1.0, perform two stage generation (generate first, then upscale)
 
     # Watermark
@@ -46,7 +46,7 @@ class StableDiffusionSettings:
     init_image: Image = None
     init_image_data: str = None
     init_image_strength: float = 0.0
-    init_image_inpaint_mode: str = None # ["mean_fill", "edge_pad", "cv2_telea", "cv2_ns"]
+    #init_image_inpaint_mode: str = None # ["mean_fill", "edge_pad", "cv2_telea", "cv2_ns"]
     init_sample: str = None
     init_latent: str = None
 
@@ -55,11 +55,11 @@ class StableDiffusionSettings:
     uc: str = None  # force a specific negative prompt conditioning vector
 
     # mask
-    mask_image: Image = None
-    mask_image_data: str = None
-    mask_invert: bool = False
-    mask_brightness_adjust: float = 1.0
-    mask_contrast_adjust: float = 1.0
+    # mask_image: Image = None
+    # mask_image_data: str = None
+    # mask_invert: bool = False
+    # mask_brightness_adjust: float = 1.0
+    # mask_contrast_adjust: float = 1.0
 
     # single generation
     text_input: str = "hello world" 
@@ -80,25 +80,25 @@ class StableDiffusionSettings:
     interpolation_seeds: List = field(default_factory=lambda: [])
     interpolation_init_images: List = field(default_factory=lambda: [])
     interpolation_init_images_use_img2txt: bool = False
-    interpolation_init_images_top_k: int = 1
+    #interpolation_init_images_top_k: int = 1
     interpolation_init_images_power: float = 3.0
     interpolation_init_images_min_strength: float = 0.25
     interpolation_init_images_max_strength: float = 0.97
     save_distances_to_dir: str = None
 
-    # video feedback (not compatible with interpolations)
-    animation_mode: str = None  # ['2D', '3D', 'Video Input']
-    color_coherence: str = 'Match Frame 0 LAB' # [None, 'Match Frame 0 HSV', 'Match Frame 0 LAB', 'Match Frame 0 RGB']
-    init_video: str = None
-    extract_nth_frame: int = 1
-    turbo_steps: int = 3
-    previous_frame_strength: float = 0.65
-    previous_frame_noise: float = 0.02
-    contrast: float = 1.0
-    angle: float = 0
-    zoom: float = 0
-    translation: List = field(default_factory=lambda: [0, 0, 0])
-    rotation: List = field(default_factory=lambda: [0, 0, 0])
+    # # video feedback (not compatible with interpolations)
+    # animation_mode: str = None  # ['2D', '3D', 'Video Input']
+    # color_coherence: str = 'Match Frame 0 LAB' # [None, 'Match Frame 0 HSV', 'Match Frame 0 LAB', 'Match Frame 0 RGB']
+    # init_video: str = None
+    # extract_nth_frame: int = 1
+    # turbo_steps: int = 3
+    # previous_frame_strength: float = 0.65
+    # previous_frame_noise: float = 0.02
+    # contrast: float = 1.0
+    # angle: float = 0
+    # zoom: float = 0
+    # translation: List = field(default_factory=lambda: [0, 0, 0])
+    # rotation: List = field(default_factory=lambda: [0, 0, 0])
 
     # personalized aesthetic gradients:
     aesthetic_target: List = field(default_factory=lambda: None)   # either a path to a .pt file, or a list of PIL.Image objects

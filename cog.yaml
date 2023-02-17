@@ -6,8 +6,6 @@ build:
   system_packages:
     - "libgl1-mesa-glx"
     - "libglib2.0-0"
-    # - "ffmpeg"
-    # - "cmake"
 
   python_packages:
     - "git+https://www.github.com/abraham-ai/diffusers"
@@ -28,13 +26,19 @@ build:
     - "xformers==0.0.17.dev446"
     - "tokenizers==0.13.2"
     - "triton==2.0.0a1"
+    - "tensorflow==2.11.0"
+    - "apache-beam==2.45.0"
+    - "natsort==8.2.0"
+    - "mediapy==1.1.4"
 
   pre_install:
    - git clone https://github.com/pharmapsychotic/BLIP
    - pip install -e ./BLIP
    - git clone https://github.com/pharmapsychotic/clip-interrogator
    - pip install -e ./clip-interrogator --no-deps
-   - git clone https://github.com/cloneofsimo/lora
+   - git clone -b xander-updates https://github.com/aiXander/lora
+   - git clone https://github.com/abraham-ai/frame-interpolation
+   - pip install tensorflow==2.11.0
 
 predict: "predict.py:Predictor"
 

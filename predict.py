@@ -9,42 +9,34 @@ import numpy as np
 from dotenv import load_dotenv
 
 load_dotenv()
+
 os.environ["TORCH_HOME"] = "/src/.torch"
 os.environ["TRANSFORMERS_CACHE"] = "/src/.huggingface/"
 os.environ["DIFFUSERS_CACHE"] = "/src/.huggingface/"
 os.environ["HF_HOME"] = "/src/.huggingface/"
 
-
-
 sys.path.extend([
-    # "/CLIP"
     "./eden",
-    # "/frame-interpolation"
-    "/clip-interrogator"
+    "/clip-interrogator",
+    "/lora",
+    "/frame-interpolation"
 ])
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+
 from settings import StableDiffusionSettings
-#from sd import get_model, get_prompt_conditioning
-#import depth
-#import film
 import eden_utils
+import film
 
 from cog import BasePredictor, BaseModel, File, Input, Path
 
-#film.FILM_MODEL_PATH = "/src/models/film/film_net/Style/saved_model"
-
-CONFIG_PATH = "eden-stable-diffusion/configs/stable-diffusion/v1-inference.yaml"
-CKPT_PATH = "/src/models/v1-5-pruned-emaonly.ckpt"
-HALF_PRECISION = True
-
+film.FILM_MODEL_PATH = "/src/models/film/film_net/Style/saved_model"
 
 checkpoint_options = [
-    "runwayml/stable-diffusion-v1-5",
-    "prompthero/openjourney-v2",
+    #"runwayml/stable-diffusion-v1-5",
+    #"prompthero/openjourney-v2",
     "dreamlike-art/dreamlike-photoreal-2.0"
 ]
-checkpoint_options = ["dreamlike-art/dreamlike-photoreal-2.0"]
-
 
 
 class CogOutput(BaseModel):
@@ -61,13 +53,7 @@ class Predictor(BasePredictor):
     def setup(self):
         print("cog:setup")
         import generation
-        generation.MODELS_PATH = '/src/models'
         generation.CLIP_INTERROGATOR_MODEL_PATH = '/src/cache'
-        self.config_path = CONFIG_PATH
-        self.ckpt_path = CKPT_PATH
-        self.half_precision = HALF_PRECISION
-        #self.model = get_model(self.config_path, self.ckpt_path, self.half_precision)
-        #depth.setup_depth_models(".")
 
     def predict(
         self,
@@ -86,23 +72,25 @@ class Predictor(BasePredictor):
         ),
         width: int = Input(
             description="Width", 
-            ge=64, le=1600, default=512
+            ge=64, le=2048, default=512
         ),
         height: int = Input(
             description="Height", 
-            ge=64, le=1600, default=512
+            ge=64, le=2048, default=512
         ),
         sampler: str = Input(
             description="Which sampler to use", 
-            default="euler", choices=["ddim", "plms", "klms", "dpm2", "dpm2_ancestral", "heun", "euler", "euler_ancestral"]
+            default="euler", 
+            # choices=["ddim", "plms", "klms", "dpm2", "dpm2_ancestral", "heun", "euler", "euler_ancestral"]
+            choices=["euler"]
         ),
         steps: int = Input(
             description="Diffusion steps", 
             ge=0, le=200, default=60
         ),
-        scale: float = Input(
-            description="Text conditioning scale", 
-            ge=0, le=32, default=8.0
+        guidance_scale: float = Input(
+            description="Strength of text conditioning guidance", 
+            ge=0, le=32, default=10.0
         ),
         # ddim_eta: float = 0.0
         # C: int = 4
@@ -111,7 +99,7 @@ class Predictor(BasePredictor):
         # static_threshold: float = None
         upscale_f: int = Input(
             description="Upscaling resolution",
-            default = 1, choices=[1, 2]
+            ge=1, le=4, default=1
         ),
 
         # Init image and mask
@@ -123,18 +111,18 @@ class Predictor(BasePredictor):
             description="Strength of initial image", 
             ge=0.0, le=1.0, default=0.0
         ),
-        init_image_inpaint_mode: str = Input(
-            description="Inpainting method for pre-processing init_image when it's masked", 
-            default="cv2_telea", choices=["mean_fill", "edge_pad", "cv2_telea", "cv2_ns"]
-        ),
-        mask_image_data: str = Input(
-            description="Load mask image from file, url, or base64 string", 
-            default=None
-        ),
-        mask_invert: bool = Input(
-            description="Invert mask", 
-            default=False
-        ),
+        # init_image_inpaint_mode: str = Input(
+        #     description="Inpainting method for pre-processing init_image when it's masked", 
+        #     default="cv2_telea", choices=["mean_fill", "edge_pad", "cv2_telea", "cv2_ns"]
+        # ),
+        # mask_image_data: str = Input(
+        #     description="Load mask image from file, url, or base64 string", 
+        #     default=None
+        # ),
+        # mask_invert: bool = Input(
+        #     description="Invert mask", 
+        #     default=False
+        # ),
         # mask_brightness_adjust: float = 1.0
         # mask_contrast_adjust: float = 1.0
 
@@ -155,9 +143,9 @@ class Predictor(BasePredictor):
             ge=1, le=4, default=1
         ),
 
-        # Interpolate / Animate mode
+        # Interpolate mode
         n_frames: int = Input(
-            description="Total number of frames (mode==interpolate/animate)",
+            description="Total number of frames (mode==interpolate)",
             ge=0, le=100, default=50
         ),
 
@@ -174,14 +162,14 @@ class Predictor(BasePredictor):
             description="Interpolation init images, file paths or urls (mode==interpolate)",
             default=None
         ),
-        interpolation_init_images_use_img2txt: bool = Input(
-            description="Use clip_search to get prompts for the init images, if false use manual interpolation_texts (mode==interpolate)",
-            default=False
-        ),
-        interpolation_init_images_top_k: int = Input(
-            description="Top K for interpolation_init_images prompts (mode==interpolate)",
-            ge=1, le=10, default=2
-        ),
+        # interpolation_init_images_use_img2txt: bool = Input(
+        #     description="Use clip_search to get prompts for the init images, if false use manual interpolation_texts (mode==interpolate)",
+        #     default=False
+        # ),
+        # interpolation_init_images_top_k: int = Input(
+        #     description="Top K for interpolation_init_images prompts (mode==interpolate)",
+        #     ge=1, le=10, default=2
+        # ),
         interpolation_init_images_power: float = Input(
             description="Power for interpolation_init_images prompts (mode==interpolate)",
             ge=0.0, le=8.0, default=2.5
@@ -203,61 +191,61 @@ class Predictor(BasePredictor):
             default=False
         ),
         n_film: int = Input(
-            description="Number of times to smooth final frames with FILM (default is 0) (mode==interpolate or animate)",
+            description="Number of times to smooth final frames with FILM (default is 0) (mode==interpolate)",
             default=0, ge=0, le=2
         ),
         fps: int = Input(
-            description="Frames per second (mode==interpolate or animate)",
+            description="Frames per second (mode==interpolate)",
             default=12, ge=1, le=60
         ),
         
         # Animation mode
-        animation_mode: str = Input(
-            description="Interpolation texts (mode==interpolate)",
-            default='2D', choices=['2D', '3D', 'Video Input']
-        ),
-        init_video: Path = Input(
-            description="Initial video file (mode==animate)",
-            default=None
-        ),
-        extract_nth_frame: int = Input(
-            description="Extract each frame of init_video (mode==animate)",
-            ge=1, le=10, default=1
-        ),
-        turbo_steps: int = Input(
-            description="Turbo steps (mode==animate)",
-            ge=1, le=8, default=3
-        ),
-        previous_frame_strength: float = Input(
-            description="Strength of previous frame (mode==animate)",
-            ge=0.0, le=1.0, default=0.65
-        ),
-        previous_frame_noise: float = Input(
-            description="How much to noise previous frame (mode==animate)",
-            ge=0.0, le=0.2, default=0.02
-        ),
-        color_coherence: str = Input(
-            description="Color coherence strategy (mode==animate)", 
-            default='Match Frame 0 LAB', choices=['None', 'Match Frame 0 HSV', 'Match Frame 0 LAB', 'Match Frame 0 RGB']
-        ),
-        contrast: float = Input(
-            description="Contrast (mode==animation)",
-            ge=0.0, le=2.0, default=1.0
-        ),
-        angle: float = Input(
-            description="Rotation angle (animation_mode==2D)",
-            ge=-2.0, le=2.0, default=0.0
-        ),
-        zoom: float = Input(
-            description="Zoom (animation_mode==2D)",
-            ge=0.91, le=1.12, default=1.0
-        ),
-        translation_x: float = Input(description="Translation X (animation_mode==3D)", ge=-5, le=5, default=0),
-        translation_y: float = Input(description="Translation U (animation_mode==3D)", ge=-5, le=5, default=0),
-        translation_z: float = Input(description="Translation Z (animation_mode==3D)", ge=-5, le=5, default=0),
-        rotation_x: float = Input(description="Rotation X (animation_mode==3D)", ge=-1, le=1, default=0),
-        rotation_y: float = Input(description="Rotation U (animation_mode==3D)", ge=-1, le=1, default=0),
-        rotation_z: float = Input(description="Rotation Z (animation_mode==3D)", ge=-1, le=1, default=0)
+        # animation_mode: str = Input(
+        #     description="Interpolation texts (mode==interpolate)",
+        #     default='2D', choices=['2D', '3D', 'Video Input']
+        # ),
+        # init_video: Path = Input(
+        #     description="Initial video file (mode==animate)",
+        #     default=None
+        # ),
+        # extract_nth_frame: int = Input(
+        #     description="Extract each frame of init_video (mode==animate)",
+        #     ge=1, le=10, default=1
+        # ),
+        # turbo_steps: int = Input(
+        #     description="Turbo steps (mode==animate)",
+        #     ge=1, le=8, default=3
+        # ),
+        # previous_frame_strength: float = Input(
+        #     description="Strength of previous frame (mode==animate)",
+        #     ge=0.0, le=1.0, default=0.65
+        # ),
+        # previous_frame_noise: float = Input(
+        #     description="How much to noise previous frame (mode==animate)",
+        #     ge=0.0, le=0.2, default=0.02
+        # ),
+        # color_coherence: str = Input(
+        #     description="Color coherence strategy (mode==animate)", 
+        #     default='Match Frame 0 LAB', choices=['None', 'Match Frame 0 HSV', 'Match Frame 0 LAB', 'Match Frame 0 RGB']
+        # ),
+        # contrast: float = Input(
+        #     description="Contrast (mode==animation)",
+        #     ge=0.0, le=2.0, default=1.0
+        # ),
+        # angle: float = Input(
+        #     description="Rotation angle (animation_mode==2D)",
+        #     ge=-2.0, le=2.0, default=0.0
+        # ),
+        # zoom: float = Input(
+        #     description="Zoom (animation_mode==2D)",
+        #     ge=0.91, le=1.12, default=1.0
+        # ),
+        # translation_x: float = Input(description="Translation X (animation_mode==3D)", ge=-5, le=5, default=0),
+        # translation_y: float = Input(description="Translation U (animation_mode==3D)", ge=-5, le=5, default=0),
+        # translation_z: float = Input(description="Translation Z (animation_mode==3D)", ge=-5, le=5, default=0),
+        # rotation_x: float = Input(description="Rotation X (animation_mode==3D)", ge=-1, le=1, default=0),
+        # rotation_y: float = Input(description="Rotation U (animation_mode==3D)", ge=-1, le=1, default=0),
+        # rotation_z: float = Input(description="Rotation Z (animation_mode==3D)", ge=-1, le=1, default=0)
 
     ) -> Iterator[CogOutput]:
 
@@ -269,16 +257,8 @@ class Predictor(BasePredictor):
         interpolation_seeds = [float(i) for i in interpolation_seeds.split('|')] if interpolation_seeds else None
         interpolation_init_images = interpolation_init_images.split('|') if interpolation_init_images else None
 
-        
-
-
         args = StableDiffusionSettings(
-            # config = self.config_path,
-            # ckpt = self.ckpt_path,
-            # precision= 'autocast',
-            # half_precision = self.half_precision,
             ckpt = random.choice(checkpoint_options),
-    
             lora_path = None,
 
             mode = mode,
@@ -287,14 +267,14 @@ class Predictor(BasePredictor):
             H = height - (height % 64),
             sampler = sampler,
             steps = steps,
-            scale = scale,
+            guidance_scale = guidance_scale,
             upscale_f = float(upscale_f),
 
             init_image_data = init_image_data,
             init_image_strength = init_image_strength,
-            init_image_inpaint_mode = init_image_inpaint_mode,
-            mask_image_data = mask_image_data,
-            mask_invert = mask_invert,
+            # init_image_inpaint_mode = init_image_inpaint_mode,
+            # mask_image_data = mask_image_data,
+            # mask_invert = mask_invert,
 
             text_input = text_input,
             uc_text = uc_text,
@@ -304,8 +284,8 @@ class Predictor(BasePredictor):
             interpolation_texts = interpolation_texts,
             interpolation_seeds = interpolation_seeds,
             interpolation_init_images = interpolation_init_images,
-            interpolation_init_images_use_img2txt = interpolation_init_images_use_img2txt,
-            interpolation_init_images_top_k = interpolation_init_images_top_k,
+            # interpolation_init_images_use_img2txt = interpolation_init_images_use_img2txt,
+            # interpolation_init_images_top_k = interpolation_init_images_top_k,
             interpolation_init_images_power = interpolation_init_images_power,
             interpolation_init_images_min_strength = interpolation_init_images_min_strength,
 
@@ -321,38 +301,19 @@ class Predictor(BasePredictor):
             aesthetic_lr = 0.0001,
             ag_L2_normalization_constant = 0.25, # for real2real, only 
 
-            animation_mode = animation_mode,
-            color_coherence = None if color_coherence=='None' else color_coherence,
-            init_video = init_video,
-            extract_nth_frame = extract_nth_frame,
-            turbo_steps = turbo_steps,
-            previous_frame_strength = previous_frame_strength,
-            previous_frame_noise = previous_frame_noise,
-            contrast = contrast,
-            angle = angle,
-            zoom = zoom,
-            translation = [translation_x, translation_y, translation_z],
-            rotation = [rotation_x, rotation_y, rotation_z]
+            # animation_mode = animation_mode,
+            # color_coherence = None if color_coherence=='None' else color_coherence,
+            # init_video = init_video,
+            # extract_nth_frame = extract_nth_frame,
+            # turbo_steps = turbo_steps,
+            # previous_frame_strength = previous_frame_strength,
+            # previous_frame_noise = previous_frame_noise,
+            # contrast = contrast,
+            # angle = angle,
+            # zoom = zoom,
+            # translation = [translation_x, translation_y, translation_z],
+            # rotation = [rotation_x, rotation_y, rotation_z]
         )
-
-
-        # args = StableDiffusionSettings(
-        #     ckpt = random.choice(checkpoint_options),
-        #     mode = "generate",
-        #     W = 768,
-        #     H = 512,
-        #     sampler = "euler",
-        #     steps = 80,
-        #     scale = 12,
-        #     upscale_f = 1.0,
-        #     text_input = text_input,
-        #     seed = seed,
-        #     n_samples = 2,
-        #     lora_path = None,
-        #     #init_image_data = init_image_data,
-        #     #init_image_strength = 0.25,
-        # )
-    
 
         print(args)
 
@@ -367,24 +328,17 @@ class Predictor(BasePredictor):
             yield CogOutput(file=out_path, name=interrogation, thumbnail=None, attributes=attributes, isFinal=True, progress=1.0)
 
         elif mode == "generate" or mode == "remix":
-            print("GENERATE!!!!")
-            steps_per_update = stream_every if stream else None
-
-            frames = generation.make_images(args, steps_per_update=steps_per_update)
-            frame = frames[0]
+            frames = generation.make_images(args)
+            frame = frames[0]  # just one frame for now
 
             attributes = None
             if mode == "remix":
                 attributes = {"interrogation": args.text_input}
 
-            print("new frame")
             out_path = out_dir / f"frame.jpg"
-            print(out_path)
             frame.save(out_path, format='JPEG', subsampling=0, quality=95)
             #progress = s * stream_every / args.steps
             # yield CogOutput(file=out_path, thumbnail=out_path, attributes=None, progress=1.0)
-        
-
             name = args.text_input
             print(out_path)
             yield CogOutput(file=out_path, name=name, thumbnail=out_path, attributes=attributes, isFinal=True, progress=1.0)
@@ -411,7 +365,7 @@ class Predictor(BasePredictor):
                 progress = f / args.n_frames
                 if not thumbnail:
                     thumbnail = out_path
-                if stream:
+                if stream and f % stream_every == 0:
                     yield CogOutput(file=out_path, thumbnail=out_path, attributes=attributes, progress=progress)
 
             # run FILM
