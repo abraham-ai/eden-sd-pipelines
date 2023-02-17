@@ -14,6 +14,7 @@ os.environ["TORCH_HOME"] = "/src/.torch"
 os.environ["TRANSFORMERS_CACHE"] = "/src/.huggingface/"
 os.environ["DIFFUSERS_CACHE"] = "/src/.huggingface/"
 os.environ["HF_HOME"] = "/src/.huggingface/"
+os.environ["LPIPS_HOME"] = "/src/models/lpips/"
 
 sys.path.extend([
     "./eden",
@@ -27,10 +28,12 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 from settings import StableDiffusionSettings
 import eden_utils
 import film
+import interpolator
 
 from cog import BasePredictor, BaseModel, File, Input, Path
 
 film.FILM_MODEL_PATH = "/src/models/film/film_net/Style/saved_model"
+interpolator.LPIPS_DIR = "/src/models/lpips/weights/v0.1/alex.pth"
 
 checkpoint_options = [
     #"runwayml/stable-diffusion-v1-5",
@@ -344,7 +347,7 @@ class Predictor(BasePredictor):
             yield CogOutput(file=out_path, name=name, thumbnail=out_path, attributes=attributes, isFinal=True, progress=1.0)
             
         else:
-
+            
             if mode == "interpolate":
                 generator = generation.make_interpolation(args)
 
@@ -365,8 +368,8 @@ class Predictor(BasePredictor):
                 progress = f / args.n_frames
                 if not thumbnail:
                     thumbnail = out_path
-                if stream and f % stream_every == 0:
-                    yield CogOutput(file=out_path, thumbnail=out_path, attributes=attributes, progress=progress)
+                #if stream and f % stream_every == 0:
+                #    yield CogOutput(file=out_path, thumbnail=out_path, attributes=attributes, progress=progress)
 
             # run FILM
             if args.n_film > 0:

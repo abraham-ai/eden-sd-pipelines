@@ -4,16 +4,21 @@ import torch.nn as nn
 import os, time, math, random
 from PIL import Image
 
-
 from einops import rearrange, repeat
-#from sd import get_prompt_conditioning
 from eden_utils import seed_everything, slerp, lerp, create_seeded_noise, DataTracker
+
+import lpips
+
+LPIPS_DIR = None
 
 global device
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-import lpips
-lpips_perceptor = lpips.LPIPS(net='alex').eval().to(device)    # lpips model options: 'squeeze', 'vgg', 'alex'
+lpips_perceptor = None
+
+def setup_lpips():
+    global lpips_perceptor
+    lpips_perceptor = lpips.LPIPS(net='alex', model_path=LPIPS_DIR).eval().to(device)    # lpips model options: 'squeeze', 'vgg', 'alex'
 
 def tensor_info(img):
     print("Shape: %s, Min: %.3f | Max: %.3f | Mean: %.3f | Std: %.3f" %(str(img.shape), img.min(), img.max(), img.mean(), img.std()))
@@ -46,6 +51,10 @@ def perceptual_distance(img1, img2,
     By default, images are resized to a fixed resolution before computing the lpips score
     this is useful since some parts of the algorithm are computed from the perceptual distance values.
     '''
+    global lpips_perceptor
+    if lpips_perceptor is None:
+        setup_lpips()
+
     minv1, minv2 = img1.min().item(), img2.min().item()
     minv = min(minv1, minv2)
     if minv < 0:
