@@ -25,14 +25,18 @@ sys.path.extend([
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
+
+
+
+
 from settings import StableDiffusionSettings
 import eden_utils
-import film
+#import film
 import interpolator
 
 from cog import BasePredictor, BaseModel, File, Input, Path
 
-film.FILM_MODEL_PATH = "/src/models/film/film_net/Style/saved_model"
+#film.FILM_MODEL_PATH = "/src/models/film/film_net/Style/saved_model"
 interpolator.LPIPS_DIR = "/src/models/lpips/weights/v0.1/alex.pth"
 
 checkpoint_options = [
@@ -40,7 +44,6 @@ checkpoint_options = [
     #"prompthero/openjourney-v2",
     "dreamlike-art/dreamlike-photoreal-2.0"
 ]
-
 
 class CogOutput(BaseModel):
     file: Path
@@ -260,8 +263,10 @@ class Predictor(BasePredictor):
         interpolation_seeds = [float(i) for i in interpolation_seeds.split('|')] if interpolation_seeds else None
         interpolation_init_images = interpolation_init_images.split('|') if interpolation_init_images else None
 
+        checkpoint = random.choice(checkpoint_options)
+
         args = StableDiffusionSettings(
-            ckpt = random.choice(checkpoint_options),
+            ckpt = checkpoint,
             lora_path = None,
 
             mode = mode,
@@ -275,9 +280,6 @@ class Predictor(BasePredictor):
 
             init_image_data = init_image_data,
             init_image_strength = init_image_strength,
-            # init_image_inpaint_mode = init_image_inpaint_mode,
-            # mask_image_data = mask_image_data,
-            # mask_invert = mask_invert,
 
             text_input = text_input,
             uc_text = uc_text,
@@ -287,8 +289,6 @@ class Predictor(BasePredictor):
             interpolation_texts = interpolation_texts,
             interpolation_seeds = interpolation_seeds,
             interpolation_init_images = interpolation_init_images,
-            # interpolation_init_images_use_img2txt = interpolation_init_images_use_img2txt,
-            # interpolation_init_images_top_k = interpolation_init_images_top_k,
             interpolation_init_images_power = interpolation_init_images_power,
             interpolation_init_images_min_strength = interpolation_init_images_min_strength,
 
@@ -303,19 +303,6 @@ class Predictor(BasePredictor):
             aesthetic_steps = 10,
             aesthetic_lr = 0.0001,
             ag_L2_normalization_constant = 0.25, # for real2real, only 
-
-            # animation_mode = animation_mode,
-            # color_coherence = None if color_coherence=='None' else color_coherence,
-            # init_video = init_video,
-            # extract_nth_frame = extract_nth_frame,
-            # turbo_steps = turbo_steps,
-            # previous_frame_strength = previous_frame_strength,
-            # previous_frame_noise = previous_frame_noise,
-            # contrast = contrast,
-            # angle = angle,
-            # zoom = zoom,
-            # translation = [translation_x, translation_y, translation_z],
-            # rotation = [rotation_x, rotation_y, rotation_z]
         )
 
         print(args)
@@ -338,12 +325,10 @@ class Predictor(BasePredictor):
             if mode == "remix":
                 attributes = {"interrogation": args.text_input}
 
+            name = args.text_input
             out_path = out_dir / f"frame.jpg"
             frame.save(out_path, format='JPEG', subsampling=0, quality=95)
-            #progress = s * stream_every / args.steps
-            # yield CogOutput(file=out_path, thumbnail=out_path, attributes=None, progress=1.0)
-            name = args.text_input
-            print(out_path)
+            
             yield CogOutput(file=out_path, name=name, thumbnail=out_path, attributes=attributes, isFinal=True, progress=1.0)
             
         else:
@@ -355,9 +340,6 @@ class Predictor(BasePredictor):
                 args.interpolation_init_images_use_img2txt = True
                 generator = generation.make_interpolation(args)
 
-            # elif mode == "animate":
-            #     generator = generation.make_animation(args)
-
             attributes = None
             thumbnail = None
 
@@ -368,13 +350,14 @@ class Predictor(BasePredictor):
                 progress = f / args.n_frames
                 if not thumbnail:
                     thumbnail = out_path
-                #if stream and f % stream_every == 0:
-                #    yield CogOutput(file=out_path, thumbnail=out_path, attributes=attributes, progress=progress)
+                if stream and f % stream_every == 0:
+                   yield CogOutput(file=out_path, thumbnail=None, attributes=attributes, progress=progress)
 
             # run FILM
             if args.n_film > 0:
-                film.interpolate_FILM(str(out_dir), n_film)
-                out_dir = out_dir / "interpolated_frames"
+                #film.interpolate_FILM(str(out_dir), n_film)
+                #out_dir = out_dir / "interpolated_frames"
+                pass
 
             # save video
             loop = (args.loop and len(args.interpolation_seeds) == 2)

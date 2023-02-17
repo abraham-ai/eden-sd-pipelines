@@ -9,16 +9,19 @@ from eden_utils import seed_everything, slerp, lerp, create_seeded_noise, DataTr
 
 import lpips
 
-LPIPS_DIR = None
-
 global device
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
+LPIPS_DIR = None
 lpips_perceptor = None
 
 def setup_lpips():
     global lpips_perceptor
+    print("LOAD LPIPS ....")
+    print(LPIPS_DIR)
+    print(os.system(f'ls -la "{LPIPS_DIR}"'))
     lpips_perceptor = lpips.LPIPS(net='alex', model_path=LPIPS_DIR).eval().to(device)    # lpips model options: 'squeeze', 'vgg', 'alex'
+    print("DONE LOADING LPIPS ....")
 
 def tensor_info(img):
     print("Shape: %s, Min: %.3f | Max: %.3f | Mean: %.3f | Std: %.3f" %(str(img.shape), img.min(), img.max(), img.mean(), img.std()))

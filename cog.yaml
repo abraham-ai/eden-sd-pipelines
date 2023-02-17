@@ -26,10 +26,6 @@ build:
     - "xformers==0.0.17.dev446"
     - "tokenizers==0.13.2"
     - "triton==2.0.0a1"
-    - "tensorflow==2.11.0"
-    - "apache-beam==2.45.0"
-    - "natsort==8.2.0"
-    - "mediapy==1.1.4"
 
   pre_install:
    - git clone https://github.com/pharmapsychotic/BLIP
@@ -37,8 +33,7 @@ build:
    - git clone https://github.com/pharmapsychotic/clip-interrogator
    - pip install -e ./clip-interrogator --no-deps
    - git clone -b xander-updates https://github.com/aiXander/lora
-   - git clone https://github.com/abraham-ai/frame-interpolation
-   - pip install tensorflow==2.11.0
+
 
 predict: "predict.py:Predictor"
 
