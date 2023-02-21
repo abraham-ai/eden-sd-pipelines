@@ -23,29 +23,29 @@ def real2real(input_images, outdir,
     frames_dir = os.path.join(outdir, name)
     os.makedirs(frames_dir, exist_ok=True)
 
-    
     if args is None:
         args = StableDiffusionSettings(
             #watermark_path = "../assets/eden_logo.png",
             text_input = "real2real",  # text_input is also the title, but has no effect on interpolations
             interpolation_seeds = [random.randint(1, 1e8) for _ in range(n)],
+            #interpolation_texts = None,
             interpolation_init_images = input_images,
             interpolation_init_images_use_img2txt = True,
             interpolation_init_images_power = 3.0,
             interpolation_init_images_min_strength = 0.3,  # a higher value will make the video smoother, but allows less visual change / journey
             interpolation_init_images_max_strength = 0.95,
-            latent_blending_skip_f = [0.0, 0.75],
+            latent_blending_skip_f = [0.1, 0.7],
             scale = 8,
             scale_modulation = 0.0,
-            n_frames = 64*n,
+            n_frames = 24*n,
             loop = True,
             smooth = True,
             n_film = 0,
             fps = 9,
-            steps = 70,
+            steps = 60,
             sampler = "euler",
             seed = seed,
-            H = 768,
+            H = 512,
             W = 768,
             upscale_f = 1.0,
             clip_interrogator_mode = "fast",

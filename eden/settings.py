@@ -2,8 +2,34 @@ from dataclasses import dataclass, field
 from typing import List
 from PIL import Image
 from pathlib import Path
+import numpy as np
 import os, uuid
 sd_path = Path(os.path.dirname(os.path.realpath(__file__))).parents[0]
+
+
+import torch
+
+def pick_best_gpu_id():
+    # pick the GPU with the most free memory:
+    gpu_ids = [i for i in range(torch.cuda.device_count())]
+    print(f"# of visible GPUs: {len(gpu_ids)}")
+    gpu_mem = []
+    for gpu_id in gpu_ids:
+        free_memory, tot_mem = torch.cuda.mem_get_info(device=gpu_id)
+        gpu_mem.append(free_memory)
+        print("GPU %d: %d MB free" %(gpu_id, free_memory / 1024 / 1024))
+    
+    best_gpu_id = gpu_ids[np.argmax(gpu_mem)]
+    # set this to be the active GPU:
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(best_gpu_id)
+    print("Using GPU %d" %best_gpu_id)
+    return best_gpu_id
+
+gpu_id = pick_best_gpu_id()
+global _device
+_device = torch.device("cuda:%d" %gpu_id if torch.cuda.is_available() else "cpu")
+torch.cuda.set_device(_device)
+
 
 @dataclass
 class StableDiffusionSettings:
@@ -126,3 +152,4 @@ class StableDiffusionSettings:
     # Lora / finetuning:
     lora_path: str = None
     lora_scale: float = 1.0
+    lora_paths: str = None # optional list of lora paths for each img seed for real2real

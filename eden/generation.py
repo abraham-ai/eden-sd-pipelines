@@ -20,7 +20,7 @@ import torch
 import torchvision.transforms as T
 import torchvision.transforms.functional as TF
 
-from settings import *
+from settings import StableDiffusionSettings, _device
 from eden_utils import *
 from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline, StableDiffusionDepth2ImgPipeline
 # TODO add this to the diffusers package for cleaner imports
@@ -35,28 +35,8 @@ from interpolator import *
 #from depth import *
 from clip_tools import *
 from planner import LatentTracker, create_init_latent, blend_inits
-from lora_diffusion import tune_lora_scale, patch_pipe
+from lora_diffusion import tune_lora_scale, patch_pipe, monkeypatch_or_replace_safeloras, monkeypatch_remove_lora, dict_to_lora, load_safeloras_both, apply_learned_embed_in_clip, parse_safeloras, monkeypatch_or_replace_lora_extended, parse_safeloras_embeds
 
-
-def pick_best_gpu_id():
-    # pick the GPU with the most free memory:
-    gpu_ids = [i for i in range(torch.cuda.device_count())]
-    print(f"# of visible GPUs: {len(gpu_ids)}")
-    gpu_mem = []
-    for gpu_id in gpu_ids:
-        free_memory, tot_mem = torch.cuda.mem_get_info(device=gpu_id)
-        gpu_mem.append(free_memory)
-        print("GPU %d: %d MB free" %(gpu_id, free_memory / 1024 / 1024))
-    
-    best_gpu_id = gpu_ids[np.argmax(gpu_mem)]
-    # set this to be the active GPU:
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(best_gpu_id)
-    print("Using GPU %d" %best_gpu_id)
-    return best_gpu_id
-
-gpu_id = pick_best_gpu_id()
-_device = torch.device("cuda:%d" %gpu_id if torch.cuda.is_available() else "cpu")
-torch.cuda.set_device(_device)
 
 # some global variables that persist between function calls:
 pipe  = None
@@ -64,6 +44,94 @@ last_checkpoint = None
 last_lora_path = None
 
 
+from safetensors.torch import safe_open, save_file
+
+"""
+class LoraBlender():
+    # Helper class to blend LORA models on the fly during interpolations
+
+    def __init__(self, lora_scale):
+        self.lora_scale = lora_scale
+        self.loras_in_memory = {}
+        self.embeds_in_memory = {}
+
+    def load_lora(self, lora_path):
+        if lora_path in self.loras_in_memory:
+            return self.loras_in_memory[lora_path], self.embeds_in_memory[lora_path]
+        else:
+            print(f" ---> Loading lora from {lora_path} into memory..")
+            safeloras = safe_open(lora_path, framework="pt", device=device)
+            embeddings = parse_safeloras_embeds(safeloras)
+            
+            self.loras_in_memory[lora_path] = safeloras
+            self.embeds_in_memory[lora_path] = embeddings
+
+            return safeloras, embeddings
+
+    def blend_embeds(self, embeds_1, embeds_2, t):
+        # Blend the two dictionaries of embeddings:
+        ret_embeds = {}
+        for key in set(list(embeds_1.keys()) + list(embeds_2.keys())):
+            if key in embeds_1.keys() and key in embeds_2.keys():
+                ret_embeds[key] = (1-t) * embeds_1[key] + t * embeds_2[key]
+            elif key in embeds_1.keys():
+                ret_embeds[key] = embeds_1[key]
+            elif key in embeds_2.keys():
+                ret_embeds[key] = embeds_2[key]
+        return ret_embeds
+
+    def patch_pipe(self, pipe, t, lora1_path, lora2_path):
+        print(f" ---> Patching pipe with lora1 = {os.path.basename(os.path.dirname(lora1_path))} and lora2 = {os.path.basename(os.path.dirname(lora2_path))} at t = {t:.2f}")
+
+        # Load the two loras:
+        safeloras_1, embeds_1 = self.load_lora(lora1_path)
+        safeloras_2, embeds_2 = self.load_lora(lora2_path)
+
+        metadata = dict(safeloras_1.metadata())
+        metadata.update(dict(safeloras_2.metadata()))
+        
+        # Combine / Linear blend the token embeddings:
+        blended_embeds = self.blend_embeds(embeds_1, embeds_2, t)
+
+        # Blend the two loras:
+        ret_tensor = {}
+        for keys in set(list(safeloras_1.keys()) + list(safeloras_2.keys())):
+            if keys.startswith("text_encoder") or keys.startswith("unet"):
+                tens1 = safeloras_1.get_tensor(keys)
+                tens2 = safeloras_2.get_tensor(keys)
+                ret_tensor[keys] = (1-t) * tens1 + t * tens2
+            else:
+                if keys in safeloras_1.keys():
+                    tens = safeloras_1.get_tensor(keys)
+                else:
+                    tens = safeloras_2.get_tensor(keys)
+                ret_tensor[keys] = tens
+
+        loras = dict_to_lora(ret_tensor, metadata)
+
+        # Apply this blended lora to the pipe:
+        for name, (lora, ranks, target) in loras.items():
+            model = getattr(pipe, name, None)
+            if not model:
+                print(f"No model provided for {name}, contained in Lora")
+                continue
+            print("Patching model", name, "with LORA")
+            monkeypatch_or_replace_lora_extended(model, lora, target, ranks)
+
+        apply_learned_embed_in_clip(
+            blended_embeds,
+            pipe.text_encoder,
+            pipe.tokenizer,
+            token=None,
+            idempotent=True,
+        )
+
+        # Set the lora scale:
+        tune_lora_scale(pipe.unet, self.lora_scale)
+        tune_lora_scale(pipe.text_encoder, self.lora_scale)
+
+        return blended_embeds
+"""
 
 def update_pipe_with_lora(pipe, args):
     global last_lora_path
@@ -85,6 +153,14 @@ def update_pipe_with_lora(pipe, args):
     took_s = time.time() - start_time
     print(f" ---> Updated pipe in {took_s:.2f}s using lora from {args.lora_path} with scale = {args.lora_scale:.2f}")
     last_lora_path = args.lora_path
+
+
+    safeloras = safe_open(args.lora_path, framework="pt", device="cpu")
+    tok_dict = parse_safeloras_embeds(safeloras)
+
+    trained_tokens = list(tok_dict.keys())
+
+
     return pipe.to(_device)
 
 
@@ -184,7 +260,7 @@ def generate(
         args.init_image = load_img(args.init_image_data, 'RGB')
 
     if args.init_image is not None:
-        args.W, args.H = match_aspect_ratio(args.W * args.H, args.init_image)
+        #args.W, args.H = match_aspect_ratio(args.W * args.H, args.init_image)
         args.init_image = args.init_image.resize((args.W, args.H), Image.LANCZOS)
 
     force_starting_latent = None
@@ -231,6 +307,14 @@ def generate(
     else:
         prompt, negative_prompt = args.text_input, args.uc_text
         args.c, args.uc = None, None
+
+    if 0:
+        for token in ["<person1>", "<person2>"]:
+            print("Patching token", token)
+            token_id = pipe.tokenizer.convert_tokens_to_ids(token)
+            embed = pipe.text_encoder.get_input_embeddings().weight.data[token_id]
+            print(embed[-510:-500])
+
 
     if args.mode == 'depth2img':
         pipe_output = pipe(
@@ -330,8 +414,11 @@ def make_interpolation(args, force_timepoints = None):
         args.interpolation_seeds.append(args.interpolation_seeds[0])
         args.interpolation_init_images.append(args.interpolation_init_images[0])
 
+    global pipe
     pipe = get_pipe(args)
     #model = update_aesthetic_gradient_settings(model, args)
+
+    #loraBlender = LoraBlender(args.lora_scale) if args.lora_paths is not None else None
     
     # if there are init images, change width/height to their average
     interpolation_init_images = None
@@ -360,6 +447,9 @@ def make_interpolation(args, force_timepoints = None):
 
     del_clip_interrogator_models()
 
+    print("Creating interpolator")
+    print(args.n_frames, "frames")
+
     args.interpolator = Interpolator(
         pipe, 
         args.interpolation_texts, 
@@ -379,6 +469,8 @@ def make_interpolation(args, force_timepoints = None):
     n_frames = len(args.interpolator.ts)
     if force_timepoints is not None:
         n_frames = len(force_timepoints)
+
+    active_lora_path = args.lora_paths[0] if args.lora_paths is not None else None
 
     ######################################
 
@@ -400,6 +492,17 @@ def make_interpolation(args, force_timepoints = None):
         args.c = c
         args.scale = scale
         args.t_raw = t_raw
+
+        if args.lora_paths is not None:
+            # Maybe update the lora to the next person:
+            if args.lora_paths[return_index] != active_lora_path:
+                active_lora_path = args.lora_paths[return_index]
+                print("Switching to lora path", active_lora_path)
+                args.lora_path = active_lora_path
+
+        #if loraBlender is not None:
+        #    lora_path1, lora_path2 = args.lora_paths[return_index], args.lora_paths[(return_index + 1) % len(args.lora_paths)]
+        #    loraBlender.patch_pipe(pipe, t, lora_path1, lora_path2)
 
         if 1 and (args.interpolation_init_images and all(args.interpolation_init_images) or len(args.interpolator.latent_tracker.frame_buffer.ts) >= args.n_anchor_imgs):
 
@@ -436,6 +539,8 @@ def make_interpolation(args, force_timepoints = None):
  splitting lpips_d: {args.interpolator.latent_tracker.frame_buffer.get_perceptual_distance_at_t(args.t_raw):.2f}),\
  keyframe {return_index+1}/{len(args.interpolation_texts) - 1}...")
 
+
+        args.lora_path = active_lora_path
         _, pil_images = generate(args)
         img_pil = pil_images[0]
         img_t = T.ToTensor()(img_pil).unsqueeze_(0).to(_device)
@@ -469,8 +574,8 @@ def make_images(args, steps_per_update=None):
 
     assert args.text_input is not None
 
-    global pipe            
-    pipe = get_pipe(args)
+    #global pipe            
+    #pipe = get_pipe(args)
     #pipe = update_aesthetic_gradient_settings(pipe, args)
     
     _, images_pil = generate(args)

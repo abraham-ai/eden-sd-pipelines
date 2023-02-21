@@ -4,16 +4,14 @@ import torch.nn as nn
 import os, time, math, random
 from PIL import Image
 
-
+from generation import *
 from einops import rearrange, repeat
 #from sd import get_prompt_conditioning
 from eden_utils import seed_everything, slerp, lerp, create_seeded_noise, DataTracker
-
-global device
-device = "cuda" if torch.cuda.is_available() else "cpu"
+from settings import _device
 
 import lpips
-lpips_perceptor = lpips.LPIPS(net='alex').eval().to(device)    # lpips model options: 'squeeze', 'vgg', 'alex'
+lpips_perceptor = lpips.LPIPS(net='alex').eval().to(_device)    # lpips model options: 'squeeze', 'vgg', 'alex'
 
 def tensor_info(img):
     print("Shape: %s, Min: %.3f | Max: %.3f | Mean: %.3f | Std: %.3f" %(str(img.shape), img.min(), img.max(), img.mean(), img.std()))
@@ -24,7 +22,7 @@ def prep_pt_img_for_clip(pt_img, clip_preprocessor):
     pil_img = Image.fromarray(pt_img.squeeze().cpu().numpy().astype(np.uint8))
 
     # now, preprocess the image with the CLIP preprocessor:
-    clip_img = clip_preprocessor(images=pil_img, return_tensors="pt")["pixel_values"].float().to(device)
+    clip_img = clip_preprocessor(images=pil_img, return_tensors="pt")["pixel_values"].float().to(_device)
     return clip_img
 
 import torchvision
@@ -310,6 +308,12 @@ class Interpolator():
             else:
                 perceptual_target_curve = np.ones(len(perceptual_distances)+1)
 
+                if 1:
+                    # create a full period sine curve that starts at 0 and ends at 0:
+                    perceptual_target_curve = np.sin(np.linspace(-np.pi/2, 2*np.pi - np.pi/2, len(perceptual_distances)+1)) + 3.0
+                    perceptual_target_curve = perceptual_target_curve / np.mean(perceptual_target_curve)
+
+
             # Get all the middle-points between the current timepoints:
             new_ts_to_try = []
             for i in range(len(self.latent_tracker.frame_buffer.ts)-1):
@@ -352,6 +356,7 @@ class Interpolator():
         self.latent_tracker.reset_buffer()
         self.clear_buffer_at_next_iteration = False
         self.data_tracker.save()
+        self.args.c = None
 
     def get_next_conditioning(self, verbose = 0, save_distances_to_dir = None, t_raw = None):
         '''
