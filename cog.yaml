@@ -6,8 +6,6 @@ build:
   system_packages:
     - "libgl1-mesa-glx"
     - "libglib2.0-0"
-    # - "ffmpeg"
-    # - "cmake"
 
   python_packages:
     - "git+https://www.github.com/abraham-ai/diffusers"
@@ -34,7 +32,8 @@ build:
    - pip install -e ./BLIP
    - git clone https://github.com/pharmapsychotic/clip-interrogator
    - pip install -e ./clip-interrogator --no-deps
-   - git clone https://github.com/cloneofsimo/lora
+   - git clone -b xander-updates https://github.com/aiXander/lora
+
 
 predict: "predict.py:Predictor"
 

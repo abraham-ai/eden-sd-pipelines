@@ -14,6 +14,21 @@ import torch
 from einops import rearrange, repeat
 from skimage.exposure import match_histograms
 
+def pick_best_gpu_id():
+    # pick the GPU with the most free memory:
+    gpu_ids = [i for i in range(torch.cuda.device_count())]
+    print(f"# of visible GPUs: {len(gpu_ids)}")
+    gpu_mem = []
+    for gpu_id in gpu_ids:
+        free_memory, tot_mem = torch.cuda.mem_get_info(device=gpu_id)
+        gpu_mem.append(free_memory)
+        print("GPU %d: %d MB free" %(gpu_id, free_memory / 1024 / 1024))    
+    best_gpu_id = gpu_ids[np.argmax(gpu_mem)]
+    # set this to be the active GPU:
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(best_gpu_id)
+    print("Using GPU %d" %best_gpu_id)
+    return best_gpu_id
+
 def patch_conv(**patch):
     # Enables tileable textures
     # https://github.com/TomMoore515/material_stable_diffusion

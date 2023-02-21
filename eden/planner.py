@@ -167,8 +167,8 @@ class Planner():
             # Modulate the guidance_scale with the percussion:
             # for higher init_img_strength, we want to modulate the guidance_scale more since there's less diffusion steps:
             scale_modulation_f = 12 + 10 * args.init_image_strength
-            args.scale = args.scale + scale_modulation_f * self.fps_adjusted_percus_features[-1, self.frame_index]
-            #args.scale = args.scale + scale_modulation_f * self.push_signal[self.frame_index]
+            args.guidance_scale = args.guidance_scale + scale_modulation_f * self.fps_adjusted_percus_features[-1, self.frame_index]
+            #args.guidance_scale = args.guidance_scale + scale_modulation_f * self.push_signal[self.frame_index]
 
         if 0:
             # modulate args.c in the direction of self.modulation_text_c
@@ -589,7 +589,7 @@ class LatentTracker():
         self.phase_data['t_raw'].append(t_raw)
         self.phase_data['init_image_strength'].append(args.init_image_strength)
         self.phase_data['c'].append(args.c.cpu().numpy().astype(np.float16))
-        self.phase_data['scale'].append(args.scale)
+        self.phase_data['scale'].append(args.guidance_scale)
 
     def save_to_disk(self):
         phase_data_dir = os.path.join(self.args.frames_dir, "phase_data")

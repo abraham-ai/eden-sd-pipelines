@@ -36,7 +36,7 @@ def generate_basic(text_input, outdir,
         H = 512,
         sampler = "euler",
         steps = 40,
-        scale = 12,
+        guidance_scale = 12,
         upscale_f = 1.0,
         text_input = text_input,
         seed = seed,
@@ -49,7 +49,7 @@ def generate_basic(text_input, outdir,
     name = f'{prefix}{args.text_input[:40]}_{args.seed}_{int(time.time())}{suffix}'
 
     name = name.replace("/", "_")
-    generator = make_images(args, steps_per_update=steps_per_update)
+    generator = make_images(args)
 
     for i, img in enumerate(generator):
         frame = f'{name}_{i}.jpg'

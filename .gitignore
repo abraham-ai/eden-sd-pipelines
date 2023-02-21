@@ -22,5 +22,11 @@ eden/templates/results
 eden/templates/unit_test_results
 eden/templates/cache
 
+# large files
+models
+.huggingface/
+.torch/
+cache
+
 # custom xander dev files
 eden/xander

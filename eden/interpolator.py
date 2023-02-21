@@ -6,7 +6,6 @@ from PIL import Image
 
 from generation import *
 from einops import rearrange, repeat
-#from sd import get_prompt_conditioning
 from eden_utils import seed_everything, slerp, lerp, create_seeded_noise, DataTracker
 from settings import _device
 
@@ -44,6 +43,7 @@ def perceptual_distance(img1, img2,
     By default, images are resized to a fixed resolution before computing the lpips score
     this is useful since some parts of the algorithm are computed from the perceptual distance values.
     '''
+
     minv1, minv2 = img1.min().item(), img2.min().item()
     minv = min(minv1, minv2)
     if minv < 0:
@@ -116,7 +116,7 @@ class Interpolator():
         if self.seeds is None:
             self.seeds = np.random.randint(0, high=9999, size=self.n)
         if self.scales is None:
-            self.scales = [args.scale] * self.n
+            self.scales = [args.guidance_scale] * self.n
         
         assert len(self.seeds) == len(self.prompts), "Number of given seeds must match number of prompts!"
         assert len(self.scales) == len(self.prompts), "Number of given scales must match number of prompts!"
@@ -155,7 +155,7 @@ class Interpolator():
                 prompt,
                 self.device,
                 1,
-                self.args.scale > 1.0,
+                self.args.guidance_scale > 1.0,
                 negative_prompt = self.args.uc_text
             )
 

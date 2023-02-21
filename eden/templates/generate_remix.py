@@ -26,7 +26,7 @@ def remix(init_image_data, outdir,
         H = 578,
         sampler = "euler",
         steps = 40,
-        scale = 12,
+        guidance_scale = 12,
         seed = seed,
         n_samples = 2,
         upscale_f = 1.0,
@@ -45,7 +45,7 @@ def remix(init_image_data, outdir,
 
     name = f'remix_{args.seed}_{args.sampler}_{args.steps}_{int(time.time())}'
 
-    generator = make_images(args, steps_per_update=steps_per_update)
+    generator = make_images(args)
     for i, img in enumerate(generator):
         frame = f'{name}_{i}.jpg'
         os.makedirs(outdir, exist_ok = True)

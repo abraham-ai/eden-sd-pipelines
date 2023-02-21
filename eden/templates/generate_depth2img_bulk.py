@@ -26,7 +26,7 @@ def generate_depth2img(init_image_data, text_input, outdir,
         H = 576,
         sampler = "euler",
         steps = 40,
-        scale = 10,
+        guidance_scale = 10,
         upscale_f = 1.0,
         text_input = text_input,
         init_image_strength = init_strength,
@@ -39,7 +39,7 @@ def generate_depth2img(init_image_data, text_input, outdir,
     args.text_input = args.text_input.replace("/", "_")
     name = f'{args.text_input[:40]}_{args.seed}_{args.sampler}_{args.steps}'
 
-    generator = make_images(args, steps_per_update=steps_per_update)
+    generator = make_images(args)
     for i, result in enumerate(generator):
         img = result[0]
         for b in range(args.n_samples):

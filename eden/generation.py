@@ -4,8 +4,8 @@ from pathlib import Path
 
 SD_PATH = Path(os.path.dirname(os.path.realpath(__file__))).parents[0]
 ROOT_PATH = SD_PATH.parents[0]
-MODELS_PATH = os.path.join(ROOT_PATH, 'models')
-LORA_PATH = '/lora' #os.path.join(ROOT_PATH, 'lora')
+CLIP_INTERROGATOR_MODEL_PATH = os.path.join(ROOT_PATH, 'cache')
+LORA_PATH = os.path.join(ROOT_PATH, 'lora')
 sys.path.append(LORA_PATH)
 
 from _thread import start_new_thread
@@ -23,26 +23,21 @@ import torchvision.transforms.functional as TF
 from settings import StableDiffusionSettings, _device
 from eden_utils import *
 from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline, StableDiffusionDepth2ImgPipeline
-# TODO add this to the diffusers package for cleaner imports
 from diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion_eden import StableDiffusionEdenPipeline
 from diffusers import LMSDiscreteScheduler, EulerDiscreteScheduler, DDIMScheduler, DPMSolverMultistepScheduler, KDPM2DiscreteScheduler, LMSDiscreteScheduler, PNDMScheduler
 from diffusers.pipelines.stable_diffusion.convert_from_ckpt import load_pipeline_from_original_stable_diffusion_ckpt
 from diffusers.models import AutoencoderKL
 
 from interpolator import *
-#from animation import *
-#from inpaint import *
-#from depth import *
 from clip_tools import *
 from planner import LatentTracker, create_init_latent, blend_inits
+
 from lora_diffusion import tune_lora_scale, patch_pipe, monkeypatch_or_replace_safeloras, monkeypatch_remove_lora, dict_to_lora, load_safeloras_both, apply_learned_embed_in_clip, parse_safeloras, monkeypatch_or_replace_lora_extended, parse_safeloras_embeds
 
-
 # some global variables that persist between function calls:
-pipe  = None
+pipe = None
 last_checkpoint = None
 last_lora_path = None
-
 
 from safetensors.torch import safe_open, save_file
 
@@ -186,6 +181,7 @@ def load_pipe(args, img2img = False):
     print(f"Created new pipe in {(time.time() - start_time):.2f} seconds")
     return pipe.to(_device)
 
+
 def get_pipe(args, force_reload = False):
     # create a persistent, global pipe object:
     global pipe
@@ -230,7 +226,6 @@ def set_sampler(sampler_name, pipe):
     #print(f"Sampler set to {sampler_name}")
 
 
-
 def maybe_apply_watermark(args, x_images):
     # optionally, apply watermark to final image:
     if args.watermark_path is not None:
@@ -243,6 +238,7 @@ def maybe_apply_watermark(args, x_images):
         # apply watermark:
         x_images = args.watermarker.apply_watermark(x_images)
     return x_images
+
 
 @torch.no_grad()
 def generate(
@@ -294,8 +290,8 @@ def generate(
 
     # Callback
     callback_ = make_callback(
-        extra_callback=None,
         latent_tracker = args.interpolator.latent_tracker if args.interpolator is not None else None,
+        extra_callback = None,
     )
 
     generator = torch.Generator(device=_device).manual_seed(args.seed)
@@ -324,11 +320,11 @@ def generate(
             #depth_map = None,
             negative_prompt = negative_prompt,
             num_inference_steps = n_steps,
-            guidance_scale = args.scale,
+            guidance_scale = args.guidance_scale,
             num_images_per_prompt = args.n_samples,
             )
     else:
-        if args.init_image is not None or 1:   # img2img / Eden
+        if args.init_image is not None or True:   # img2img / Eden
             pipe_output = pipe(
                 prompt = prompt,
                 negative_prompt = negative_prompt, 
@@ -337,7 +333,7 @@ def generate(
                 image=args.init_image, 
                 strength=1-args.init_image_strength, 
                 num_inference_steps = n_steps,
-                guidance_scale = args.scale,
+                guidance_scale = args.guidance_scale,
                 num_images_per_prompt = args.n_samples,
                 prompt_embeds = args.c,
                 negative_prompt_embeds = args.uc,
@@ -345,7 +341,7 @@ def generate(
                 latents = args.init_latent,
                 force_starting_latent = force_starting_latent,
                 callback = callback_,
-                )
+            )
         else:   # text2img
             pipe_output = pipe(
                 prompt = prompt, 
@@ -353,13 +349,13 @@ def generate(
                 width = args.W, 
                 height = args.H,
                 num_inference_steps = n_steps,
-                guidance_scale = args.scale,
+                guidance_scale = args.guidance_scale,
                 num_images_per_prompt = args.n_samples,
                 latents = args.init_latent,
                 prompt_embeds = args.c,
                 negative_prompt_embeds = args.uc,
                 generator = generator,
-                )
+            )
         
     pil_images = pipe_output.images
 
@@ -379,9 +375,6 @@ def generate(
 
     pil_images = maybe_apply_watermark(args, pil_images)
     return pt_images, pil_images
-
-
-
 
 
 @torch.no_grad()
@@ -429,10 +422,10 @@ def make_interpolation(args, force_timepoints = None):
         interpolation_init_images = get_uniformly_sized_crops(args.interpolation_init_images, args.H * args.W)
         args.W, args.H = interpolation_init_images[0].size
 
-        # if args.interpolation_init_images_use_img2txt, then use prompt-search img2txt to overwrite interpolation_texts
+        # if args.interpolation_init_images_use_img2txt, then use clip-interrogator to overwrite interpolation_texts
         if args.interpolation_init_images_use_img2txt:
             if real2real_texts is None:
-                init_img_prompts = [clip_interrogate(args.ckpt, init_img, args.clip_interrogator_mode) for init_img in interpolation_init_images]
+                init_img_prompts = [clip_interrogate(args.ckpt, init_img, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH) for init_img in interpolation_init_images]
                 args.interpolation_texts = init_img_prompts
                 print("Overwriting prompts with clip-interrogator results:", init_img_prompts)
             else:
@@ -458,7 +451,7 @@ def make_interpolation(args, force_timepoints = None):
         _device, 
         smooth=args.smooth,
         seeds=args.interpolation_seeds,
-        scales=[args.scale for _ in args.interpolation_texts],
+        scales=[args.guidance_scale for _ in args.interpolation_texts],
         scale_modulation_amplitude_multiplier=args.scale_modulation,
     )
 
@@ -480,7 +473,7 @@ def make_interpolation(args, force_timepoints = None):
         else:
             force_t_raw = None
 
-        if 0: # catch errors and try to complete the video
+        if False: # catch errors and try to complete the video
             try:
                 t, t_raw, c, init_latent, scale, return_index, _, _ = args.interpolator.get_next_conditioning(verbose=0, save_distances_to_dir = args.save_distances_to_dir, t_raw = force_t_raw)
             except Exception as e:
@@ -490,7 +483,7 @@ def make_interpolation(args, force_timepoints = None):
             t, t_raw, c, init_latent, scale, return_index, _, _ = args.interpolator.get_next_conditioning(verbose=0, save_distances_to_dir = args.save_distances_to_dir, t_raw = force_t_raw)
         
         args.c = c
-        args.scale = scale
+        args.guidance_scale = scale
         args.t_raw = t_raw
 
         if args.lora_paths is not None:
@@ -520,7 +513,6 @@ def make_interpolation(args, force_timepoints = None):
                 args.init_image, args.init_image_strength = blend_inits(init_img1, init_img2, t, args, real2real = is_real2real)
                 args.init_latent = None
             else:
-                print("Latent blending...")
                 # perform Latent-Blending initialization:
                 args.init_latent, args.init_image, args.init_image_strength = create_init_latent(args, t, init_img1, init_img2, _device, pipe, real2real = is_real2real)
 
@@ -534,10 +526,10 @@ def make_interpolation(args, force_timepoints = None):
             args = args.planner.adjust_args(args, t_raw, force_timepoints=force_timepoints)
 
         print(f"Interpolating frame {f+1}/{len(args.interpolator.ts)} (t_raw = {t_raw:.5f},\
- init_strength: {args.init_image_strength:.2f},\
- latent skip_f: {args.interpolator.latent_tracker.latent_blending_skip_f:.2f},\
- splitting lpips_d: {args.interpolator.latent_tracker.frame_buffer.get_perceptual_distance_at_t(args.t_raw):.2f}),\
- keyframe {return_index+1}/{len(args.interpolation_texts) - 1}...")
+                init_strength: {args.init_image_strength:.2f},\
+                latent skip_f: {args.interpolator.latent_tracker.latent_blending_skip_f:.2f},\
+                splitting lpips_d: {args.interpolator.latent_tracker.frame_buffer.get_perceptual_distance_at_t(args.t_raw):.2f}),\
+                keyframe {return_index+1}/{len(args.interpolation_texts) - 1}...")
 
 
         args.lora_path = active_lora_path
@@ -552,8 +544,7 @@ def make_interpolation(args, force_timepoints = None):
     args.interpolator.latent_tracker.reset_buffer()
 
 
-
-def make_images(args, steps_per_update=None):
+def make_images(args):
 
     if args.mode == "remix":
         enable_random_lr_flipping = True  # randomly flip the init img for remixing?
@@ -568,7 +559,7 @@ def make_images(args, steps_per_update=None):
 
         args.W, args.H = match_aspect_ratio(args.W * args.H, args.init_image)
         args.aesthetic_target = [args.init_image]
-        args.text_input = clip_interrogate(args.ckpt, args.init_image, args.clip_interrogator_mode)
+        args.text_input = clip_interrogate(args.ckpt, args.init_image, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
 
         del_clip_interrogator_models()
 
@@ -583,79 +574,16 @@ def make_images(args, steps_per_update=None):
     return images_pil
 
 
-
-def make_images22(args, steps_per_update=None):
-
-    if args.mode == "remix":
-        enable_random_lr_flipping = True  # randomly flip the init img for remixing?
-
-        if args.init_image_data:
-            args.init_image = load_img(args.init_image_data, 'RGB')
-
-        assert args.init_image is not None, "Must provide an init image in order to remix it!"
-        
-        if random.random() > 0.5 and enable_random_lr_flipping:
-            args.init_image = args.init_image.transpose(Image.FLIP_LEFT_RIGHT)
-
-        args.W, args.H = match_aspect_ratio(args.W * args.H, args.init_image)
-        args.aesthetic_target = [args.init_image]
-        args.text_input = clip_interrogate(args.ckpt, args.init_image, args.clip_interrogator_mode)
-
-        del_clip_interrogator_models()
-
-    assert args.text_input is not None
-
-    queue = Queue() 
-    job_done = object() 
-    
-    def callback(img, i):
-        if i == args.steps-1 or i % steps_per_update == 0:
-            queue.put(img)
-            queue.put(None, True, timeout=None)
-            queue.join()
-        
-    def run_make_images():
-        try:
-            global pipe       
-            pipe = get_pipe(args)
-            #pipe = update_aesthetic_gradient_settings(pipe, args)
-
-            if steps_per_update is None:
-                _, images_pil = generate(args)
-                callback(images_pil, args.steps-1)
-            else:
-                generate(args, callback)
-            queue.put(job_done)
-        except Exception as exception:
-            print("Exception in run_make_images: ", exception)
-            queue.put(exception)
-            queue.put(job_done)
-            raise exception
-
-    start_new_thread(run_make_images, ())
-    frame_idx = 0
-    while True:
-        next_item = queue.get(True, timeout=None)
-        queue.task_done()
-        if next_item is job_done:
-            break
-        yield next_item, frame_idx
-        frame_idx += 1
-        queue.get()
-        queue.task_done()
-
-
-
 def make_callback(
-    extra_callback=None,
     latent_tracker=None,
+    extra_callback=None,
 ):
     # Callback for _call_ in diffusers repo, called thus:
     #   callback(i, t, latents)
     def diffusers_callback(i, t, latents):
         if latent_tracker is not None:
             latent_tracker.add_latent(latents)
-        if extra_callback and 0: # TODO fix this function for discord etc...
+        if extra_callback and False: # TODO fix this function for discord etc...
             x = model.decode_first_stage(args_dict['x'])
             x = torch.clamp((x + 1.0) / 2.0, min=0.0, max=1.0)
             x = 255. * rearrange(x, 'b c h w -> b h w c')
@@ -694,7 +622,7 @@ def interrogate(args):
         args.init_image = load_img(args.init_image_data, 'RGB')
     
     assert args.init_image is not None, "Must provide an init image"
-    interrogated_prompt = clip_interrogate(args.ckpt, args.init_image, args.clip_interrogator_mode)
+    interrogated_prompt = clip_interrogate(args.ckpt, args.init_image, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
     #del_clip_interrogator_models()
 
     return interrogated_prompt

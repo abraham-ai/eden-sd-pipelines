@@ -43,7 +43,7 @@ def real2real_lora(input_images, lora_paths, interpolation_texts, outdir,
             interpolation_init_images_min_strength = 0.20,  # a higher value will make the video smoother, but allows less visual change / journey
             interpolation_init_images_max_strength = 0.95,
             latent_blending_skip_f = [0.15, 0.8],
-            scale = 12,
+            guidance_scale = 12,
             scale_modulation = 0.0,
             n_frames = 6*n,
             loop = True,
