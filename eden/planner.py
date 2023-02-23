@@ -7,8 +7,7 @@ from PIL import Image, ImageEnhance
 import matplotlib.pyplot as plt
 plt.rcParams['font.size'] = 15
 
-#from audio import create_audio_features
-#from sd import get_prompt_conditioning
+from audio import create_audio_features
 from eden_utils import pil_img_to_latent, slerp, create_seeded_noise, save_settings
 
 
@@ -80,11 +79,12 @@ class Planner():
             plt.plot(old_x, current_push_segment, label="full_signal")
             plt.plot(new_x, resampled_current_push_segment, label="downsampled_signal")
             plt.legend()
+            plt.ylim(0.0, 2.0)
             timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
             plt.savefig(f"resampling_curve_{timestamp}.png")
             plt.clf()
 
-        resampled_current_push_segment = resampled_current_push_segment / np.mean(resampled_current_push_segment)
+        #resampled_current_push_segment = resampled_current_push_segment / np.mean(resampled_current_push_segment)
 
         return resampled_current_push_segment, current_push_segment
 
@@ -111,10 +111,11 @@ class Planner():
 
         # plot the harmonic_energy curve:
         if 1:
-            seconds = 12
+            seconds = 60
             frames = self.fps*seconds
             plt.figure(figsize=(14,8))
             plt.plot(self.push_signal[:frames])
+            plt.ylim(0.0, 2.0)
             plt.savefig("fps_adjusted_percus_features.png")
             plt.clf()
 
@@ -124,21 +125,21 @@ class Planner():
 
         # increase the brightness of the init_img:
         enhancer = ImageEnhance.Brightness(image)
-        factor = 1 + 0.015 * self.fps_adjusted_percus_features[2, frame_index]
+        factor = 1 + 0.005 * self.fps_adjusted_percus_features[2, frame_index]
         image = enhancer.enhance(factor)
 
         # increase the contrast of the init_img:
         enhancer = ImageEnhance.Contrast(image)
-        factor = 1 + 0.8 * self.fps_adjusted_percus_features[1, frame_index]
+        factor = 1 + 0.5 * self.fps_adjusted_percus_features[1, frame_index]
         image = enhancer.enhance(factor)
 
         # increase the saturation of the init_img:
         enhancer = ImageEnhance.Color(image)
-        factor = 1 + 1.5 * self.fps_adjusted_percus_features[1, frame_index]
+        factor = 1 + 0.5 * self.fps_adjusted_percus_features[1, frame_index]
         image = enhancer.enhance(factor)
 
         # slightly crop and zoom in on the init_img:
-        zoom_factor = 1 + 0.0075 * self.fps_adjusted_percus_features[0, frame_index]
+        zoom_factor = 1 + 0.007 * self.fps_adjusted_percus_features[0, frame_index]
         # get the center pixel coordinates:
         x, y = image.size[0]//2, image.size[1]//2
         image = zoom_at(image, x, y, zoom_factor)

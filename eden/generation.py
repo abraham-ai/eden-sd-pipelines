@@ -169,7 +169,7 @@ def load_pipe(args, img2img = False):
         else:
             print(f"Creating new StableDiffusionEdenPipeline using {args.ckpt}")
             vae = AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse").half() # Use the (slightly better) updated vae model from stability
-            pipe = StableDiffusionEdenPipeline.from_pretrained(args.ckpt, safety_checker=None, torch_dtype=torch.float16 if args.half_precision else torch.float32, vae=vae)
+            pipe = StableDiffusionEdenPipeline.from_pretrained(args.ckpt, safety_checker=None, local_files_only = True, torch_dtype=torch.float16 if args.half_precision else torch.float32, vae=vae)
             #pipe = StableDiffusionPipeline.from_pretrained(args.ckpt, safety_checker=None, torch_dtype=torch.float16 if args.half_precision else torch.float32, vae=vae)
     
     except Exception as e:
