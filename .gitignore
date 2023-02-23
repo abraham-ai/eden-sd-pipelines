@@ -30,3 +30,11 @@ cache
 
 # custom xander dev files
 eden/xander
+
+lora
+.cog
+tuning.png
+training_batch_preview/
+results
+data
+loras

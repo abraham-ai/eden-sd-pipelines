@@ -2,6 +2,7 @@ import os
 import sys
 import tempfile
 import random
+import requests
 import hashlib
 from typing import Iterator, Optional
 import moviepy.editor as mpy
@@ -10,6 +11,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 os.environ["TORCH_HOME"] = "/src/.torch"
 os.environ["TRANSFORMERS_CACHE"] = "/src/.huggingface/"
 os.environ["DIFFUSERS_CACHE"] = "/src/.huggingface/"
@@ -19,31 +21,24 @@ os.environ["LPIPS_HOME"] = "/src/models/lpips/"
 sys.path.extend([
     "./eden",
     "/clip-interrogator",
-    "/lora",
-    "/frame-interpolation"
+    "/frame-interpolation",
+    "./lora",
+    "./lora/lora_diffusion"
 ])
-
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-
-
-
-
 
 from settings import StableDiffusionSettings
 import eden_utils
-#import film
-import interpolator
+import film
+from lora import train_lora
 
 from cog import BasePredictor, BaseModel, File, Input, Path
 
-#film.FILM_MODEL_PATH = "/src/models/film/film_net/Style/saved_model"
-interpolator.LPIPS_DIR = "/src/models/lpips/weights/v0.1/alex.pth"
-
 checkpoint_options = [
-    #"runwayml/stable-diffusion-v1-5",
-    #"prompthero/openjourney-v2",
+    "runwayml/stable-diffusion-v1-5",
+    "prompthero/openjourney-v2",
     "dreamlike-art/dreamlike-photoreal-2.0"
 ]
+
 
 class CogOutput(BaseModel):
     file: Path
@@ -54,12 +49,26 @@ class CogOutput(BaseModel):
     isFinal: bool = False
 
 
+def download(url, folder, ext):
+    filename = url.split('/')[-1]+ext
+    filepath = folder / filename
+    if filepath.exists():
+        return filepath
+    raw_file = requests.get(url, stream=True).raw
+    with open(filepath, 'wb') as f:
+        f.write(raw_file.read())
+    return filepath
+
+
 class Predictor(BasePredictor):
 
     def setup(self):
         print("cog:setup")
         import generation
+        import interpolator
         generation.CLIP_INTERROGATOR_MODEL_PATH = '/src/cache'
+        interpolator.LPIPS_DIR = "/src/models/lpips/weights/v0.1/alex.pth"
+        film.FILM_MODEL_PATH = "/src/models/film/film_net/Style/saved_model"
 
     def predict(
         self,
@@ -67,7 +76,7 @@ class Predictor(BasePredictor):
         # Universal args
         mode: str = Input(
             description="Mode", default="generate",
-            choices=["generate", "remix", "interpolate", "real2real", "interrogate"]
+            choices=["generate", "remix", "interpolate", "real2real", "interrogate", "lora"]
         ),
         stream: bool = Input(
             description="yield individual results if True", default=False
@@ -84,6 +93,19 @@ class Predictor(BasePredictor):
             description="Height", 
             ge=64, le=2048, default=512
         ),
+        checkpoint: str = Input(
+            description="Which Stable Diffusion checkpoint to use",
+            choices=checkpoint_options,
+            default="dreamlike-art/dreamlike-photoreal-2.0"
+        ),
+        lora: str = Input(
+            description="(optional) URL of Lora finetuning",
+            default=None
+        ),
+        lora_scale: float = Input(
+            description="Lora scale (how much of the Lora finetuning to apply)",
+            ge=0.0, le=1.0, default=0.8
+        ),
         sampler: str = Input(
             description="Which sampler to use", 
             default="euler", 
@@ -98,11 +120,6 @@ class Predictor(BasePredictor):
             description="Strength of text conditioning guidance", 
             ge=0, le=32, default=10.0
         ),
-        # ddim_eta: float = 0.0
-        # C: int = 4
-        # f: int = 8   
-        # dynamic_threshold: float = None
-        # static_threshold: float = None
         upscale_f: int = Input(
             description="Upscaling resolution",
             ge=1, le=4, default=1
@@ -117,20 +134,6 @@ class Predictor(BasePredictor):
             description="Strength of initial image", 
             ge=0.0, le=1.0, default=0.0
         ),
-        # init_image_inpaint_mode: str = Input(
-        #     description="Inpainting method for pre-processing init_image when it's masked", 
-        #     default="cv2_telea", choices=["mean_fill", "edge_pad", "cv2_telea", "cv2_ns"]
-        # ),
-        # mask_image_data: str = Input(
-        #     description="Load mask image from file, url, or base64 string", 
-        #     default=None
-        # ),
-        # mask_invert: bool = Input(
-        #     description="Invert mask", 
-        #     default=False
-        # ),
-        # mask_brightness_adjust: float = 1.0
-        # mask_contrast_adjust: float = 1.0
 
         # Generate mode
         text_input: str = Input(
@@ -168,14 +171,6 @@ class Predictor(BasePredictor):
             description="Interpolation init images, file paths or urls (mode==interpolate)",
             default=None
         ),
-        # interpolation_init_images_use_img2txt: bool = Input(
-        #     description="Use clip_search to get prompts for the init images, if false use manual interpolation_texts (mode==interpolate)",
-        #     default=False
-        # ),
-        # interpolation_init_images_top_k: int = Input(
-        #     description="Top K for interpolation_init_images prompts (mode==interpolate)",
-        #     ge=1, le=10, default=2
-        # ),
         interpolation_init_images_power: float = Input(
             description="Power for interpolation_init_images prompts (mode==interpolate)",
             ge=0.0, le=8.0, default=2.5
@@ -205,53 +200,11 @@ class Predictor(BasePredictor):
             default=12, ge=1, le=60
         ),
         
-        # Animation mode
-        # animation_mode: str = Input(
-        #     description="Interpolation texts (mode==interpolate)",
-        #     default='2D', choices=['2D', '3D', 'Video Input']
-        # ),
-        # init_video: Path = Input(
-        #     description="Initial video file (mode==animate)",
-        #     default=None
-        # ),
-        # extract_nth_frame: int = Input(
-        #     description="Extract each frame of init_video (mode==animate)",
-        #     ge=1, le=10, default=1
-        # ),
-        # turbo_steps: int = Input(
-        #     description="Turbo steps (mode==animate)",
-        #     ge=1, le=8, default=3
-        # ),
-        # previous_frame_strength: float = Input(
-        #     description="Strength of previous frame (mode==animate)",
-        #     ge=0.0, le=1.0, default=0.65
-        # ),
-        # previous_frame_noise: float = Input(
-        #     description="How much to noise previous frame (mode==animate)",
-        #     ge=0.0, le=0.2, default=0.02
-        # ),
-        # color_coherence: str = Input(
-        #     description="Color coherence strategy (mode==animate)", 
-        #     default='Match Frame 0 LAB', choices=['None', 'Match Frame 0 HSV', 'Match Frame 0 LAB', 'Match Frame 0 RGB']
-        # ),
-        # contrast: float = Input(
-        #     description="Contrast (mode==animation)",
-        #     ge=0.0, le=2.0, default=1.0
-        # ),
-        # angle: float = Input(
-        #     description="Rotation angle (animation_mode==2D)",
-        #     ge=-2.0, le=2.0, default=0.0
-        # ),
-        # zoom: float = Input(
-        #     description="Zoom (animation_mode==2D)",
-        #     ge=0.91, le=1.12, default=1.0
-        # ),
-        # translation_x: float = Input(description="Translation X (animation_mode==3D)", ge=-5, le=5, default=0),
-        # translation_y: float = Input(description="Translation U (animation_mode==3D)", ge=-5, le=5, default=0),
-        # translation_z: float = Input(description="Translation Z (animation_mode==3D)", ge=-5, le=5, default=0),
-        # rotation_x: float = Input(description="Rotation X (animation_mode==3D)", ge=-1, le=1, default=0),
-        # rotation_y: float = Input(description="Rotation U (animation_mode==3D)", ge=-1, le=1, default=0),
-        # rotation_z: float = Input(description="Rotation Z (animation_mode==3D)", ge=-1, le=1, default=0)
+        # Lora
+        lora_training_urls: str = Input(
+            description="Training images for new LORA concept (mode==lora)", 
+            default=None
+        ),
 
     ) -> Iterator[CogOutput]:
 
@@ -263,7 +216,9 @@ class Predictor(BasePredictor):
         interpolation_seeds = [float(i) for i in interpolation_seeds.split('|')] if interpolation_seeds else None
         interpolation_init_images = interpolation_init_images.split('|') if interpolation_init_images else None
 
-        checkpoint = random.choice(checkpoint_options)
+        lora_path = None
+        if lora:
+            lora_path = download(lora, 'loras', '.safetensor')
 
         args = StableDiffusionSettings(
             ckpt = checkpoint,
@@ -299,6 +254,9 @@ class Predictor(BasePredictor):
             n_film = n_film,
             fps = fps,
 
+            lora_path = lora_path,
+            lora_scale = lora_scale,
+
             aesthetic_target = None, # None means we'll use the init_images as target
             aesthetic_steps = 10,
             aesthetic_lr = 0.0001,
@@ -309,7 +267,57 @@ class Predictor(BasePredictor):
 
         out_dir = Path(tempfile.mkdtemp())
 
-        if mode == "interrogate":
+        if mode == "lora":
+            data_dir = Path(tempfile.mkdtemp())
+            data_dir.mkdir(exist_ok=True)
+            lora_training_urls = lora_training_urls.split('|')
+            for lora_url in lora_training_urls:
+                lora_file = download(lora_url, data_dir, '.jpg')
+
+            train_lora(
+                instance_data_dir = str(data_dir),
+                pretrained_model_name_or_path = checkpoint,
+                output_dir = str(out_dir),
+                out_name = "final_lora",
+                train_text_encoder = True,
+                perform_inversion = True,
+                resolution = 512,
+                train_batch_size = 4,
+                gradient_accumulation_steps = 1,
+                scale_lr = True,
+                learning_rate_ti = 2.5e-4,
+                continue_inversion = True,
+                continue_inversion_lr = 2.5e-5,
+                learning_rate_unet = 1.5e-5,
+                learning_rate_text = 2.5e-5,
+                color_jitter = True,
+                lr_scheduler = "linear",
+                lr_warmup_steps = 0,
+                placeholder_tokens = "<person1>",
+                proxy_token = "person",
+                use_template = "person",
+                use_mask_captioned_data = False,
+                save_steps = 500,
+                max_train_steps_ti = 300,
+                max_train_steps_tuning = 500,
+                clip_ti_decay = True,
+                weight_decay_ti = 0.0005,
+                weight_decay_lora = 0.001,
+                lora_rank_unet = 2,
+                lora_rank_text_encoder  =8,
+                cached_latents = False,
+                use_extended_lora = False,
+                enable_xformers_memory_efficient_attention = True,
+                use_face_segmentation_condition = True,
+                device = "cuda:0"
+            )
+
+            lora_location = out_dir / 'final_lora.safetensors'
+            print(os.system(f'ls {str(lora_location)}'))
+
+            yield CogOutput(file=lora_location, name="final_lora", thumbnail=None, attributes=None, isFinal=True, progress=1.0)
+
+        elif mode == "interrogate":
             interrogation = generation.interrogate(args)
             out_path = out_dir / f"interrogation.txt"
             with open(out_path, 'w') as f:
@@ -355,9 +363,8 @@ class Predictor(BasePredictor):
 
             # run FILM
             if args.n_film > 0:
-                #film.interpolate_FILM(str(out_dir), n_film)
-                #out_dir = out_dir / "interpolated_frames"
-                pass
+                film.interpolate_FILM(str(out_dir), n_film)
+                out_dir = out_dir / "interpolated_frames"
 
             # save video
             loop = (args.loop and len(args.interpolation_seeds) == 2)

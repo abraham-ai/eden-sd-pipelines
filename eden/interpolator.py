@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
+import torchvision
 import os, time, math, random
 from PIL import Image
 
@@ -24,7 +25,6 @@ def prep_pt_img_for_clip(pt_img, clip_preprocessor):
     clip_img = clip_preprocessor(images=pil_img, return_tensors="pt")["pixel_values"].float().to(_device)
     return clip_img
 
-import torchvision
 def resize(img, target_w, mode = "bilinear"):
     b,c,h,w = img.shape
     target_h = int(target_w * h / w)

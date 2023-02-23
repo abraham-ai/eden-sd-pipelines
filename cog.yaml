@@ -23,17 +23,21 @@ build:
     - "mediapipe==0.9.1.0"
     - "scikit-image==0.19.3"
     - "open_clip_torch==2.7.0"
-    - "xformers==0.0.17.dev446"
+    - "xformers==0.0.17.dev464"
     - "tokenizers==0.13.2"
     - "triton==2.0.0a1"
+    - "apache-beam==2.45.0"
+    - "natsort==8.2.0"
+    - "mediapy==1.1.4"
+    - "wandb==0.13.10"
 
   pre_install:
    - git clone https://github.com/pharmapsychotic/BLIP
    - pip install -e ./BLIP
    - git clone https://github.com/pharmapsychotic/clip-interrogator
    - pip install -e ./clip-interrogator --no-deps
-   - git clone -b xander-updates https://github.com/aiXander/lora
-
+   - pip install tensorflow==2.11.0
+   - git clone https://github.com/abraham-ai/frame-interpolation
 
 predict: "predict.py:Predictor"
 
