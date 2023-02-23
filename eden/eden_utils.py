@@ -13,6 +13,8 @@ from PIL import Image
 import torch
 from einops import rearrange, repeat
 from skimage.exposure import match_histograms
+import moviepy.editor as mpy
+
 
 def pick_best_gpu_id():
     # pick the GPU with the most free memory:
@@ -29,6 +31,7 @@ def pick_best_gpu_id():
     print("Using GPU %d" %best_gpu_id)
     return best_gpu_id
 
+
 def patch_conv(**patch):
     # Enables tileable textures
     # https://github.com/TomMoore515/material_stable_diffusion
@@ -38,6 +41,7 @@ def patch_conv(**patch):
     def __init__(self, *args, **kwargs):
         return init(self, *args, **kwargs, **patch)
     cls.__init__ = __init__
+
 
 def print_model_info(pipe):
     # Find all the parameters in all of the underlying nn modules and count them up:
@@ -50,6 +54,7 @@ def print_model_info(pipe):
             print(f"{num_params/1000000.:.2f}M params in {module_names[i]}")
             total_n_params += num_params
     print(f"Total number of parameters: {total_n_params/1000000.:.2f}M")
+
 
 class DataTracker():
     'Convenience class to save custom tracking numerical data to disk'
@@ -107,6 +112,7 @@ class DataTracker():
 
         # clear the data_dict:
         self.data = {}
+
 
 class WaterMarker():
     'Convenience class to add a transparent watermark to video frames'
@@ -185,6 +191,7 @@ class Timer():
     def exit(self, *args):
         print(f'{self.name} took {time.time() - self.start:.3f} seconds')
 
+
 def get_prompts_from_json_dir(json_dir, shuffle = False):
     json_files = [f for f in sorted(os.listdir(json_dir)) if f.endswith('.json')]
     if shuffle:
@@ -210,8 +217,6 @@ def seed_everything(seed):
         random.seed(seed)
 
 
-
-
 def preprocess_image(image, shape):
     image = image.resize(shape, resample=Image.Resampling.LANCZOS)
     image = np.array(image).astype(np.float16) / 255.0
@@ -219,11 +224,13 @@ def preprocess_image(image, shape):
     image = torch.from_numpy(image)
     return 2.*image - 1.
 
+
 def preprocess_mask(mask_image, shape):
     mask_w_h = (shape[-1], shape[-2])
     mask = mask_image.resize(mask_w_h, resample=Image.Resampling.LANCZOS)
     mask = mask.convert("L")
     return mask
+
 
 def sample_from_cv2(sample: np.ndarray) -> torch.Tensor:
     sample = ((sample.astype(float) / 255.0) * 2) - 1
@@ -231,16 +238,19 @@ def sample_from_cv2(sample: np.ndarray) -> torch.Tensor:
     sample = torch.from_numpy(sample)
     return sample
 
+
 def sample_to_cv2(sample: torch.Tensor, type=np.uint8) -> np.ndarray:
     sample_f32 = rearrange(sample.squeeze().cpu().numpy(), "c h w -> h w c").astype(np.float32)
     sample_f32 = ((sample_f32 * 0.5) + 0.5).clip(0, 1)
     sample_int8 = (sample_f32 * 255)
     return sample_int8.astype(type)
 
+
 def sample_from_pil(pil_img): # not tested!!!
     pixel_values = np.array(pil_img)
     sample = sample_from_cv2(pixel_values)
     return sample
+
 
 def sample_to_pil(sample):
     """Converts a pytorch tensor in the range [0,1] to a PIL image in range [0,255]"""
@@ -270,12 +280,14 @@ def preprocess(image):
         image = torch.cat(image, dim=0)
     return image
 
+
 def pil_img_to_latent(img, args, device, pipe):
     img = preprocess(img)
     img = img.to(device=device, dtype=pipe.vae.dtype)
     latent = pipe.vae.encode(img).latent_dist.sample(pipe.generator)
     latent = pipe.vae.config.scaling_factor * latent
     return latent
+
 
 def load_img(data, mode):
     if data.startswith('http://') or data.startswith('https://'):
@@ -289,18 +301,17 @@ def load_img(data, mode):
     return image
 
 
-
-
-
 def round_to_nearest_multiple(number, multiple):
     return int(multiple * round(number / multiple))
     
+
 def create_seeded_noise(seed, args, device, batch_size=1):
     seed_everything(seed)
     shape = [args.C, args.H // args.f, args.W // args.f]
     random_noise = torch.randn([batch_size, *shape], device=device)
     return random_noise
     
+
 def match_aspect_ratio(n_pixels, img):
     aspect_ratio = np.array(img).shape[1] / np.array(img).shape[0]
     w2 = round_to_nearest_multiple(np.sqrt(n_pixels * aspect_ratio), 64)
@@ -313,6 +324,7 @@ def load_base64(data, mode):
     pil_img = PIL.Image.open(BytesIO(base64.b64decode(data)))
     pil_img = pil_img.convert(mode)
     return pil_img
+
 
 def prepare_mask(mask_image, mask_shape, mask_brightness_adjust=1.0, mask_contrast_adjust=1.0, invert_mask=False):
     # PIL mask image
@@ -539,7 +551,7 @@ def get_uniformly_sized_crops(imgs, target_n_pixels):
     
     return resized_imgs
 
-import moviepy.editor as mpy
+
 def write_video(frames_dir, video_filename, loop=False, fps=30, codec = 'libx264'):
     frames = sorted([os.path.join(frames_dir, f) for f in os.listdir(frames_dir) if f.endswith(".jpg")])
     if loop:

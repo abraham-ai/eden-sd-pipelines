@@ -20,192 +20,22 @@ import torch
 import torchvision.transforms as T
 import torchvision.transforms.functional as TF
 
-from settings import StableDiffusionSettings, _device
-from eden_utils import *
-from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline, StableDiffusionDepth2ImgPipeline
-from diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion_eden import StableDiffusionEdenPipeline
-from diffusers import LMSDiscreteScheduler, EulerDiscreteScheduler, DDIMScheduler, DPMSolverMultistepScheduler, KDPM2DiscreteScheduler, LMSDiscreteScheduler, PNDMScheduler
-from diffusers.pipelines.stable_diffusion.convert_from_ckpt import load_pipeline_from_original_stable_diffusion_ckpt
-from diffusers.models import AutoencoderKL
+from diffusers import (
+    LMSDiscreteScheduler, 
+    EulerDiscreteScheduler, 
+    DDIMScheduler, 
+    DPMSolverMultistepScheduler, 
+    KDPM2DiscreteScheduler, 
+    LMSDiscreteScheduler, 
+    PNDMScheduler
+)
 
+import pipe as eden_pipe
+from settings import _device
+from eden_utils import *
 from interpolator import *
 from clip_tools import *
 from planner import LatentTracker, create_init_latent, blend_inits
-
-from lora_diffusion import tune_lora_scale, patch_pipe, monkeypatch_or_replace_safeloras, monkeypatch_remove_lora, dict_to_lora, load_safeloras_both, apply_learned_embed_in_clip, parse_safeloras, monkeypatch_or_replace_lora_extended, parse_safeloras_embeds
-
-# some global variables that persist between function calls:
-pipe = None
-last_checkpoint = None
-last_lora_path = None
-
-from safetensors.torch import safe_open, save_file
-
-"""
-class LoraBlender():
-    # Helper class to blend LORA models on the fly during interpolations
-
-    def __init__(self, lora_scale):
-        self.lora_scale = lora_scale
-        self.loras_in_memory = {}
-        self.embeds_in_memory = {}
-
-    def load_lora(self, lora_path):
-        if lora_path in self.loras_in_memory:
-            return self.loras_in_memory[lora_path], self.embeds_in_memory[lora_path]
-        else:
-            print(f" ---> Loading lora from {lora_path} into memory..")
-            safeloras = safe_open(lora_path, framework="pt", device=device)
-            embeddings = parse_safeloras_embeds(safeloras)
-            
-            self.loras_in_memory[lora_path] = safeloras
-            self.embeds_in_memory[lora_path] = embeddings
-
-            return safeloras, embeddings
-
-    def blend_embeds(self, embeds_1, embeds_2, t):
-        # Blend the two dictionaries of embeddings:
-        ret_embeds = {}
-        for key in set(list(embeds_1.keys()) + list(embeds_2.keys())):
-            if key in embeds_1.keys() and key in embeds_2.keys():
-                ret_embeds[key] = (1-t) * embeds_1[key] + t * embeds_2[key]
-            elif key in embeds_1.keys():
-                ret_embeds[key] = embeds_1[key]
-            elif key in embeds_2.keys():
-                ret_embeds[key] = embeds_2[key]
-        return ret_embeds
-
-    def patch_pipe(self, pipe, t, lora1_path, lora2_path):
-        print(f" ---> Patching pipe with lora1 = {os.path.basename(os.path.dirname(lora1_path))} and lora2 = {os.path.basename(os.path.dirname(lora2_path))} at t = {t:.2f}")
-
-        # Load the two loras:
-        safeloras_1, embeds_1 = self.load_lora(lora1_path)
-        safeloras_2, embeds_2 = self.load_lora(lora2_path)
-
-        metadata = dict(safeloras_1.metadata())
-        metadata.update(dict(safeloras_2.metadata()))
-        
-        # Combine / Linear blend the token embeddings:
-        blended_embeds = self.blend_embeds(embeds_1, embeds_2, t)
-
-        # Blend the two loras:
-        ret_tensor = {}
-        for keys in set(list(safeloras_1.keys()) + list(safeloras_2.keys())):
-            if keys.startswith("text_encoder") or keys.startswith("unet"):
-                tens1 = safeloras_1.get_tensor(keys)
-                tens2 = safeloras_2.get_tensor(keys)
-                ret_tensor[keys] = (1-t) * tens1 + t * tens2
-            else:
-                if keys in safeloras_1.keys():
-                    tens = safeloras_1.get_tensor(keys)
-                else:
-                    tens = safeloras_2.get_tensor(keys)
-                ret_tensor[keys] = tens
-
-        loras = dict_to_lora(ret_tensor, metadata)
-
-        # Apply this blended lora to the pipe:
-        for name, (lora, ranks, target) in loras.items():
-            model = getattr(pipe, name, None)
-            if not model:
-                print(f"No model provided for {name}, contained in Lora")
-                continue
-            print("Patching model", name, "with LORA")
-            monkeypatch_or_replace_lora_extended(model, lora, target, ranks)
-
-        apply_learned_embed_in_clip(
-            blended_embeds,
-            pipe.text_encoder,
-            pipe.tokenizer,
-            token=None,
-            idempotent=True,
-        )
-
-        # Set the lora scale:
-        tune_lora_scale(pipe.unet, self.lora_scale)
-        tune_lora_scale(pipe.text_encoder, self.lora_scale)
-
-        return blended_embeds
-"""
-
-def update_pipe_with_lora(pipe, args):
-    global last_lora_path
-
-    if args.lora_path == last_lora_path:
-        return pipe
-
-    start_time = time.time()
-    patch_pipe(
-        pipe,
-        args.lora_path,
-        patch_text=True,
-        patch_ti=True,
-        patch_unet=True,
-    )
-    tune_lora_scale(pipe.unet, args.lora_scale)
-    tune_lora_scale(pipe.text_encoder, args.lora_scale)
-
-    took_s = time.time() - start_time
-    print(f" ---> Updated pipe in {took_s:.2f}s using lora from {args.lora_path} with scale = {args.lora_scale:.2f}")
-    last_lora_path = args.lora_path
-
-
-    safeloras = safe_open(args.lora_path, framework="pt", device="cpu")
-    tok_dict = parse_safeloras_embeds(safeloras)
-
-    trained_tokens = list(tok_dict.keys())
-
-
-    return pipe.to(_device)
-
-
-
-def load_pipe(args, img2img = False):
-    start_time = time.time()
-    try:
-        if args.mode == "depth2img":
-            print("Creating new StableDiffusionDepth2ImgPipeline..")
-            pipe = StableDiffusionDepth2ImgPipeline.from_pretrained("stabilityai/stable-diffusion-2-depth", safety_checker=None, torch_dtype=torch.float16 if args.half_precision else torch.float32)
-        else:
-            print(f"Creating new StableDiffusionEdenPipeline using {args.ckpt}")
-            vae = AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse").half() # Use the (slightly better) updated vae model from stability
-            pipe = StableDiffusionEdenPipeline.from_pretrained(args.ckpt, safety_checker=None, local_files_only = True, torch_dtype=torch.float16 if args.half_precision else torch.float32, vae=vae)
-            #pipe = StableDiffusionPipeline.from_pretrained(args.ckpt, safety_checker=None, torch_dtype=torch.float16 if args.half_precision else torch.float32, vae=vae)
-    
-    except Exception as e:
-        print(e)
-        print("Failed to load from pretrained, trying to load from checkpoint")
-        pipe = load_pipeline_from_original_stable_diffusion_ckpt(args.ckpt, image_size = 512)
-
-    pipe.safety_checker = None
-    print(f"Created new pipe in {(time.time() - start_time):.2f} seconds")
-    return pipe.to(_device)
-
-
-def get_pipe(args, force_reload = False):
-    # create a persistent, global pipe object:
-    global pipe
-    global last_checkpoint
-    img2img = args.init_image is not None
-
-    if args.ckpt != last_checkpoint:
-        force_reload = True
-        last_checkpoint = args.ckpt        
-
-    if (pipe is None) or force_reload:
-        del pipe
-        torch.cuda.empty_cache()
-
-        if args.activate_tileable_textures:
-            patch_conv(padding_mode='circular')
-
-        pipe = load_pipe(args, img2img = img2img)
-        print_model_info(pipe)
-
-    pipe = update_pipe_with_lora(pipe, args)
-    pipe.enable_xformers_memory_efficient_attention()
-
-    return pipe
 
 
 def set_sampler(sampler_name, pipe):
@@ -266,7 +96,7 @@ def generate(
         force_starting_latent = args.interpolator.latent_tracker.force_starting_latent
     
     # Load model
-    pipe = get_pipe(args)
+    pipe = eden_pipe.get_pipe(args)
     set_sampler(args.sampler, pipe)
     
     # if init image strength == 1, just return the initial image
@@ -311,7 +141,6 @@ def generate(
             embed = pipe.text_encoder.get_input_embeddings().weight.data[token_id]
             print(embed[-510:-500])
 
-
     if args.mode == 'depth2img':
         pipe_output = pipe(
             prompt = prompt, 
@@ -322,7 +151,7 @@ def generate(
             num_inference_steps = n_steps,
             guidance_scale = args.guidance_scale,
             num_images_per_prompt = args.n_samples,
-            )
+        )
     else:
         if args.init_image is not None or True:   # img2img / Eden
             pipe_output = pipe(
@@ -407,8 +236,7 @@ def make_interpolation(args, force_timepoints = None):
         args.interpolation_seeds.append(args.interpolation_seeds[0])
         args.interpolation_init_images.append(args.interpolation_init_images[0])
 
-    global pipe
-    pipe = get_pipe(args)
+    pipe = eden_pipe.get_pipe(args)
     #model = update_aesthetic_gradient_settings(model, args)
 
     #loraBlender = LoraBlender(args.lora_scale) if args.lora_paths is not None else None
@@ -565,8 +393,7 @@ def make_images(args):
 
     assert args.text_input is not None
 
-    #global pipe            
-    #pipe = get_pipe(args)
+    #pipe = eden_pipe.get_pipe(args)
     #pipe = update_aesthetic_gradient_settings(pipe, args)
     
     _, images_pil = generate(args)

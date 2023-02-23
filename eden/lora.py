@@ -8,8 +8,6 @@ LORA_DIFFUSION_PATH = os.path.join(LORA_PATH, 'lora')
 sys.path.append(LORA_PATH)
 sys.path.append(LORA_DIFFUSION_PATH)
 
-from cli_lora_pti import *
-
 import itertools
 import math
 import json
@@ -17,6 +15,7 @@ import time
 import numpy as np
 from typing import Optional, List, Literal
 
+import wandb
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
@@ -28,23 +27,37 @@ from diffusers import (
 )
 from diffusers.optimization import get_scheduler
 from transformers import CLIPTextModel, CLIPTokenizer
+from cli_lora_pti import *
 
-import wandb
+from lora_diffusion import *
 
-from lora_diffusion import (
-    PivotalTuningDatasetCapation,
-    extract_lora_ups_down,
-    inject_trainable_lora,
-    inject_trainable_lora_extended,
-    inspect_lora,
-    save_lora_weight,
-    save_all,
-    prepare_clip_model_sets,
-    evaluate_pipe,
-    UNET_EXTENDED_TARGET_REPLACE,
-    parse_safeloras_embeds,
-    apply_learned_embed_in_clip,
-)
+# from lora_diffusion import (
+#     PivotalTuningDatasetCapation,
+#     extract_lora_ups_down,
+#     inject_trainable_lora,
+#     inject_trainable_lora_extended,
+#     inspect_lora,
+#     save_lora_weight,
+#     save_all,
+#     prepare_clip_model_sets,
+#     evaluate_pipe,
+#     UNET_EXTENDED_TARGET_REPLACE,
+#     parse_safeloras_embeds,
+#     apply_learned_embed_in_clip,
+#     tune_lora_scale, 
+#     patch_pipe, 
+#     monkeypatch_or_replace_safeloras, 
+#     monkeypatch_remove_lora, 
+#     dict_to_lora, 
+#     load_safeloras_both, 
+#     apply_learned_embed_in_clip, 
+#     parse_safeloras, 
+#     monkeypatch_or_replace_lora_extended, 
+#     parse_safeloras_embeds
+# )
+
+
+
 
 def train_lora(
     instance_data_dir: str,
@@ -452,5 +465,89 @@ def train_lora(
 
 
 
+"""
+class LoraBlender():
+    # Helper class to blend LORA models on the fly during interpolations
 
+    def __init__(self, lora_scale):
+        self.lora_scale = lora_scale
+        self.loras_in_memory = {}
+        self.embeds_in_memory = {}
 
+    def load_lora(self, lora_path):
+        if lora_path in self.loras_in_memory:
+            return self.loras_in_memory[lora_path], self.embeds_in_memory[lora_path]
+        else:
+            print(f" ---> Loading lora from {lora_path} into memory..")
+            safeloras = safe_open(lora_path, framework="pt", device=device)
+            embeddings = parse_safeloras_embeds(safeloras)
+            
+            self.loras_in_memory[lora_path] = safeloras
+            self.embeds_in_memory[lora_path] = embeddings
+
+            return safeloras, embeddings
+
+    def blend_embeds(self, embeds_1, embeds_2, t):
+        # Blend the two dictionaries of embeddings:
+        ret_embeds = {}
+        for key in set(list(embeds_1.keys()) + list(embeds_2.keys())):
+            if key in embeds_1.keys() and key in embeds_2.keys():
+                ret_embeds[key] = (1-t) * embeds_1[key] + t * embeds_2[key]
+            elif key in embeds_1.keys():
+                ret_embeds[key] = embeds_1[key]
+            elif key in embeds_2.keys():
+                ret_embeds[key] = embeds_2[key]
+        return ret_embeds
+
+    def patch_pipe(self, pipe, t, lora1_path, lora2_path):
+        print(f" ---> Patching pipe with lora1 = {os.path.basename(os.path.dirname(lora1_path))} and lora2 = {os.path.basename(os.path.dirname(lora2_path))} at t = {t:.2f}")
+
+        # Load the two loras:
+        safeloras_1, embeds_1 = self.load_lora(lora1_path)
+        safeloras_2, embeds_2 = self.load_lora(lora2_path)
+
+        metadata = dict(safeloras_1.metadata())
+        metadata.update(dict(safeloras_2.metadata()))
+        
+        # Combine / Linear blend the token embeddings:
+        blended_embeds = self.blend_embeds(embeds_1, embeds_2, t)
+
+        # Blend the two loras:
+        ret_tensor = {}
+        for keys in set(list(safeloras_1.keys()) + list(safeloras_2.keys())):
+            if keys.startswith("text_encoder") or keys.startswith("unet"):
+                tens1 = safeloras_1.get_tensor(keys)
+                tens2 = safeloras_2.get_tensor(keys)
+                ret_tensor[keys] = (1-t) * tens1 + t * tens2
+            else:
+                if keys in safeloras_1.keys():
+                    tens = safeloras_1.get_tensor(keys)
+                else:
+                    tens = safeloras_2.get_tensor(keys)
+                ret_tensor[keys] = tens
+
+        loras = dict_to_lora(ret_tensor, metadata)
+
+        # Apply this blended lora to the pipe:
+        for name, (lora, ranks, target) in loras.items():
+            model = getattr(pipe, name, None)
+            if not model:
+                print(f"No model provided for {name}, contained in Lora")
+                continue
+            print("Patching model", name, "with LORA")
+            monkeypatch_or_replace_lora_extended(model, lora, target, ranks)
+
+        apply_learned_embed_in_clip(
+            blended_embeds,
+            pipe.text_encoder,
+            pipe.tokenizer,
+            token=None,
+            idempotent=True,
+        )
+
+        # Set the lora scale:
+        tune_lora_scale(pipe.unet, self.lora_scale)
+        tune_lora_scale(pipe.text_encoder, self.lora_scale)
+
+        return blended_embeds
+"""

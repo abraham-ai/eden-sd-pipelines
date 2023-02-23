@@ -3,10 +3,8 @@ from typing import List
 from PIL import Image
 from pathlib import Path
 import numpy as np
-import os, uuid
-sd_path = Path(os.path.dirname(os.path.realpath(__file__))).parents[0]
-
-
+import os
+import uuid
 import torch
 
 def pick_best_gpu_id():
@@ -42,6 +40,11 @@ class StableDiffusionSettings:
     #ckpt: str = "prompthero/openjourney-v2"    # https://huggingface.co/prompthero/openjourney-v2
     ckpt: str = "dreamlike-art/dreamlike-photoreal-2.0"  # https://huggingface.co/dreamlike-art/dreamlike-photoreal-2.0
 
+    # Lora / finetuning:
+    lora_path: str = None
+    lora_scale: float = 1.0
+    lora_paths: str = None # optional list of lora paths for each img seed for real2real
+
     #precision: str = 'autocast'
     half_precision: bool = True
     activate_tileable_textures: bool = False
@@ -58,6 +61,7 @@ class StableDiffusionSettings:
     steps: int = 60
     min_steps: int = 7  # low_n steps often give artifacts, so adopt a min-n-steps
     guidance_scale: float = 10.0
+    
     # ddim_eta: float = 0.0
     C: int = 4
     f: int = 8   
@@ -149,7 +153,3 @@ class StableDiffusionSettings:
     save_phase_data: bool = False  # store metadata (conditioning c's and scales) for each frame, used for later upscaling
     save_distance_data: bool = False  # store distance plots (mostly used for debugging)
 
-    # Lora / finetuning:
-    lora_path: str = None
-    lora_scale: float = 1.0
-    lora_paths: str = None # optional list of lora paths for each img seed for real2real

@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 os.environ["TORCH_HOME"] = "/src/.torch"
 os.environ["TRANSFORMERS_CACHE"] = "/src/.huggingface/"
 os.environ["DIFFUSERS_CACHE"] = "/src/.huggingface/"
@@ -222,7 +222,8 @@ class Predictor(BasePredictor):
 
         args = StableDiffusionSettings(
             ckpt = checkpoint,
-            lora_path = None,
+            lora_path = lora_path,
+            lora_scale = lora_scale,
 
             mode = mode,
 
@@ -253,9 +254,6 @@ class Predictor(BasePredictor):
             smooth = smooth,
             n_film = n_film,
             fps = fps,
-
-            lora_path = lora_path,
-            lora_scale = lora_scale,
 
             aesthetic_target = None, # None means we'll use the init_images as target
             aesthetic_steps = 10,
