@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 os.environ["TORCH_HOME"] = "/src/.torch"
 os.environ["TRANSFORMERS_CACHE"] = "/src/.huggingface/"
 os.environ["DIFFUSERS_CACHE"] = "/src/.huggingface/"
@@ -20,13 +20,17 @@ os.environ["LPIPS_HOME"] = "/src/models/lpips/"
 
 sys.path.extend([
     "./eden",
-    "/clip-interrogator",
-    "/frame-interpolation",
     "./lora",
-    "./lora/lora_diffusion"
+    "./lora/lora_diffusion",
+    "/clip-interrogator",
+    "/frame-interpolation"
 ])
 
-from settings import StableDiffusionSettings
+from settings import (
+    StableDiffusionSettings,
+    LoraMaskingSettings, 
+    LoraTrainingSettings
+)
 import eden_utils
 import film
 from lora import train_lora
@@ -200,7 +204,7 @@ class Predictor(BasePredictor):
             default=12, ge=1, le=60
         ),
         
-        # Lora
+        # Lora training
         lora_training_urls: str = Input(
             description="Training images for new LORA concept (mode==lora)", 
             default=None
@@ -268,26 +272,30 @@ class Predictor(BasePredictor):
 
         if mode == "lora":
             data_dir = Path(tempfile.mkdtemp())
+            out_dir = Path(tempfile.mkdtemp())
+            
             data_dir.mkdir(exist_ok=True)
+            out_dir.mkdir(exist_ok=True)
+            
             lora_training_urls = lora_training_urls.split('|')
             for lora_url in lora_training_urls:
                 download(lora_url, data_dir, '.jpg')
 
-            training_folder = str(data_dir)
+            mask_args = LoraMaskingSettings(
+                files = str(data_dir),
+                output_dir = str(data_dir) + "/train",
+            )
 
+            lora_args = LoraTrainingSettings(
+                instance_data_dir = str(data_dir) + "/train",
+                output_dir = str(out_dir),
+                pretrained_model_name_or_path = checkpoint,
+            )
 
-            out_dir = 'eden/assets/lora'# Path(tempfile.mkdtemp())
-            #out_dir.mkdir(exist_ok=True)
+            lora_location = train_lora(mask_args, lora_args)
+            print(lora_location)
 
-            train_lora(training_folder, checkpoint, out_dir)
-
-
-            # should be returned by train_lora
-            lora_location = out_dir / 'final_lora.safetensors'
-            
-            print(os.system(f'ls {str(lora_location)}'))
-
-            yield CogOutput(file=lora_location, name=None, thumbnail=None, attributes=None, isFinal=True, progress=1.0)
+            yield CogOutput(file=Path(lora_location), name=None, thumbnail=None, attributes=None, isFinal=True, progress=1.0)
 
         elif mode == "interrogate":
             interrogation = generation.interrogate(args)
@@ -309,8 +317,7 @@ class Predictor(BasePredictor):
             out_path = out_dir / f"frame.jpg"
             frame.save(out_path, format='JPEG', subsampling=0, quality=95)
             
-            yield out_path
-            #yield CogOutput(file=out_path, name=name, thumbnail=out_path, attributes=attributes, isFinal=True, progress=1.0)
+            yield CogOutput(file=out_path, name=name, thumbnail=out_path, attributes=attributes, isFinal=True, progress=1.0)
             
         else:
             

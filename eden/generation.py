@@ -26,7 +26,6 @@ from diffusers import (
     DDIMScheduler, 
     DPMSolverMultistepScheduler, 
     KDPM2DiscreteScheduler, 
-    LMSDiscreteScheduler, 
     PNDMScheduler
 )
 

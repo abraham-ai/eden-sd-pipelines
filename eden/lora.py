@@ -431,61 +431,20 @@ def train(
 
 
 
-def train_lora(training_folder, checkpoint, output_dir):
-
+def train_lora(mask_args, lora_args):
     load_and_save_masks_and_captions(
-        files = training_folder,
-        output_dir = training_folder+"_train",
-        caption_text = None,
+        **vars(mask_args),
         target_prompts = "face",
-        target_size = 512,
-        crop_based_on_salience = True,
-        use_face_detection_instead = False,
-        temp = 1.0,
-        n_length = -1,
+        n_length = -1
     )
-
     train(
-        instance_data_dir=training_folder+"_train",
-        pretrained_model_name_or_path = checkpoint,
-        output_dir = output_dir,
-        out_name = "final_lora",
-        train_text_encoder = True,
-        perform_inversion = True,
-        resolution = 512,
-        train_batch_size = 4,
-        gradient_accumulation_steps = 1,
-        scale_lr = True,
-        learning_rate_ti = 2.5e-4,
-        continue_inversion = True,
-        continue_inversion_lr = 2.5e-5,
-        learning_rate_unet = 1.5e-5,
-        learning_rate_text = 2.5e-5,
-        color_jitter = True,
-        lr_scheduler = "linear",
-        lr_warmup_steps = 0,
-        placeholder_tokens = "<person1>",
+        **vars(lora_args),
         proxy_token = "person",
-        use_template = "person",
-        use_mask_captioned_data = False,
-        save_steps = 500,
-        max_train_steps_ti = 300,
-        max_train_steps_tuning = 500,
-        clip_ti_decay = True,
-        weight_decay_ti = 0.0005,
-        weight_decay_lora = 0.001,
-        lora_rank_unet = 2,
-        lora_rank_text_encoder  =8,
         cached_latents = False,
-        use_extended_lora = False,
-        enable_xformers_memory_efficient_attention = True,
-        use_face_segmentation_condition = True,
-        device = "cuda:0"
+        enable_xformers_memory_efficient_attention = True
     )
-
-
-
-
+    lora_location = os.path.join(lora_args.output_dir, f'{lora_args.out_name}.safetensors')
+    return lora_location
 
 
 """

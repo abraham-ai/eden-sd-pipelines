@@ -154,8 +154,52 @@ class StableDiffusionSettings:
     save_distance_data: bool = False  # store distance plots (mostly used for debugging)
 
 
+@dataclass
+class LoraMaskingSettings:
+    files: str
+    output_dir: str
+    caption_text: bool = None
+    #target_prompts: str = "face"
+    target_size: int = 512
+    crop_based_on_salience: bool = True
+    use_face_detection_instead: bool = False
+    temp: float = 1.0
+    #n_length: int = -1
+
 
 @dataclass
-class LoraTrainingSettings:
-    training_images: List = field(default_factory=lambda: [])
-    base_checkpoint: str = "dreamlike-art/dreamlike-photoreal-2.0"
+class LoraTrainingSettings:    
+    instance_data_dir: str
+    output_dir: str
+    pretrained_model_name_or_path: str = "dreamlike-art/dreamlike-photoreal-2.0"
+    out_name: str = "lora"
+    train_text_encoder: bool = True
+    perform_inversion: bool = True
+    resolution: int = 512
+    train_batch_size: int = 4
+    gradient_accumulation_steps: int = 1
+    scale_lr: bool = True
+    learning_rate_ti: float = 2.5e-4
+    continue_inversion: bool = True
+    continue_inversion_lr: float = 2.5e-5
+    learning_rate_unet: float = 1.5e-5
+    learning_rate_text: float = 2.5e-5
+    color_jitter: bool = True
+    lr_scheduler: str = "linear"
+    lr_warmup_steps: int = 0
+    placeholder_tokens: str = "<person1>"
+    #proxy_token: str = "person"
+    use_template: str = "person"   # "object", "style", "person"
+    use_mask_captioned_data: bool = False
+    save_steps: int = 10000
+    max_train_steps_ti: int = 300
+    max_train_steps_tuning: int = 500
+    clip_ti_decay: bool = True
+    weight_decay_ti: float = 0.0005
+    weight_decay_lora: float = 0.001
+    lora_rank_unet: int = 2
+    lora_rank_text_encoder: int = 8
+    #cached_latents: bool = False
+    use_extended_lora: bool = False
+    #enable_xformers_memory_efficient_attention: bool = True
+    use_face_segmentation_condition: bool = True
