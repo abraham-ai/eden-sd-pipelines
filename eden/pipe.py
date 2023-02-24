@@ -13,6 +13,7 @@ pipe = None
 last_checkpoint = None
 last_lora_path = None
 
+from lora_diffusion import *
 
 def load_pipe(args, img2img = False):
     global pipe

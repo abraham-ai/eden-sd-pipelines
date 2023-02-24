@@ -28,36 +28,7 @@ from diffusers import (
 from diffusers.optimization import get_scheduler
 from transformers import CLIPTextModel, CLIPTokenizer
 from cli_lora_pti import *
-
 from lora_diffusion import *
-
-# from lora_diffusion import (
-#     PivotalTuningDatasetCapation,
-#     extract_lora_ups_down,
-#     inject_trainable_lora,
-#     inject_trainable_lora_extended,
-#     inspect_lora,
-#     save_lora_weight,
-#     save_all,
-#     prepare_clip_model_sets,
-#     evaluate_pipe,
-#     UNET_EXTENDED_TARGET_REPLACE,
-#     parse_safeloras_embeds,
-#     apply_learned_embed_in_clip,
-#     tune_lora_scale, 
-#     patch_pipe, 
-#     monkeypatch_or_replace_safeloras, 
-#     monkeypatch_remove_lora, 
-#     dict_to_lora, 
-#     load_safeloras_both, 
-#     apply_learned_embed_in_clip, 
-#     parse_safeloras, 
-#     monkeypatch_or_replace_lora_extended, 
-#     parse_safeloras_embeds
-# )
-
-
-
 
 def train_lora(
     instance_data_dir: str,
