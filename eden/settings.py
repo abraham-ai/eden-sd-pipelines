@@ -153,3 +153,9 @@ class StableDiffusionSettings:
     save_phase_data: bool = False  # store metadata (conditioning c's and scales) for each frame, used for later upscaling
     save_distance_data: bool = False  # store distance plots (mostly used for debugging)
 
+
+
+@dataclass
+class LoraTrainingSettings:
+    training_images: List = field(default_factory=lambda: [])
+    base_checkpoint: str = "dreamlike-art/dreamlike-photoreal-2.0"

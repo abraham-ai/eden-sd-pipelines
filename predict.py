@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 os.environ["TORCH_HOME"] = "/src/.torch"
 os.environ["TRANSFORMERS_CACHE"] = "/src/.huggingface/"
 os.environ["DIFFUSERS_CACHE"] = "/src/.huggingface/"
@@ -206,7 +206,7 @@ class Predictor(BasePredictor):
             default=None
         ),
 
-    ) -> Iterator[CogOutput]:
+    ) -> Iterator[Path]: #Iterator[CogOutput]:
 
         print("cog:predict:")
         
@@ -217,9 +217,10 @@ class Predictor(BasePredictor):
         interpolation_init_images = interpolation_init_images.split('|') if interpolation_init_images else None
 
         lora_path = None
-        if lora:
-            lora_path = download(lora, 'loras', '.safetensor')
-
+        #if lora:
+        #    lora_path = download(lora, 'loras', '.safetensor')
+        lora_path = lora
+        
         args = StableDiffusionSettings(
             ckpt = checkpoint,
             lora_path = lora_path,
@@ -270,50 +271,23 @@ class Predictor(BasePredictor):
             data_dir.mkdir(exist_ok=True)
             lora_training_urls = lora_training_urls.split('|')
             for lora_url in lora_training_urls:
-                lora_file = download(lora_url, data_dir, '.jpg')
+                download(lora_url, data_dir, '.jpg')
 
-            train_lora(
-                instance_data_dir = str(data_dir),
-                pretrained_model_name_or_path = checkpoint,
-                output_dir = str(out_dir),
-                out_name = "final_lora",
-                train_text_encoder = True,
-                perform_inversion = True,
-                resolution = 512,
-                train_batch_size = 4,
-                gradient_accumulation_steps = 1,
-                scale_lr = True,
-                learning_rate_ti = 2.5e-4,
-                continue_inversion = True,
-                continue_inversion_lr = 2.5e-5,
-                learning_rate_unet = 1.5e-5,
-                learning_rate_text = 2.5e-5,
-                color_jitter = True,
-                lr_scheduler = "linear",
-                lr_warmup_steps = 0,
-                placeholder_tokens = "<person1>",
-                proxy_token = "person",
-                use_template = "person",
-                use_mask_captioned_data = False,
-                save_steps = 500,
-                max_train_steps_ti = 300,
-                max_train_steps_tuning = 500,
-                clip_ti_decay = True,
-                weight_decay_ti = 0.0005,
-                weight_decay_lora = 0.001,
-                lora_rank_unet = 2,
-                lora_rank_text_encoder  =8,
-                cached_latents = False,
-                use_extended_lora = False,
-                enable_xformers_memory_efficient_attention = True,
-                use_face_segmentation_condition = True,
-                device = "cuda:0"
-            )
+            training_folder = str(data_dir)
 
+
+            out_dir = 'eden/assets/lora'# Path(tempfile.mkdtemp())
+            #out_dir.mkdir(exist_ok=True)
+
+            train_lora(training_folder, checkpoint, out_dir)
+
+
+            # should be returned by train_lora
             lora_location = out_dir / 'final_lora.safetensors'
+            
             print(os.system(f'ls {str(lora_location)}'))
 
-            yield CogOutput(file=lora_location, name="final_lora", thumbnail=None, attributes=None, isFinal=True, progress=1.0)
+            yield CogOutput(file=lora_location, name=None, thumbnail=None, attributes=None, isFinal=True, progress=1.0)
 
         elif mode == "interrogate":
             interrogation = generation.interrogate(args)
@@ -335,7 +309,8 @@ class Predictor(BasePredictor):
             out_path = out_dir / f"frame.jpg"
             frame.save(out_path, format='JPEG', subsampling=0, quality=95)
             
-            yield CogOutput(file=out_path, name=name, thumbnail=out_path, attributes=attributes, isFinal=True, progress=1.0)
+            yield out_path
+            #yield CogOutput(file=out_path, name=name, thumbnail=out_path, attributes=attributes, isFinal=True, progress=1.0)
             
         else:
             

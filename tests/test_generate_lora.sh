@@ -1,0 +1,1 @@
+cog predict -i mode=generate -i text_input="A picture of <person1> wearing a French beret" -i seed=5 -i width=768 -i height=768 -i steps=100 -i lora="/src/eden/assets/lora/final_lora.safetensors"
