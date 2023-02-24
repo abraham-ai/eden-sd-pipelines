@@ -353,7 +353,7 @@ def blend_inits(init1, init2, t, args, real2real = True, anti_shinethrough_power
         blended_init = Image.fromarray(blended_init.astype(np.uint8))
     else:
         blended_init = slerp(mixing_t, init1, init2, flatten = 1, normalize = 1)
-
+        
     return blended_init, init_image_strength
 
 

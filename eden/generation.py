@@ -344,6 +344,7 @@ def make_interpolation(args, force_timepoints = None):
                 # perform Latent-Blending initialization:
                 args.init_latent, args.init_image, args.init_image_strength = create_init_latent(args, t, init_img1, init_img2, _device, pipe, real2real = is_real2real)
 
+
         else: #only use the raw init_latent noise from interpolator (using the input seeds)
             print("Using raw init noise (strenght 0.0)...")
             args.init_latent = init_latent

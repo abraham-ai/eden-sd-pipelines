@@ -446,7 +446,6 @@ def lerp(t, v0, v1):
 
     return v2
 
-
 def slerp(t, v0, v1, flatten = 0, normalize = 0, DOT_THRESHOLD=0.9995, long_arc = 0):
     '''
     Spherical linear interpolation
@@ -466,12 +465,13 @@ def slerp(t, v0, v1, flatten = 0, normalize = 0, DOT_THRESHOLD=0.9995, long_arc 
     if not isinstance(v0, np.ndarray):
         inputs_are_torch = True
         input_device = v0.device
-        v0 = v0.cpu().numpy()
-        v1 = v1.cpu().numpy()
+        v0 = v0.cpu().numpy().astype(np.float64)
+        v1 = v1.cpu().numpy().astype(np.float64)
 
     # If the vectors are too similar, slerping does weird things, so we just lerp:
     v0_flat = v0.flatten()
     v1_flat = v1.flatten()
+
     v0_flat_normalized = v0_flat / np.linalg.norm(v0_flat)
     v1_flat_normalized = v1_flat / np.linalg.norm(v1_flat)
 
@@ -498,6 +498,7 @@ def slerp(t, v0, v1, flatten = 0, normalize = 0, DOT_THRESHOLD=0.9995, long_arc 
     theta_0 = np.arccos(dot)
 
     if long_arc: # Go around the sphere via the longest path:
+        print("SLERPING along long arc, this should never happen!")
         theta_0 = 2*np.pi - theta_0
 
     # https://en.wikipedia.org/wiki/Slerp
