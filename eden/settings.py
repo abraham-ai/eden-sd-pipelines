@@ -17,6 +17,12 @@ def pick_best_gpu_id():
         gpu_mem.append(free_memory)
         print("GPU %d: %d MB free" %(gpu_id, free_memory / 1024 / 1024))
     
+    if len(gpu_ids) == 0:
+        # no GPUs available, use CPU:
+        os.environ["CUDA_VISIBLE_DEVICES"] = ""
+        return None
+
+
     best_gpu_id = gpu_ids[np.argmax(gpu_mem)]
     # set this to be the active GPU:
     os.environ["CUDA_VISIBLE_DEVICES"] = str(best_gpu_id)
@@ -25,7 +31,10 @@ def pick_best_gpu_id():
 
 gpu_id = pick_best_gpu_id()
 global _device
-_device = torch.device("cuda:%d" %gpu_id if torch.cuda.is_available() else "cpu")
+if gpu_id is None:
+    _device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+else:
+    _device = torch.device("cuda:%d" %gpu_id if torch.cuda.is_available() else "cpu")
 torch.cuda.set_device(_device)
 
 
