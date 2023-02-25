@@ -1,36 +1,32 @@
 import os
-import sys
-from pathlib import Path
-
-SD_PATH = Path(os.path.dirname(os.path.realpath(__file__))).parents[0]
-LORA_PATH = os.path.join(SD_PATH, 'lora')
-LORA_DIFFUSION_PATH = os.path.join(LORA_PATH, 'lora')
-sys.path.append(LORA_PATH)
-sys.path.append(LORA_DIFFUSION_PATH)
-
 import itertools
 import math
 import json
 import time
+import wandb
 import numpy as np
 from typing import Optional, List, Literal
 
-import wandb
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
+from transformers import CLIPTextModel, CLIPTokenizer
+from diffusers.optimization import get_scheduler
 from diffusers import (
     AutoencoderKL,
     DDPMScheduler,
     StableDiffusionPipeline,
     UNet2DConditionModel,
 )
-from diffusers.optimization import get_scheduler
-from transformers import CLIPTextModel, CLIPTokenizer
+
+import pipe as eden_pipe
+
+from preprocess_files import load_and_save_masks_and_captions
 from cli_lora_pti import *
 from lora_diffusion import *
 
-def train_lora(
+
+def train(
     instance_data_dir: str,
     pretrained_model_name_or_path: str,
     output_dir: str,
@@ -434,6 +430,21 @@ def train_lora(
         json.dump(args_dict, f, default=lambda o: '<not serializable>', indent=2)
 
 
+
+def train_lora(mask_args, lora_args):
+    load_and_save_masks_and_captions(
+        **vars(mask_args),
+        target_prompts = "face",
+        n_length = -1
+    )
+    train(
+        **vars(lora_args),
+        proxy_token = "person",
+        cached_latents = False,
+        enable_xformers_memory_efficient_attention = True
+    )
+    lora_location = os.path.join(lora_args.output_dir, f'{lora_args.out_name}.safetensors')
+    return lora_location
 
 
 """

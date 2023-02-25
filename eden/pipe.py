@@ -1,3 +1,13 @@
+import os
+import sys
+from pathlib import Path
+
+SD_PATH = Path(os.path.dirname(os.path.realpath(__file__))).parents[0]
+LORA_PATH = os.path.join(SD_PATH, 'lora')
+LORA_DIFFUSION_PATH = os.path.join(LORA_PATH, 'lora_diffusion')
+sys.path.append(LORA_PATH)
+sys.path.append(LORA_DIFFUSION_PATH)
+
 import time
 import torch
 from safetensors.torch import safe_open, save_file
@@ -8,12 +18,11 @@ from diffusers.models import AutoencoderKL
 
 from eden_utils import *
 from settings import _device
+from lora_diffusion import *
 
 pipe = None
 last_checkpoint = None
 last_lora_path = None
-
-from lora_diffusion import *
 
 def load_pipe(args, img2img = False):
     global pipe
@@ -25,7 +34,7 @@ def load_pipe(args, img2img = False):
         else:
             print(f"Creating new StableDiffusionEdenPipeline using {args.ckpt}")
             vae = AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse").half() # Use the (slightly better) updated vae model from stability
-            pipe = StableDiffusionEdenPipeline.from_pretrained(args.ckpt, safety_checker=None, local_files_only = True, torch_dtype=torch.float16 if args.half_precision else torch.float32, vae=vae)
+            pipe = StableDiffusionEdenPipeline.from_pretrained(args.ckpt, safety_checker=None, local_files_only = False, torch_dtype=torch.float16 if args.half_precision else torch.float32, vae=vae)
             #pipe = StableDiffusionPipeline.from_pretrained(args.ckpt, safety_checker=None, torch_dtype=torch.float16 if args.half_precision else torch.float32, vae=vae)
     
     except Exception as e:
