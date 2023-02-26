@@ -68,9 +68,7 @@ def generate(
         force_starting_latent = args.interpolator.latent_tracker.force_starting_latent
     
     # Load model
-    start_time = time.time()
     pipe = eden_pipe.get_pipe(args)
-    print("get_pipe completed in", time.time() - start_time, "seconds")
     
     # if init image strength == 1, just return the initial image
     if args.init_image_strength == 1.0 and args.init_image:
@@ -126,38 +124,23 @@ def generate(
             num_images_per_prompt = args.n_samples,
         )
     else:
-        if args.init_image is not None or True:   # img2img / Eden
-            pipe_output = pipe(
-                prompt = prompt,
-                negative_prompt = negative_prompt, 
-                width = args.W, 
-                height = args.H,
-                image=args.init_image, 
-                strength=1-args.init_image_strength, 
-                num_inference_steps = n_steps,
-                guidance_scale = args.guidance_scale,
-                num_images_per_prompt = args.n_samples,
-                prompt_embeds = args.c,
-                negative_prompt_embeds = args.uc,
-                generator = generator,
-                latents = args.init_latent,
-                force_starting_latent = force_starting_latent,
-                callback = callback_,
-            )
-        else:   # text2img
-            pipe_output = pipe(
-                prompt = prompt, 
-                negative_prompt = negative_prompt,
-                width = args.W, 
-                height = args.H,
-                num_inference_steps = n_steps,
-                guidance_scale = args.guidance_scale,
-                num_images_per_prompt = args.n_samples,
-                latents = args.init_latent,
-                prompt_embeds = args.c,
-                negative_prompt_embeds = args.uc,
-                generator = generator,
-            )
+        pipe_output = pipe(
+            prompt = prompt,
+            negative_prompt = negative_prompt, 
+            width = args.W, 
+            height = args.H,
+            image=args.init_image, 
+            strength=1-args.init_image_strength, 
+            num_inference_steps = n_steps,
+            guidance_scale = args.guidance_scale,
+            num_images_per_prompt = args.n_samples,
+            prompt_embeds = args.c,
+            negative_prompt_embeds = args.uc,
+            generator = generator,
+            latents = args.init_latent,
+            force_starting_latent = force_starting_latent,
+            callback = callback_,
+        )
         
     pil_images = pipe_output.images
 
@@ -212,7 +195,6 @@ def make_interpolation(args, force_timepoints = None):
     global pipe
     pipe = eden_pipe.get_pipe(args)
     #model = update_aesthetic_gradient_settings(model, args)
-
     #loraBlender = LoraBlender(args.lora_scale) if args.lora_paths is not None else None
     
     # if there are init images, change width/height to their average
@@ -241,9 +223,6 @@ def make_interpolation(args, force_timepoints = None):
         args.use_init = False
 
     del_clip_interrogator_models()
-
-    print("Creating interpolator")
-    print(args.n_frames, "frames")
 
     args.interpolator = Interpolator(
         pipe, 
