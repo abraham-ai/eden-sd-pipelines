@@ -209,6 +209,7 @@ def make_interpolation(args, force_timepoints = None):
         args.interpolation_seeds.append(args.interpolation_seeds[0])
         args.interpolation_init_images.append(args.interpolation_init_images[0])
 
+    global pipe
     pipe = eden_pipe.get_pipe(args)
     #model = update_aesthetic_gradient_settings(model, args)
 
@@ -254,6 +255,7 @@ def make_interpolation(args, force_timepoints = None):
         seeds=args.interpolation_seeds,
         scales=[args.guidance_scale for _ in args.interpolation_texts],
         scale_modulation_amplitude_multiplier=args.scale_modulation,
+        lora_paths=args.lora_paths,
     )
 
     #args.n_anchor_imgs = max(3, int(args.anchor_img_fraction * args.interpolator.n_frames_between_two_prompts))
