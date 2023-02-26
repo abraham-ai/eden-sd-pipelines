@@ -145,7 +145,7 @@ class StableDiffusionSettings:
     ag_L2_normalization_constant: float = 0.05
 
     # img2txt:
-    clip_interrogator_mode: str = "full" # ["full", "fast"]
+    clip_interrogator_mode: str = "fast" # ["full", "fast"]
 
     # audio modulation:
     planner: str = None

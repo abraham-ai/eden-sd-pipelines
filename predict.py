@@ -11,7 +11,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 os.environ["TORCH_HOME"] = "/src/.torch"
 os.environ["TRANSFORMERS_CACHE"] = "/src/.huggingface/"
 os.environ["DIFFUSERS_CACHE"] = "/src/.huggingface/"
@@ -34,7 +33,6 @@ from settings import (
 import eden_utils
 import film
 from lora import train_lora
-
 from cog import BasePredictor, BaseModel, File, Input, Path
 
 checkpoint_options = [
@@ -56,6 +54,7 @@ class CogOutput(BaseModel):
 def download(url, folder, ext):
     filename = url.split('/')[-1]+ext
     filepath = folder / filename
+    os.makedirs(folder, exist_ok=True)
     if filepath.exists():
         return filepath
     raw_file = requests.get(url, stream=True).raw
@@ -204,30 +203,25 @@ class Predictor(BasePredictor):
             default=12, ge=1, le=60
         ),
         
-        # Lora training
-        lora_training_urls: str = Input(
-            description="Training images for new LORA concept (mode==lora)", 
-            default=None
-        ),
-
-    ) -> Iterator[Path]: #Iterator[CogOutput]:
-
+    ) -> Iterator[CogOutput]:
         print("cog:predict:")
-        
         import generation
-        
+
         interpolation_texts = interpolation_texts.split('|') if interpolation_texts else None
         interpolation_seeds = [float(i) for i in interpolation_seeds.split('|')] if interpolation_seeds else None
         interpolation_init_images = interpolation_init_images.split('|') if interpolation_init_images else None
-
+        
         lora_path = None
-        #if lora:
-        #    lora_path = download(lora, 'loras', '.safetensor')
-        lora_path = lora
+        print(lora_path)
+        if lora:
+            print("lora at", lora)
+            lora_folder = Path('loras')
+            lora_path = download(lora, lora_folder, '.safetensors')
+            print("lora now", lora_path)
         
         args = StableDiffusionSettings(
             ckpt = checkpoint,
-            lora_path = lora_path,
+            lora_path = str(lora_path),
             lora_scale = lora_scale,
 
             mode = mode,
@@ -270,34 +264,7 @@ class Predictor(BasePredictor):
 
         out_dir = Path(tempfile.mkdtemp())
 
-        if mode == "lora":
-            data_dir = Path(tempfile.mkdtemp())
-            out_dir = Path(tempfile.mkdtemp())
-            
-            data_dir.mkdir(exist_ok=True)
-            out_dir.mkdir(exist_ok=True)
-            
-            lora_training_urls = lora_training_urls.split('|')
-            for lora_url in lora_training_urls:
-                download(lora_url, data_dir, '.jpg')
-
-            mask_args = LoraMaskingSettings(
-                files = str(data_dir),
-                output_dir = str(data_dir) + "/train",
-            )
-
-            lora_args = LoraTrainingSettings(
-                instance_data_dir = str(data_dir) + "/train",
-                output_dir = str(out_dir),
-                pretrained_model_name_or_path = checkpoint,
-            )
-
-            lora_location = train_lora(mask_args, lora_args)
-            print(lora_location)
-
-            yield CogOutput(file=Path(lora_location), name=None, thumbnail=None, attributes=None, isFinal=True, progress=1.0)
-
-        elif mode == "interrogate":
+        if mode == "interrogate":
             interrogation = generation.interrogate(args)
             out_path = out_dir / f"interrogation.txt"
             with open(out_path, 'w') as f:

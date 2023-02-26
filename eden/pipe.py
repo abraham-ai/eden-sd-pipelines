@@ -87,12 +87,10 @@ def get_pipe(args, force_reload = False):
     # create a persistent, global pipe object:
 
     if args.ckpt != last_checkpoint:
-        print("HERE1")
         force_reload = True
         last_checkpoint = args.ckpt        
 
     if (pipe is None) or force_reload:
-        print("HERE2")
         del pipe
         torch.cuda.empty_cache()
 
