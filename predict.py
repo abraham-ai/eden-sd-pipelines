@@ -1,12 +1,8 @@
 import os
 import sys
 import tempfile
-import random
 import requests
-import hashlib
 from typing import Iterator, Optional
-import moviepy.editor as mpy
-import numpy as np
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -208,16 +204,13 @@ class Predictor(BasePredictor):
         interpolation_init_images = interpolation_init_images.split('|') if interpolation_init_images else None
         
         lora_path = None
-        print(lora_path)
         if lora:
-            print("lora at", lora)
             lora_folder = Path('loras')
             lora_path = download(lora, lora_folder, '.safetensors')
-            print("lora now", lora_path)
         
         args = StableDiffusionSettings(
             ckpt = checkpoint,
-            lora_path = str(lora_path),
+            lora_path = str(lora_path) if lora_path else None,
             lora_scale = lora_scale,
 
             mode = mode,
