@@ -29,6 +29,9 @@ from eden_utils import *
 from settings import _device
 from lora_diffusion import *
 
+global pipe
+global last_checkpoint
+global last_lora_path
 pipe = None
 last_checkpoint = None
 last_lora_path = None
@@ -48,9 +51,10 @@ def set_sampler(sampler_name, pipe):
         sampler_name = "euler"
 
     pipe.scheduler = schedulers[sampler_name]
+    return pipe
 
 
-def load_pipe(args, img2img = False):
+def load_pipe(args):
     global pipe
     start_time = time.time()
     try:
@@ -70,32 +74,36 @@ def load_pipe(args, img2img = False):
 
     pipe.safety_checker = None
     print(f"Created new pipe in {(time.time() - start_time):.2f} seconds")
-    return pipe.to(_device)
+    pipe = pipe.to(_device)
+    pipe.enable_xformers_memory_efficient_attention()
+    print_model_info(pipe)
+
+    return pipe
 
 
 def get_pipe(args, force_reload = False):
-    # create a persistent, global pipe object:
     global pipe
     global last_checkpoint
-    img2img = args.init_image is not None
+    # create a persistent, global pipe object:
 
     if args.ckpt != last_checkpoint:
+        print("HERE1")
         force_reload = True
         last_checkpoint = args.ckpt        
 
     if (pipe is None) or force_reload:
+        print("HERE2")
         del pipe
         torch.cuda.empty_cache()
 
         if args.activate_tileable_textures:
             patch_conv(padding_mode='circular')
 
-        pipe = load_pipe(args, img2img = img2img)
-        print_model_info(pipe)
+        pipe = load_pipe(args)
 
-    set_sampler(args.sampler, pipe)
+    # Potentially update the pipe:
+    pipe = set_sampler(args.sampler, pipe)
     pipe = update_pipe_with_lora(pipe, args)
-    pipe.enable_xformers_memory_efficient_attention()
 
     return pipe
 
@@ -104,6 +112,7 @@ def update_pipe_with_lora(pipe, args):
     global last_lora_path
 
     if args.lora_path == last_lora_path:
+        print("HERE3")
         return pipe
 
     start_time = time.time()
@@ -116,7 +125,7 @@ def update_pipe_with_lora(pipe, args):
     )
     tune_lora_scale(pipe.unet, args.lora_scale)
     tune_lora_scale(pipe.text_encoder, args.lora_scale)
-    
+
     print(f" ---> Updated pipe in {(time.time() - start_time):.2f}s using lora from {args.lora_path} with scale = {args.lora_scale:.2f}")
     last_lora_path = args.lora_path
 

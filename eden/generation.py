@@ -367,9 +367,7 @@ def make_images(args):
 
     assert args.text_input is not None
 
-    #pipe = eden_pipe.get_pipe(args)
     #pipe = update_aesthetic_gradient_settings(pipe, args)
-    
     _, images_pil = generate(args)
     
     return images_pil
