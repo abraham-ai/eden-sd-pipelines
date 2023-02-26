@@ -88,7 +88,7 @@ def get_pipe(args, force_reload = False):
 
     if args.ckpt != last_checkpoint:
         force_reload = True
-        last_checkpoint = args.ckpt        
+        last_checkpoint = args.ckpt
 
     if (pipe is None) or force_reload:
         del pipe
@@ -110,7 +110,6 @@ def update_pipe_with_lora(pipe, args):
     global last_lora_path
 
     if args.lora_path == last_lora_path:
-        print("HERE3")
         return pipe
 
     start_time = time.time()

@@ -65,9 +65,7 @@ def perceptual_distance(img1, img2,
 #######################################################################################################
 
 
-
-
-
+from pipe import update_pipe_with_lora
 from planner import FrameBuffer, LatentTracker, resample_signal
 class Interpolator():
     '''
@@ -85,6 +83,7 @@ class Interpolator():
         seeds = None, 
         scales = None, 
         scale_modulation_amplitude_multiplier = 0,  # decrease the guidance scale at the midpoint of each keyframe transition
+        lora_paths = None,
         loop = False):
 
         self.pipe = pipe
@@ -106,7 +105,6 @@ class Interpolator():
 
         self.data_tracker = DataTracker()
 
-
         # Initialize the frame buffer and latent tracker:
         self.latent_tracker = LatentTracker(self.args, self.pipe, self.smooth)
         self.clear_buffer_at_next_iteration = False
@@ -124,7 +122,10 @@ class Interpolator():
             print(f"Modulating scale between prompts, scale_modulation_amplitude_multiplier: {self.scale_modulation_amplitude_multiplier:.2f}!")
 
         # Setup conditioning and noise vectors:
-        self.setup_creation_conditions()
+        self.lora_paths = lora_paths
+        self.prompt_conditionings, self.init_noises = [], []
+        self.phase_index = 0
+        self.setup_next_creation_conditions(self.phase_index)
 
     def update_aesthetic_target(self, i):
         """
@@ -142,15 +143,31 @@ class Interpolator():
             else:
                 self.model.cond_stage_model.aesthetic_target = self.args.aesthetic_target[i]
             self.model.cond_stage_model.aesthetic_steps  = self.args.aesthetic_steps
+    
+    def setup_next_creation_conditions(self, phase_index, interpolate_lora_conditioning = False):
+        """
+        Setup the all conditioning signals for the next interpolation phase
+        """
 
-    def setup_creation_conditions(self):
-        self.prompt_conditionings, self.init_noises = [], []
+        if self.lora_paths is not None:
+            self.args.lora_path = self.lora_paths[phase_index%len(self.lora_paths)]
+            self.pipe = update_pipe_with_lora(self.pipe, self.args)
 
-        for i in range(len(self.prompts)):
-            prompt = self.prompts[i]
-            seed   = self.seeds[i]
-            self.update_aesthetic_target(i)
-            print(f"---- Getting conditioning vector for: \n{prompt}")
+        if phase_index > 0:
+            # remove the last entries (we might have changed lora_path)
+            self.prompt_conditionings.pop()
+            self.init_noises.pop()
+
+        for i in range(2):
+            index = phase_index + i
+            prompt = self.prompts[index]
+            seed   = self.seeds[index]
+            self.update_aesthetic_target(index)
+
+            if interpolate_lora_conditioning and i == 1:
+                self.args.lora_path = self.lora_paths[(phase_index+1)%len(self.lora_paths)]
+                self.pipe = update_pipe_with_lora(self.pipe, self.args)
+
             prompt_embeds = self.pipe._encode_prompt(
                 prompt,
                 self.device,
@@ -308,7 +325,7 @@ class Interpolator():
             else:
                 perceptual_target_curve = np.ones(len(perceptual_distances)+1)
 
-                if 1:
+                if 0:
                     # create a full period sine curve that starts at 0 and ends at 0:
                     perceptual_target_curve = np.sin(np.linspace(-np.pi/2, 2*np.pi - np.pi/2, len(perceptual_distances)+1)) + 4.0
                     perceptual_target_curve = perceptual_target_curve / np.mean(perceptual_target_curve)
@@ -357,6 +374,8 @@ class Interpolator():
         self.clear_buffer_at_next_iteration = False
         self.data_tracker.save()
         self.args.c = None
+        self.phase_index += 1
+        self.setup_next_creation_conditions(self.phase_index)
 
     def get_next_conditioning(self, verbose = 0, save_distances_to_dir = None, t_raw = None):
         '''
