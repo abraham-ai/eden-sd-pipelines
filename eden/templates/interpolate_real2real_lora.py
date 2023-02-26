@@ -40,21 +40,20 @@ def real2real_lora(input_images, lora_paths, interpolation_texts, outdir,
             interpolation_init_images = input_images,
             interpolation_init_images_use_img2txt = True,
             interpolation_init_images_power = 3.0,
-            interpolation_init_images_min_strength = 0.25,  # a higher value will make the video smoother, but allows less visual change / journey
+            interpolation_init_images_min_strength = 0.1,  # a higher value will make the video smoother, but allows less visual change / journey
             interpolation_init_images_max_strength = 0.95,
-            latent_blending_skip_f = [0.1, 0.8],
+            latent_blending_skip_f = [0.0, 0.8],
             guidance_scale = 12,
-            scale_modulation = 0.0,
-            n_frames = 96*(n-1) + n,
+            n_frames = 8*(n-1) + n,
             loop = True,
             smooth = True,
             n_film = 0,
             fps = 9,
-            steps = 70,
+            steps = 35,
             sampler = "euler",
             seed = seed,
-            H = 768,
-            W = 960,
+            H = 640,
+            W = 512,
             upscale_f = 1.0,
             clip_interrogator_mode = "fast",
             lora_paths = lora_paths,
@@ -160,7 +159,7 @@ if __name__ == "__main__":
 
     outdir = "results"
     n = 3
-    lora_interpolation_dir = '/home/xander/Projects/cog/eden-sd-pipelines/eden/xander/images/people_bs_6/vitalik_train_00_ff058b_final_lora/interp'
+    lora_interpolation_dir = '/home/xander/Projects/cog/eden-sd-pipelines/eden/xander/images/lora_interpolate_samples/interp'
 
     # Load all .jsons and .jpgs in the lora_interpolation_dir
     jsons = sorted([os.path.join(lora_interpolation_dir, f) for f in os.listdir(lora_interpolation_dir) if f.endswith('.json')])
@@ -172,16 +171,19 @@ if __name__ == "__main__":
     seed = int(0)
     random.seed(seed)
 
-    for i in range(1,5):
+    for i in range(1):
         seed = i
         random.seed(seed)
         # sample a random subset of n images
         indices = random.sample(range(len(jsons)), n)
+        indices = sorted(indices)
         input_images = [jpgs[i] for i in indices]
         input_jsons = [jsons[i] for i in indices]
 
         interpolation_texts, lora_paths, ckpts, abort = get_txts_and_loras(input_jsons)
 
         assert len(interpolation_texts) == len(lora_paths) == len(ckpts) == len(input_images)
+
+        print(input_images)
 
         real2real_lora(input_images, lora_paths, interpolation_texts, outdir, seed = seed)

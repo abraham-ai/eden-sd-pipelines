@@ -16,6 +16,15 @@ from diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion_eden import 
 from diffusers.pipelines.stable_diffusion.convert_from_ckpt import load_pipeline_from_original_stable_diffusion_ckpt
 from diffusers.models import AutoencoderKL
 
+from diffusers import (
+    LMSDiscreteScheduler, 
+    EulerDiscreteScheduler, 
+    DDIMScheduler, 
+    DPMSolverMultistepScheduler, 
+    KDPM2DiscreteScheduler, 
+    PNDMScheduler
+)
+
 from eden_utils import *
 from settings import _device
 from lora_diffusion import *
@@ -23,6 +32,23 @@ from lora_diffusion import *
 pipe = None
 last_checkpoint = None
 last_lora_path = None
+
+def set_sampler(sampler_name, pipe):
+    schedulers = {
+        "klms": LMSDiscreteScheduler.from_config(pipe.scheduler.config), 
+        "euler": EulerDiscreteScheduler.from_config(pipe.scheduler.config),
+        "dpm": DPMSolverMultistepScheduler.from_config(pipe.scheduler.config),
+        "kdpm2": KDPM2DiscreteScheduler.from_config(pipe.scheduler.config),
+        "pndm": PNDMScheduler.from_config(pipe.scheduler.config),
+        "ddim": DDIMScheduler.from_config(pipe.scheduler.config),
+    }
+    if sampler_name not in schedulers:
+        print(f"Sampler {sampler_name} not found. Available samplers: {list(schedulers.keys())}")
+        print("Falling back to Euler sampler.")
+        sampler_name = "euler"
+
+    pipe.scheduler = schedulers[sampler_name]
+
 
 def load_pipe(args, img2img = False):
     global pipe
@@ -67,6 +93,7 @@ def get_pipe(args, force_reload = False):
         pipe = load_pipe(args, img2img = img2img)
         print_model_info(pipe)
 
+    set_sampler(args.sampler, pipe)
     pipe = update_pipe_with_lora(pipe, args)
     pipe.enable_xformers_memory_efficient_attention()
 
@@ -89,14 +116,8 @@ def update_pipe_with_lora(pipe, args):
     )
     tune_lora_scale(pipe.unet, args.lora_scale)
     tune_lora_scale(pipe.text_encoder, args.lora_scale)
-
-    took_s = time.time() - start_time
-    print(f" ---> Updated pipe in {took_s:.2f}s using lora from {args.lora_path} with scale = {args.lora_scale:.2f}")
+    
+    print(f" ---> Updated pipe in {(time.time() - start_time):.2f}s using lora from {args.lora_path} with scale = {args.lora_scale:.2f}")
     last_lora_path = args.lora_path
-
-    safeloras = safe_open(args.lora_path, framework="pt", device="cpu")
-    tok_dict = parse_safeloras_embeds(safeloras)
-
-    trained_tokens = list(tok_dict.keys())
 
     return pipe.to(_device)

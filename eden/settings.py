@@ -22,7 +22,6 @@ def pick_best_gpu_id():
         os.environ["CUDA_VISIBLE_DEVICES"] = ""
         return None
 
-
     best_gpu_id = gpu_ids[np.argmax(gpu_mem)]
     # set this to be the active GPU:
     os.environ["CUDA_VISIBLE_DEVICES"] = str(best_gpu_id)

@@ -20,39 +20,12 @@ import torch
 import torchvision.transforms as T
 import torchvision.transforms.functional as TF
 
-from diffusers import (
-    LMSDiscreteScheduler, 
-    EulerDiscreteScheduler, 
-    DDIMScheduler, 
-    DPMSolverMultistepScheduler, 
-    KDPM2DiscreteScheduler, 
-    PNDMScheduler
-)
-
 import pipe as eden_pipe
 from settings import _device
 from eden_utils import *
 from interpolator import *
 from clip_tools import *
 from planner import LatentTracker, create_init_latent, blend_inits
-
-
-def set_sampler(sampler_name, pipe):
-    schedulers = {
-        "klms": LMSDiscreteScheduler.from_config(pipe.scheduler.config), 
-        "euler": EulerDiscreteScheduler.from_config(pipe.scheduler.config),
-        "dpm": DPMSolverMultistepScheduler.from_config(pipe.scheduler.config),
-        "kdpm2": KDPM2DiscreteScheduler.from_config(pipe.scheduler.config),
-        "pndm": PNDMScheduler.from_config(pipe.scheduler.config),
-        "ddim": DDIMScheduler.from_config(pipe.scheduler.config),
-    }
-    if sampler_name not in schedulers:
-        print(f"Sampler {sampler_name} not found. Available samplers: {list(schedulers.keys())}")
-        print("Falling back to Euler sampler.")
-        sampler_name = "euler"
-
-    pipe.scheduler = schedulers[sampler_name]
-    #print(f"Sampler set to {sampler_name}")
 
 
 def maybe_apply_watermark(args, x_images):
@@ -95,8 +68,9 @@ def generate(
         force_starting_latent = args.interpolator.latent_tracker.force_starting_latent
     
     # Load model
+    start_time = time.time()
     pipe = eden_pipe.get_pipe(args)
-    set_sampler(args.sampler, pipe)
+    print("get_pipe completed in", time.time() - start_time, "seconds")
     
     # if init image strength == 1, just return the initial image
     if args.init_image_strength == 1.0 and args.init_image:
