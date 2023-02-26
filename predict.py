@@ -25,11 +25,7 @@ sys.path.extend([
     "/frame-interpolation"
 ])
 
-from settings import (
-    StableDiffusionSettings,
-    LoraMaskingSettings, 
-    LoraTrainingSettings
-)
+from settings import StableDiffusionSettings
 import eden_utils
 import film
 from lora import train_lora
@@ -79,7 +75,7 @@ class Predictor(BasePredictor):
         # Universal args
         mode: str = Input(
             description="Mode", default="generate",
-            choices=["generate", "remix", "interpolate", "real2real", "interrogate", "lora"]
+            choices=["generate", "remix", "interpolate", "real2real", "interrogate"]
         ),
         stream: bool = Input(
             description="yield individual results if True", default=False
