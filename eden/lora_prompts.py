@@ -47,13 +47,6 @@ male_prompts = [
     "screaming cyberpunk <concept>, wires, machines by emil melmoth zdzislaw belsinki craig mullins yoji shinkawa realistic render ominous detailed photo atmospheric by jeremy mann francis bacon and agnes cecile ink drips paint smears digital glitches glitchart ",
     "portrait of a cosmic <concept> god, body made out of stars and galaxies and cosmic energy, intricate, headshot, highly detailed, digital painting, artstation, concept art, sharp focus, cinematic lighting, illustration, art by artgerm and greg rutkowski, alphonse mucha, cgsociety",
     "portrait of a cosmic <concept> god, body made out of stars and galaxies and cosmic energy, intricate, headshot, highly detailed, digital painting, artstation, concept art, sharp focus, cinematic lighting, illustration, art by artgerm and greg rutkowski, alphonse mucha, cgsociety",
-    "",
-    "",
-    "",
-    "",
-]
-
-male_prompts = [
     "symmetry!!! closeup portrait of a cyborg transparent <concept>, fashion cyber jumpsuit with big shoulder pads, cinematic light, backlight, windy, teal orange, smoke trails, mist, by gerald brom, by mikhail vrubel, by peter elson, muted colors, extreme detail, trending on artstation, 8 k ",
     "human 3 d by pantokrator, beautiful sexy <concept> head made of mech mask rendered in unreal engine, nanotechnology, golden cyberntic vessels coming from core processor, contrast, painted by david burliuk | bernard buffet | carne griffiths | stanislaw lem ",
     "a simple painting of <concept> by Android Jones and M. C. Escher collaboration",
@@ -125,11 +118,6 @@ male_prompts = [
     "digital _ painting _ of _ <concept>, puch mayan god of death _ by _ filipe _ pagliuso _ and _ justin _ gerard _ symmetric _ fantasy _ highly _ detailed _ realistic _ intricate _ port ",
     "<concept>, Aztec king, handsome, portrait, intricate, elegant, feathers, volumetric lighting, scenery, digital painting, highly detailed, artstation, sharp focus, illustration, concept art, ruan jia, steve mccurry",
     "<concept> as gilgamesh, mighty man, big smile, close up portrait, intricate, elegant, volumetric lighting, scenery, classical painting, in the style of rembrandt and tony sart and lucian freud and anato finnstark and randy vargas and diego gisbert llorens and johan grenier and ruan jia and steve mccurry, photorealistic lighting, sharp focus, illustration, concept art ",
-    "",
-]
-
-
-male_prompts = [
     "photograph of a real - life <concept> octopus who is a hipster, wearing beanie and sunglasses",
     "photograph of a <concept> octopus who is a hipster, wearing beanie and sunglasses",
     "polaroid photo of a <concept> cthulhu, wearing a beanie and sunglasses",
@@ -138,6 +126,10 @@ male_prompts = [
 
 
 female_prompts = [
+    "highly detailed beautiful oil painting of <concept> angel, ink splash, sharp focus, dramatic, dynamic lighting, elegant, harmony, dark, masterpiece, by jenny saville, by lucian freud, by riccardo federici, by james jean, by craig mullins, by jeremy mann, by makoto shinkai, by krenz cushart, by greg rutkowski, by huang guangjian, by gil elvgren, illustration, ink draw, pen",
+    "highly detailed beautiful oil painting of <concept>, ink splash, sharp focus, dramatic, dynamic lighting, elegant, harmony, dark, masterpiece, by jenny saville, by lucian freud, by riccardo federici, by james jean, by craig mullins, by jeremy mann, by makoto shinkai, by krenz cushart, by greg rutkowski, by huang guangjian",
+    "highly detailed beautiful oil painting of naked <concept> woman, ink splash, sharp focus, dramatic, dynamic lighting, elegant, harmony, dark, masterpiece, by jenny saville, by lucian freud, by riccardo federici, by james jean, by craig mullins, by jeremy mann, by makoto shinkai, by krenz cushart, by greg rutkowski, by huang guangjian, by gil elvgren, illustration, ink draw, pen",
+    "highly detailed beautiful oil painting of <concept> woman, ink splash, sharp focus, dramatic, dynamic lighting, elegant, harmony, dark, masterpiece, by jenny saville, by lucian freud, by riccardo federici, by james jean, by craig mullins, by jeremy mann, by makoto shinkai, by krenz cushart, by greg rutkowski, by huang guangjian, by gil elvgren, illustration, ink draw, pen",
     "<concept> as Visions of Hell by Karol Bak, Jean Deville, Gustav Klimt, and Vincent Van Gogh, nightmare portrait, infernal, visionary, otherworldly, fractal structures, ornate gilded medieval icon, third eye, hellfire, stygian, spirals, cosmic horror",
     "<concept> as Visions of Hell by Karol Bak, Jean Deville, Gustav Klimt, and Vincent Van Gogh, nightmare portrait, infernal, visionary, otherworldly, fractal structures, ornate gilded medieval icon, third eye, hellfire, spirals, horror",
     "<concept> as the Divine Chaos Engine by Karol Bak, Jean Deville, Gustav Klimt, and Vincent Van Gogh, celestial, visionary, sacred, fractal structures, ornate realistic gilded medieval icon, spirals, atmospheric",

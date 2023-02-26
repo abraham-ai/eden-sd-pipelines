@@ -19,7 +19,7 @@ def real2real(input_images, outdir,
     random.seed(seed)
     n = len(input_images)
     
-    name = f"real2real_{name_str}_{int(time.time()*100)}"
+    name = f"real2real_{name_str}_{seed}_{int(time.time()*100)}"
     frames_dir = os.path.join(outdir, name)
     os.makedirs(frames_dir, exist_ok=True)
 

@@ -33,6 +33,9 @@ def upscale_directory_with_configs(input_cfg_dir, outdir,
     target_steps = 80, min_max_steps = [40,80],
     force_sampler = None, shuffle = False, upscale_lora_scale = 1.0):
 
+    if len(n_versions_per_upscale) != len(init_img_strengths):
+        n_versions_per_upscale = [n_versions_per_upscale[0]] * len(init_img_strengths)
+
     """
 
     Upscale a directory of SD generated .jpg images (with corresponding .json configs) to a higher resolution.
@@ -89,11 +92,12 @@ def upscale_directory_with_configs(input_cfg_dir, outdir,
                         setattr(args, key, cfg_data[key])
 
                 args.lora_scale = upscale_lora_scale
-                args.lora_path = "/home/xander/Projects/cog/lora/exps/electra/final_lora.safetensors"
-                args.guidance_scale = random.choice([8,10,12])
+                args.lora_path = "/home/xander/Projects/cog/lora/exps/kirby/kirby_train_00_563e0a/final_lora.safetensors"
+                args.guidance_scale = random.choice([12])
 
                 if force_sampler is not None:
                     args.sampler = force_sampler
+
 
                 args.W, args.H = compute_target_resolution(args.W, args.H, total_pixels)
                 args.init_image_data = img_files[i]
@@ -108,6 +112,9 @@ def upscale_directory_with_configs(input_cfg_dir, outdir,
                     print(f"Skipping {filename}..")
                     continue
 
+                if not args.init_image_data.endswith(".jpg"):
+                    continue
+
                 _, new_images = generate(args)
                 frame = new_images[0]
                 os.makedirs(outdir, exist_ok = True)
@@ -120,7 +127,7 @@ def upscale_directory_with_configs(input_cfg_dir, outdir,
 """
 
 
-cd /home/xander/Projects/cog/diffusers/eden/templates
+cd /home/xander/Projects/cog/eden-sd-pipelines/eden/templates
 python upscale_from_config.py
 
 
@@ -128,13 +135,13 @@ python upscale_from_config.py
 """
 
 
-input_cfg_dir  = "/home/xander/Projects/cog/diffusers/eden/templates/electra/good"
+input_cfg_dir  = "/home/xander/Projects/cog/eden-sd-pipelines/eden/xander/images/kirby/good/more2"
 outdir         = input_cfg_dir + "_HD"
 
 ##################################################################################################
 
 if __name__ == "__main__":
-    upscale_lora_scale = 0.8
+    upscale_lora_scale = 0.9
 
     if 0:  # make variations:
         upscale_directory_with_configs(input_cfg_dir, outdir, 
@@ -150,9 +157,9 @@ if __name__ == "__main__":
     else: # upscale:
 
         upscale_directory_with_configs(input_cfg_dir, outdir, 
-            total_pixels = (960)**2, 
-            init_img_strengths = [0.4, 0.5, 0.6], 
-            n_versions_per_upscale = [1,1,1],
+            total_pixels = (1024)**2, 
+            init_img_strengths = [0.3,0.35,0.4,0.45,0.50], 
+            n_versions_per_upscale = [1],
             #force_sampler = 'euler_ancestral',
             shuffle = True,
             target_steps = 160, min_max_steps = [140,200],

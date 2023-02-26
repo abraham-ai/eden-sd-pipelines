@@ -27,7 +27,7 @@ def real2real_lora(input_images, lora_paths, interpolation_texts, outdir,
 
     random.seed(seed)
     
-    name = f"real2real_{name_str}_{seed}_{int(time.time()*100)}"
+    name = f"real2real_{name_str}_{seed}_{int(time.time())}"
     frames_dir = os.path.join(outdir, name)
     os.makedirs(frames_dir, exist_ok=True)
 
@@ -40,21 +40,21 @@ def real2real_lora(input_images, lora_paths, interpolation_texts, outdir,
             interpolation_init_images = input_images,
             interpolation_init_images_use_img2txt = True,
             interpolation_init_images_power = 3.0,
-            interpolation_init_images_min_strength = 0.20,  # a higher value will make the video smoother, but allows less visual change / journey
+            interpolation_init_images_min_strength = 0.25,  # a higher value will make the video smoother, but allows less visual change / journey
             interpolation_init_images_max_strength = 0.95,
-            latent_blending_skip_f = [0.15, 0.8],
+            latent_blending_skip_f = [0.1, 0.8],
             guidance_scale = 12,
             scale_modulation = 0.0,
-            n_frames = 6*n,
+            n_frames = 96*(n-1) + n,
             loop = True,
             smooth = True,
             n_film = 0,
             fps = 9,
-            steps = 50,
+            steps = 70,
             sampler = "euler",
             seed = seed,
             H = 768,
-            W = 768,
+            W = 960,
             upscale_f = 1.0,
             clip_interrogator_mode = "fast",
             lora_paths = lora_paths,
@@ -151,7 +151,7 @@ def get_txts_and_loras(json_paths):
     else:
         abort = False
 
-    interpolation_texts = ["artwork of <person1><person2>, " + t for t in interpolation_texts]
+    #interpolation_texts = ["artwork of <person1>, " + t for t in interpolation_texts]
 
     return interpolation_texts, lora_paths, ckpts, abort
     
@@ -159,9 +159,8 @@ def get_txts_and_loras(json_paths):
 if __name__ == "__main__":
 
     outdir = "results"
-    n = 4
-    lora_interpolation_dir = '/home/xander/Projects/cog/eden-sd-pipelines/eden/xander/images/lora_video/INTERP'
-    #lora_interpolation_dir = '/home/xander/Projects/cog/eden-sd-pipelines/eden/xander/images/lora/0_VIDEO'
+    n = 3
+    lora_interpolation_dir = '/home/xander/Projects/cog/eden-sd-pipelines/eden/xander/images/people_bs_6/vitalik_train_00_ff058b_final_lora/interp'
 
     # Load all .jsons and .jpgs in the lora_interpolation_dir
     jsons = sorted([os.path.join(lora_interpolation_dir, f) for f in os.listdir(lora_interpolation_dir) if f.endswith('.json')])
@@ -173,8 +172,9 @@ if __name__ == "__main__":
     seed = int(0)
     random.seed(seed)
 
-    for i in range(50):
-        random.seed(i)
+    for i in range(1,5):
+        seed = i
+        random.seed(seed)
         # sample a random subset of n images
         indices = random.sample(range(len(jsons)), n)
         input_images = [jpgs[i] for i in indices]
@@ -184,4 +184,4 @@ if __name__ == "__main__":
 
         assert len(interpolation_texts) == len(lora_paths) == len(ckpts) == len(input_images)
 
-        real2real_lora(input_images, lora_paths, interpolation_texts, outdir)
+        real2real_lora(input_images, lora_paths, interpolation_texts, outdir, seed = seed)
