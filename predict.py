@@ -313,3 +313,4 @@ class Predictor(BasePredictor):
             name = " => ".join(args.interpolation_texts)
 
             yield CogOutput(file=out_path, name=name, thumbnail=thumbnail, attributes=attributes, isFinal=True, progress=1.0)
+            
