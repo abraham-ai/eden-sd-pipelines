@@ -84,11 +84,15 @@ def load_pipe(args):
 def get_pipe(args, force_reload = False):
     global pipe
     global last_checkpoint
+    global last_lora_path
     # create a persistent, global pipe object:
 
     if args.ckpt != last_checkpoint:
         force_reload = True
         last_checkpoint = args.ckpt
+
+    if not args.lora_path and last_lora_path:
+        force_reload = True
 
     if (pipe is None) or force_reload:
         del pipe
@@ -118,7 +122,11 @@ def update_pipe_with_lora(pipe, args):
     if args.lora_path == last_lora_path:
         return pipe
 
+    if not args.lora_path:
+        return pipe
+
     start_time = time.time()
+
     patch_pipe(
         pipe,
         args.lora_path,
