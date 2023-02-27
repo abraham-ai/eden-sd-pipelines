@@ -101,7 +101,7 @@ class StableDiffusionSettings:
 
     # single generation
     text_input: str = "hello world" 
-    uc_text: str = "poorly drawn face, ugly, tiling, out of frame, extra limbs, disfigured, deformed body, blurry, blurred, watermark, text, grainy, signature, cut off, draft"  # negative prompting
+    uc_text: str = "nude, naked, poorly drawn face, ugly, tiling, out of frame, extra limbs, disfigured, deformed body, blurry, blurred, watermark, text, grainy, signature, cut off, draft"  # negative prompting
     seed: int = 0
     n_samples: int = 1
 
