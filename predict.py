@@ -24,7 +24,6 @@ sys.path.extend([
 from settings import StableDiffusionSettings
 import eden_utils
 import film
-from lora import train_lora
 from cog import BasePredictor, BaseModel, File, Input, Path
 
 checkpoint_options = [
@@ -313,4 +312,3 @@ class Predictor(BasePredictor):
             name = " => ".join(args.interpolation_texts)
 
             yield CogOutput(file=out_path, name=name, thumbnail=thumbnail, attributes=attributes, isFinal=True, progress=1.0)
-            
