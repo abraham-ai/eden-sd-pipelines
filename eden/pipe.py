@@ -102,6 +102,12 @@ def get_pipe(args, force_reload = False):
     # Potentially update the pipe:
     pipe = set_sampler(args.sampler, pipe)
     pipe = update_pipe_with_lora(pipe, args)
+    
+    if args.lora_path is not None:
+        start = time.time()
+        tune_lora_scale(pipe.unet, args.lora_scale)
+        tune_lora_scale(pipe.text_encoder, args.lora_scale)
+        print("Tuning lora scale took %.2f seconds" % (time.time() - start))
 
     return pipe
 

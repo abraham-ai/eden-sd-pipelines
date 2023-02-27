@@ -41,7 +41,6 @@ def maybe_apply_watermark(args, x_images):
         x_images = args.watermarker.apply_watermark(x_images)
     return x_images
 
-
 @torch.no_grad()
 def generate(
     args, 

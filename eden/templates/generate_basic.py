@@ -17,6 +17,7 @@ checkpoint_options = [
     "prompthero/openjourney-v2",
     "dreamlike-art/dreamlike-photoreal-2.0"
 ]
+
 checkpoint_options = ["dreamlike-art/dreamlike-photoreal-2.0"]
 
 def generate_basic(text_input, outdir, 
@@ -32,10 +33,10 @@ def generate_basic(text_input, outdir,
     args = StableDiffusionSettings(
         ckpt = random.choice(checkpoint_options),
         mode = "generate",
-        W = 512,
-        H = 512,
+        W = 1024,
+        H = 768,
         sampler = "euler",
-        steps = 40,
+        steps = 50,
         guidance_scale = 12,
         upscale_f = 1.0,
         text_input = text_input,
