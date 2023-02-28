@@ -164,6 +164,9 @@ def generate(
 @torch.no_grad()
 def make_interpolation(args, force_timepoints = None):
     
+    # Always disbale upscaling for videos:
+    args.upscale_f = 1.0
+    
     if args.text_input == "real2real" and args.interpolation_texts:
         assert len(args.interpolation_texts) == len(args.interpolation_init_images), "When overwriting prompts for real2real, you must provide the same number of interpolation texts as init_imgs!"
         real2real_texts = args.interpolation_texts
