@@ -132,8 +132,6 @@ def update_pipe_with_lora(pipe, args):
         patch_ti=True,
         patch_unet=True,
     )
-    tune_lora_scale(pipe.unet, args.lora_scale)
-    tune_lora_scale(pipe.text_encoder, args.lora_scale)
 
     print(f" ---> Updated pipe in {(time.time() - start_time):.2f}s using lora from {args.lora_path} with scale = {args.lora_scale:.2f}")
     last_lora_path = args.lora_path

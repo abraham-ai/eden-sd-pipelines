@@ -66,11 +66,16 @@ def generate(
         args.interpolator.latent_tracker.create_new_denoising_trajectory(args)
         force_starting_latent = args.interpolator.latent_tracker.force_starting_latent
     
+    # adjust min n_steps:
+    #n_steps = max(args.steps, int(args.min_steps/(1-args.init_image_strength)))
+    #print(f"Adjusted n_steps from {args.steps} to {n_steps} to match min_steps {args.min_steps} and init_image_strength {args.init_image_strength}")
+    n_steps = args.steps
+
     # Load model
     pipe = eden_pipe.get_pipe(args)
-    
+
     # if init image strength == 1, just return the initial image
-    if args.init_image_strength == 1.0 and args.init_image:
+    if (args.init_image_strength == 1.0 and args.init_image) or int(n_steps*(1-args.init_image_strength)) < 1:
         latent = pil_img_to_latent(args.init_image, args, _device, pipe)
         if args.interpolator is not None:
             args.interpolator.latent_tracker.add_latent(latent, init_image_strength = 1.0)
@@ -84,10 +89,6 @@ def generate(
         pil_images = maybe_apply_watermark(args, pil_images)
         return pt_images, pil_images
 
-    # get the denoising schedule:
-    n_steps = max(args.steps, int(args.min_steps/(1-args.init_image_strength)))
-    n_steps = args.steps
-
     # Callback
     callback_ = make_callback(
         latent_tracker = args.interpolator.latent_tracker if args.interpolator is not None else None,
@@ -99,17 +100,9 @@ def generate(
 
     if args.c is not None:
         prompt, negative_prompt = None, None
-        #seed_everything(0)
     else:
         prompt, negative_prompt = args.text_input, args.uc_text
         args.c, args.uc = None, None
-
-    if 0:
-        for token in ["<person1>", "<person2>"]:
-            print("Patching token", token)
-            token_id = pipe.tokenizer.convert_tokens_to_ids(token)
-            embed = pipe.text_encoder.get_input_embeddings().weight.data[token_id]
-            print(embed[-510:-500])
 
     if args.mode == 'depth2img':
         pipe_output = pipe(
@@ -384,7 +377,7 @@ def run_upscaler(args_, imgs, init_image_strength = 0.7, min_steps = 30):
     if args.interpolator is not None:
         args.interpolator.latent_tracker = None
     args.init_image_strength = init_image_strength
-    args.steps = int(min_steps/(1-args.init_image_strength))
+    args.steps = max(args.steps, int(min_steps/(1-args.init_image_strength)))
     args.W, args.H = args_.upscale_f * args_.W, args_.upscale_f * args_.H
     args.upscale_f = 1.0  # don't upscale again
 
