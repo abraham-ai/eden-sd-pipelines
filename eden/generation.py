@@ -75,7 +75,7 @@ def generate(
     pipe = eden_pipe.get_pipe(args)
 
     # if init image strength == 1, just return the initial image
-    if (args.init_image_strength == 1.0 and args.init_image) or int(n_steps*(1-args.init_image_strength)) < 1:
+    if (args.init_image_strength == 1.0 or (int(n_steps*(1-args.init_image_strength)) < 1)) and args.init_image:
         latent = pil_img_to_latent(args.init_image, args, _device, pipe)
         if args.interpolator is not None:
             args.interpolator.latent_tracker.add_latent(latent, init_image_strength = 1.0)
