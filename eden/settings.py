@@ -108,7 +108,7 @@ class StableDiffusionSettings:
     # if mode is interpolate or animate (video)
     n_frames: int = 1
     loop: bool = False
-    smooth: bool = False  
+    smooth: bool = True  
     n_film: int = 0
     scale_modulation: float = 0.0
     fps: int = 9
