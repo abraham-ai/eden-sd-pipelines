@@ -111,6 +111,8 @@ def get_pipe(args, force_reload = False):
         tune_lora_scale(pipe.unet, args.lora_scale)
         tune_lora_scale(pipe.text_encoder, args.lora_scale)
 
+    last_lora_path = args.lora_path
+
     return pipe
 
 
@@ -134,6 +136,5 @@ def update_pipe_with_lora(pipe, args):
     )
 
     print(f" ---> Updated pipe in {(time.time() - start_time):.2f}s using lora from {args.lora_path} with scale = {args.lora_scale:.2f}")
-    last_lora_path = args.lora_path
 
     return pipe.to(_device)
