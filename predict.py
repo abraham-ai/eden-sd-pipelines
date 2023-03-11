@@ -81,11 +81,11 @@ class Predictor(BasePredictor):
         ),
         width: int = Input(
             description="Width", 
-            ge=64, le=2048, default=512
+            ge=256, le=2048, default=512
         ),
         height: int = Input(
             description="Height", 
-            ge=64, le=2048, default=512
+            ge=256, le=2048, default=512
         ),
         checkpoint: str = Input(
             description="Which Stable Diffusion checkpoint to use",
@@ -98,7 +98,7 @@ class Predictor(BasePredictor):
         ),
         lora_scale: float = Input(
             description="Lora scale (how much of the Lora finetuning to apply)",
-            ge=0.0, le=1.0, default=0.8
+            ge=0.0, le=1.2, default=0.8
         ),
         sampler: str = Input(
             description="Which sampler to use", 
@@ -108,15 +108,15 @@ class Predictor(BasePredictor):
         ),
         steps: int = Input(
             description="Diffusion steps", 
-            ge=0, le=200, default=60
+            ge=10, le=100, default=40
         ),
         guidance_scale: float = Input(
             description="Strength of text conditioning guidance", 
-            ge=0, le=32, default=10.0
+            ge=0, le=30, default=10.0
         ),
         upscale_f: int = Input(
             description="Upscaling resolution",
-            ge=1, le=4, default=1
+            ge=1, le=3, default=1
         ),
 
         # Init image and mask
@@ -135,7 +135,7 @@ class Predictor(BasePredictor):
         ),
         uc_text: str = Input(
             description="Negative text input (mode==all)",
-            default="poorly drawn face, ugly, tiling, out of frame, extra limbs, disfigured, deformed body, blurry, blurred, watermark, text, grainy, signature, cut off, draft"
+            default="watermark, text, nude, naked, nsfw, poorly drawn face, ugly, tiling, out of frame, blurry, blurred, grainy, signature, cut off, draft"
         ),
         seed: int = Input(
             description="random seed (mode==generate)", 
@@ -149,7 +149,7 @@ class Predictor(BasePredictor):
         # Interpolate mode
         n_frames: int = Input(
             description="Total number of frames (mode==interpolate)",
-            ge=0, le=100, default=50
+            ge=3, le=100, default=48
         ),
 
         # Interpolate mode
@@ -167,15 +167,19 @@ class Predictor(BasePredictor):
         ),
         interpolation_init_images_power: float = Input(
             description="Power for interpolation_init_images prompts (mode==interpolate)",
-            ge=0.0, le=8.0, default=2.5
+            ge=0.5, le=5.0, default=3.0
         ),
         interpolation_init_images_min_strength: float = Input(
             description="Minimum init image strength for interpolation_init_images prompts (mode==interpolate)",
-            ge=0, le=1, default=0.2
+            ge=0, le=0.75, default=0.25
+        ),
+        interpolation_init_images_max_strength: float = Input(
+            description="Maximum init image strength for interpolation_init_images prompts (mode==interpolate)",
+            ge=0.5, le=1.0, default=0.95
         ),
         scale_modulation: float = Input(
             description="Scale modulation amplitude for interpolation (mode==interpolate)",
-            ge=0.0, le=10, default=0.0
+            ge=0.0, le=0.25, default=0.0
         ),
         loop: bool = Input(
             description="Loops (mode==interpolate)",
@@ -234,6 +238,7 @@ class Predictor(BasePredictor):
             interpolation_init_images = interpolation_init_images,
             interpolation_init_images_power = interpolation_init_images_power,
             interpolation_init_images_min_strength = interpolation_init_images_min_strength,
+            interpolation_init_images_max_strength = interpolation_init_images_max_strength,
 
             n_frames = n_frames,
             scale_modulation = scale_modulation,
@@ -294,7 +299,7 @@ class Predictor(BasePredictor):
                 if not thumbnail:
                     thumbnail = out_path
                 if stream and f % stream_every == 0:
-                   yield CogOutput(file=out_path, thumbnail=None, attributes=attributes, progress=progress)
+                    yield CogOutput(file=out_path, thumbnail=None, attributes=attributes, progress=progress)
 
             # run FILM
             if args.n_film > 0:
