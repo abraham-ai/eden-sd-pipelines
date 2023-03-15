@@ -149,7 +149,7 @@ class Predictor(BasePredictor):
         # Interpolate mode
         n_frames: int = Input(
             description="Total number of frames (mode==interpolate)",
-            ge=3, le=100, default=48
+            ge=3, le=300, default=48
         ),
 
         # Interpolate mode
