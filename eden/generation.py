@@ -208,6 +208,12 @@ def make_interpolation(args, force_timepoints = None):
                 args.interpolation_texts = init_img_prompts
                 print("Overwriting prompts with clip-interrogator results:", init_img_prompts)
             else:
+                # get prompts for the images that dont have one:
+                for jj, init_img in enumerate(interpolation_init_images):
+                    if real2real_texts[jj] is None:
+                        init_img_prompt = clip_interrogate(args.ckpt, init_img, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
+                        print(f"Generated prompt for init_img_{jj}: {init_img_prompt}")
+                        real2real_texts[jj] = init_img_prompt
                 args.interpolation_texts = real2real_texts
 
             # We're in Real2Real mode here --> overwrite args.aesthetic_target with the interpolation_init_images
@@ -299,6 +305,120 @@ def make_interpolation(args, force_timepoints = None):
             args.init_latent = init_latent
             args.init_image = None
             args.init_image_strength = 0.0
+
+        if args.planner is not None: # When audio modulation is active:
+            args = args.planner.adjust_args(args, t_raw, force_timepoints=force_timepoints)
+
+        print(f"Interpolating frame {f+1}/{len(args.interpolator.ts)} (t_raw = {t_raw:.5f},\
+                init_strength: {args.init_image_strength:.2f},\
+                latent skip_f: {args.interpolator.latent_tracker.latent_blending_skip_f:.2f},\
+                splitting lpips_d: {args.interpolator.latent_tracker.frame_buffer.get_perceptual_distance_at_t(args.t_raw):.2f}),\
+                keyframe {return_index+1}/{len(args.interpolation_texts) - 1}...")
+
+
+        args.lora_path = active_lora_path
+        _, pil_images = generate(args)
+        img_pil = pil_images[0]
+        img_t = T.ToTensor()(img_pil).unsqueeze_(0).to(_device)
+        args.interpolator.latent_tracker.add_frame(args, img_t, t, t_raw)
+
+        yield img_pil, t_raw
+
+    # Flush the final metadata to disk if needed:
+    args.interpolator.latent_tracker.reset_buffer()
+
+
+
+class Video_Frame_Indexer():
+    'Convenience class to get the correct video frame index for each prompt-to-prompt phase in the interpolation.'
+    def __init__(self, n_video_frames):
+        self.video_frames_per_phase = 48
+        self.n_video_frames = n_video_frames
+        
+    def get_video_frame_index(self, t_raw):
+        frame_index = int(t_raw * self.video_frames_per_phase) % self.n_video_frames
+        print(f"t_raw = {t_raw:.5f}, frame_index = {frame_index}")
+        return frame_index
+
+
+@torch.no_grad()
+def video_style_transfer(args, force_timepoints = None):
+    
+    # Always disbale upscaling for videos:
+    args.upscale_f = 1.0
+
+    assert (args.interpolation_texts is not None), "You must provide a sequence of prompts to use!"
+    if not args.interpolation_seeds:
+        args.interpolation_seeds = [args.seed]*len(args.interpolation_texts)
+    assert args.n_samples==1, "Batch size >1 not implemented yet"
+    assert len(args.interpolation_texts) == len(args.interpolation_seeds)
+
+    global pipe
+    pipe = eden_pipe.get_pipe(args)
+    frame_indexer = Video_Frame_Indexer(len(args.interpolation_init_images))
+    args.W, args.H = match_aspect_ratio(args.W*args.H, Image.open(args.interpolation_init_images[0]))
+
+    args.interpolator = Interpolator(
+        pipe, 
+        args.interpolation_texts, 
+        args.n_frames, 
+        args, 
+        _device, 
+        smooth=args.smooth,
+        seeds=args.interpolation_seeds,
+        scales=[args.guidance_scale for _ in args.interpolation_texts],
+        scale_modulation_amplitude_multiplier=args.scale_modulation,
+        lora_paths=args.lora_paths,
+    )
+
+    n_frames = len(args.interpolator.ts)
+    force_timepoints = reorder_timepoints(np.linspace(0, len(args.interpolation_texts) - 1, n_frames))
+    
+    if force_timepoints is not None:
+        n_frames = len(force_timepoints)
+
+    active_lora_path = args.lora_paths[0] if args.lora_paths is not None else None
+
+    ######################################
+
+    for f in range(n_frames):
+        if force_timepoints is not None:
+            force_t_raw = force_timepoints[f]
+        else:
+            force_t_raw = None
+
+        if 0: # catch errors and try to complete the video
+            try:
+                t, t_raw, c, init_latent, scale, return_index, _, _ = args.interpolator.get_next_conditioning(verbose=0, save_distances_to_dir = args.save_distances_to_dir, t_raw = force_t_raw)
+            except Exception as e:
+                print("Error in interpolator.get_next_conditioning(): ", str(e))
+                break
+        else: # get full stack_trace, for debugging:
+            t, t_raw, c, init_latent, scale, return_index, _, _ = args.interpolator.get_next_conditioning(verbose=0, save_distances_to_dir = args.save_distances_to_dir, t_raw = force_t_raw)
+        
+        video_init_frame_index = frame_indexer.get_video_frame_index(t_raw)
+
+        print("Loading init image for frame", f, "from", args.interpolation_init_images[video_init_frame_index])
+
+        args.c = c
+        args.guidance_scale = scale
+        args.t_raw = t_raw
+
+        if len(args.interpolator.latent_tracker.frame_buffer.ts) < (args.interpolator.n_frames_between_two_prompts // 2):
+            args.init_image = PIL.Image.open(args.interpolation_init_images[video_init_frame_index]).convert('RGB')
+            args.init_latent = None
+        else:
+            init_img1 = PIL.Image.open(args.interpolation_init_images[video_init_frame_index]).convert('RGB')
+            init_img2 = init_img1
+            args.init_latent, args.init_image, args.init_image_strength = create_init_latent(args, t, init_img1, init_img2, _device, pipe, real2real = True)
+
+
+        if args.lora_paths is not None:
+            # Maybe update the lora to the next person:
+            if args.lora_paths[return_index] != active_lora_path:
+                active_lora_path = args.lora_paths[return_index]
+                print("Switching to lora path", active_lora_path)
+                args.lora_path = active_lora_path
 
         if args.planner is not None: # When audio modulation is active:
             args = args.planner.adjust_args(args, t_raw, force_timepoints=force_timepoints)

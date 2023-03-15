@@ -41,7 +41,7 @@ class Planner():
         print("Rendering frames for ", total_frame_time, " seconds of video, which is ", 100*self.audio_fraction, "% of the total audio time.")
 
         if self.audio_fraction > 1:
-            print("Warning: more video frames than audio features, this will lead to errors!")    
+            print("Warning: more video frames than audio features, this will lead to errors!")   
 
     def __len__(self):
         return len(self.frames)
@@ -355,6 +355,19 @@ def blend_inits(init1, init2, t, args, real2real = True, anti_shinethrough_power
         blended_init = slerp(mixing_t, init1, init2, flatten = 1, normalize = 1)
     return blended_init, init_image_strength
 
+def create_blended_init_latent_from_init_img():
+    """
+    
+    This function combines two ideas: rendering an image using an init_img and LatentBlending
+    Main workflow:
+    1. Create the init_latent using the init_img at the target args.init_image_strength
+    2. Grab the surrounding latent vectors from the latent_tracker, also at the target args.init_image_strength
+    3. Create a linear combination of the standard init_latent and the surrounding latent vectors
+    
+    TODO
+    """
+    return None
+
 
 def create_init_latent(args, t, init_img0, init_img1, device, pipe, 
     key_latent0 = None,
@@ -543,7 +556,7 @@ class LatentTracker():
 
         if len(self.latents[self.current_t_raw]) == self.steps + 1:
             std_zero = self.latents[self.current_t_raw][0].std()
-            if std_zero > 15.1 or std_zero < 14.1:
+            if std_zero > 15.1 or std_zero < 13.5:
                 print('#####################################')
                 print(f"WARNING: std_zero is {std_zero:.4f}!")
                 print("This shouldn't happen! Something is wrong with the latent blending.")

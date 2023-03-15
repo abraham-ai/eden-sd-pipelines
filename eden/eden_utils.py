@@ -56,6 +56,76 @@ def print_model_info(pipe):
     print(f"Total number of parameters: {total_n_params/1000000.:.2f}M")
 
 
+def reorder_timepoints(timepoints, verbose = 0):
+    """
+    given a monotonically increasing array of points, reorder them so that every point divides the largest remaining interval into two equal parts
+    This is needed because the iterative smoothing algorithm works this way (LatentBlending based on neighbouring latents)
+    """
+    timepoints = np.sort(timepoints)
+    min_v = int(np.min(timepoints))
+    assert min_v == 0, "timepoints must start at 0"
+    max_v = int(np.ceil(np.max(timepoints)))
+
+    # first, make sure that all keyframe timepoints are rounded integers:
+    integers = np.arange(max_v+1)
+    for i in integers:
+        # find the closest value in reordered_timepoints and replace it with i:
+        closest_index = np.argmin(np.abs(np.array(timepoints) - i))
+        timepoints[closest_index] = i
+
+    if verbose:
+        print(timepoints)
+
+    reordered_timepoints = []
+
+    for phase in range(max_v):
+
+        # get all the timepoints that are within this phase:
+        if len(reordered_timepoints) == 0:
+            phase_timepoints = np.array([t for t in timepoints if t >= phase and t <= phase+1])
+        else:
+            phase_timepoints = np.array([t for t in timepoints if t > phase and t <= phase+1])
+
+        phase_timepoints = np.sort(phase_timepoints)
+        phase_indices_to_add = np.arange(len(phase_timepoints))
+
+        reordered_indices_this_phase = []
+
+        # Start by adding the first and last index of this phase:
+        if len(reordered_timepoints) == 0:
+            reordered_indices_this_phase.append(phase_indices_to_add[0])
+            phase_indices_to_add = np.delete(phase_indices_to_add, 0)
+
+        reordered_indices_this_phase.append(phase_indices_to_add[-1])
+        phase_indices_to_add = np.delete(phase_indices_to_add, -1)
+
+        # now, interatively add the remaining indices, so that every add index is the one with the largest distance to any of the already added indices:
+        while len(phase_indices_to_add) > 0:
+            # get the distance between the remaining indices and the already added indices:
+            distances = np.abs(phase_indices_to_add[:, None] - np.array(reordered_indices_this_phase)[None, :])
+            # get the minimum distance for each remaining index:
+            min_distances = np.min(distances, axis = 1)
+            # get the index of the remaining index with the largest distance to any of the already added indices:
+            max_distance_index = np.argmax(min_distances)
+
+            # add this index to the list of already added indices:
+            reordered_indices_this_phase.append(phase_indices_to_add[max_distance_index])
+
+            # remove this index from the remaining indices:
+            phase_indices_to_add = np.delete(phase_indices_to_add, max_distance_index)
+
+        # get the actual timepoint values using the reorderforce_timepointsed indices:
+        reorder_timepoints_this_phase = phase_timepoints[reordered_indices_this_phase]
+
+        # add the timepoints of this phase to the list of all timepoints:
+        reordered_timepoints.extend(reorder_timepoints_this_phase)
+
+    if verbose:
+        print("reordered_timepoints:", reordered_timepoints)
+
+    return reordered_timepoints
+
+
 class DataTracker():
     'Convenience class to save custom tracking numerical data to disk'
     def __init__(self, keys = None):
