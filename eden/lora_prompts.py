@@ -170,6 +170,10 @@ female_prompts = [
     "portrait shot of <concept> alien, doom sf interstellar, intricate artwork masterpiece, ominous, matte painting movie poster, golden ratio, trending on cgsociety, intricate, epic, <concept>, trending on artstation, by h. r. giger and zdizslaw beksinski, ¨ francois marcela - froideval, highly detailed, vibrant, production cinematic character render, ultra high quality model",
 ]
 
+random_prompts = [
+
+]
+
 
 # remove all empty prompts:
 male_prompts = [f for f in male_prompts if (len(f) > 4 and "<concept>" in f)]

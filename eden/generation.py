@@ -26,7 +26,7 @@ from eden_utils import *
 from interpolator import *
 from clip_tools import *
 from planner import LatentTracker, create_init_latent, blend_inits
-
+from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline, StableDiffusionDepth2ImgPipeline
 
 def maybe_apply_watermark(args, x_images):
     # optionally, apply watermark to final image:
@@ -45,6 +45,7 @@ def maybe_apply_watermark(args, x_images):
 def generate(
     args, 
     upscale = False,
+    do_callback = False,
 ):
     assert args.text_input is not None
 
@@ -90,10 +91,13 @@ def generate(
         return pt_images, pil_images
 
     # Callback
-    callback_ = make_callback(
-        latent_tracker = args.interpolator.latent_tracker if args.interpolator is not None else None,
-        extra_callback = None,
-    )
+    if do_callback:
+        callback_ = make_callback(
+            latent_tracker = args.interpolator.latent_tracker if args.interpolator is not None else None,
+            extra_callback = None,
+        )
+    else:
+        callback_ = None
 
     generator = torch.Generator(device=_device).manual_seed(args.seed)
     #generator = None
@@ -256,7 +260,7 @@ def make_interpolation(args, force_timepoints = None):
         else:
             force_t_raw = None
 
-        if False: # catch errors and try to complete the video
+        if True: # catch errors and try to complete the video
             try:
                 t, t_raw, c, init_latent, scale, return_index, _, _ = args.interpolator.get_next_conditioning(verbose=0, save_distances_to_dir = args.save_distances_to_dir, t_raw = force_t_raw)
             except Exception as e:
@@ -317,7 +321,7 @@ def make_interpolation(args, force_timepoints = None):
 
 
         args.lora_path = active_lora_path
-        _, pil_images = generate(args)
+        _, pil_images = generate(args, do_callback = True)
         img_pil = pil_images[0]
         img_t = T.ToTensor()(img_pil).unsqueeze_(0).to(_device)
         args.interpolator.latent_tracker.add_frame(args, img_t, t, t_raw)
@@ -431,7 +435,7 @@ def video_style_transfer(args, force_timepoints = None):
 
 
         args.lora_path = active_lora_path
-        _, pil_images = generate(args)
+        _, pil_images = generate(args, do_callback = True)
         img_pil = pil_images[0]
         img_t = T.ToTensor()(img_pil).unsqueeze_(0).to(_device)
         args.interpolator.latent_tracker.add_frame(args, img_t, t, t_raw)
@@ -488,26 +492,32 @@ def make_callback(
               
     return diffusers_callback
 
+from pipe import set_sampler
 
-def run_upscaler(args_, imgs, init_image_strength = 0.7, min_steps = 30):
+def run_upscaler(args_, imgs, init_image_strength = 0.70, upscale_steps = 20):
     args = copy(args_)
-    args.n_samples = 1  # batching will prob cause OOM, so run everything in a loop
-    args.init_image_data = None
-    args.init_latent = None
-    if args.interpolator is not None:
-        args.interpolator.latent_tracker = None
-    args.init_image_strength = init_image_strength
-    args.steps = max(args.steps, int(min_steps/(1-args.init_image_strength)))
     args.W, args.H = args_.upscale_f * args_.W, args_.upscale_f * args_.H
-    args.upscale_f = 1.0  # don't upscale again
+    args.W = round_to_nearest_multiple(args.W, 64)
+    args.H = round_to_nearest_multiple(args.H, 64)
 
     x_samples_upscaled, x_images_upscaled = [], []
 
+    pipe_img2img = StableDiffusionImg2ImgPipeline.from_pretrained(args.ckpt, torch_dtype=torch.float16)
+    pipe_img2img = pipe_img2img.to(_device)
+    pipe_img2img.enable_xformers_memory_efficient_attention()
+    set_sampler("ddim", pipe_img2img)
+
     for i in range(len(imgs)): # upscale in a loop:
         args.init_image = imgs[i]
-        x_samples, x_images = generate(args)
-        x_samples_upscaled.extend(x_samples)
-        x_images_upscaled.extend(x_images)
+        image = pipe_img2img(
+            args.text_input,
+            image=args.init_image.resize((args.W, args.H)),
+            strength=init_image_strength,
+            num_inference_steps=upscale_steps,
+            negative_prompt=args.uc_text,
+        ).images[0]
+        x_samples_upscaled.extend([])
+        x_images_upscaled.extend([image])
 
     return x_samples_upscaled, x_images_upscaled
 

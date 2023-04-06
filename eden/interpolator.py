@@ -38,7 +38,7 @@ def perceptual_distance(img1, img2,
 
     '''
     returns perceptual distance between img1 and img2
-    This function assumes img1 and img2 are [0,1]
+    This function assumes img1 and img2 are [0,1] and b,c,h,w = img.shape
 
     By default, images are resized to a fixed resolution before computing the lpips score
     this is useful since some parts of the algorithm are computed from the perceptual distance values.
@@ -325,9 +325,9 @@ class Interpolator():
             else:
                 perceptual_target_curve = np.ones(len(perceptual_distances)+1)
 
-                if 0:
+                if 1:
                     # create a full period sine curve that starts at 0 and ends at 0:
-                    perceptual_target_curve = np.sin(np.linspace(-np.pi/2, 2*np.pi - np.pi/2, len(perceptual_distances)+1)) + 4.0
+                    perceptual_target_curve = np.sin(np.linspace(-np.pi/2, 2*np.pi - np.pi/2, len(perceptual_distances)+1)) + 2.0
                     perceptual_target_curve = perceptual_target_curve / np.mean(perceptual_target_curve)
 
 

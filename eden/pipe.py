@@ -77,7 +77,6 @@ def load_pipe(args):
     pipe = pipe.to(_device)
     pipe.enable_xformers_memory_efficient_attention()
     print_model_info(pipe)
-
     return pipe
 
 

@@ -19,10 +19,10 @@ def load_ci(sd_model_name, force_reload=False, clip_model_path=None):
     global ci
     if ci is None or force_reload:
         if sd_model_name in v1_model_names:
-            print(f"Loading ViT-L-14/openai for clip_interpolator...")
+            print(f"Loading ViT-L-14/openai for clip_interpolator (v1 models)...")
             ci = Interrogator(Config(clip_model_path=clip_model_path, clip_model_name="ViT-L-14/openai")) # SD 1.x
         else:
-            print(f"Loading ViT-H-14/laion2b_s32b_b79k for clip_interpolator...")
+            print(f"Loading ViT-H-14/laion2b_s32b_b79k for clip_interpolator (v2 models)...")
             ci = Interrogator(Config(clip_model_path=clip_model_path, clip_model_name="ViT-H-14/laion2b_s32b_b79k"))  # SD 2.x
     return ci
 
