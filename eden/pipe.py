@@ -3,8 +3,12 @@ import sys
 from pathlib import Path
 
 SD_PATH = Path(os.path.dirname(os.path.realpath(__file__))).parents[0]
-LORA_PATH = os.path.join(SD_PATH, 'lora')
+ROOT_PATH = SD_PATH.parents[0]
+DIFFUSERS_PATH = os.path.join(ROOT_PATH, 'diffusers')
+LORA_PATH = os.path.join(ROOT_PATH, 'lora')
 LORA_DIFFUSION_PATH = os.path.join(LORA_PATH, 'lora_diffusion')
+
+sys.path.append(DIFFUSERS_PATH)
 sys.path.append(LORA_PATH)
 sys.path.append(LORA_DIFFUSION_PATH)
 
