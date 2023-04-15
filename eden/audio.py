@@ -138,8 +138,15 @@ def warp_signal(input_signal, fps, min_v = 0.25, power = 1, decay = 0.9, clip_fr
 
 
 
-def create_audio_features(audio_zip_path, verbose = 0):
-  audio_features, audio_path = load_zip(audio_zip_path)
+def create_audio_features(audio_path, verbose = 0):
+  if '.zip' in audio_path:
+    audio_features, audio_path = load_zip(audio_path)
+  elif isinstance(audio_path, tuple):
+    pickle_path, audio_path = audio_path
+    with open(pickle_path, 'rb') as f:
+      audio_features = pickle.load(f)
+  else:
+     raise ValueError('Audio path should be a zip file or a tuple of (features_pickle_path, audio_mp3_path)')
 
   if verbose > 0:
     for key in audio_features.keys():
