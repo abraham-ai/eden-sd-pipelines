@@ -26,8 +26,8 @@ def real2real_x(W, H, args, input_images, outdir, n, exp_name = "", audio_path =
 """
 
 conda activate diffusers
-cd /home/rednax/SSD2TB/Github_repos/cog/eden-sd-pipelines/eden/xander
-python interpolate_real2real_x.py
+cd /home/rednax/SSD2TB/Github_repos/cog/eden-sd-pipelines/eden/templates
+python interpolate_real2real_audio_minimal.py
 
 """
 
@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
     # audio_path is either a path of a .zip file, or a tuple of (audio_features_pickle, audio_mp3_path)
     audio_path = ("path_to_features.pkl", "path_to_audio.mp3")
-
+    
     # Get random images from a directory: (this should be replaced with timeline imgs in WZRD)
     n_imgs = 6
     input_dir = "/home/rednax/SSD2TB/stored_CLIP_results/AAA_init_imgs/random/real2real/random"

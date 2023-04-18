@@ -160,7 +160,11 @@ def create_audio_features(audio_path, verbose = 0):
   fps = audio_features['metadata']['features_per_second']
   harmonic_features = audio_features['features_array_harmonic'].copy()
   percussive_features = audio_features['features_array_percussion'].copy()
-  chroma_features = audio_features['features_array_chroma'].copy()
+  try:
+    chroma_features = audio_features['features_array_chroma'].copy()
+  except:
+    chroma_features = np.zeros(harmonic_features.shape)
+  chroma_fraction = 0.0
   
   # Remove any nan values:
   if np.isnan(harmonic_features).any() or np.isnan(percussive_features).any():
