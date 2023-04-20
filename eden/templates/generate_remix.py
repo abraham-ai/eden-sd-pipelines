@@ -49,7 +49,7 @@ def remix(init_image_data, outdir,
     for i, img in enumerate(generator):
         frame = f'{name}_{i}.jpg'
         os.makedirs(outdir, exist_ok = True)
-        img.save(os.path.join(outdir, frame))
+        img.save(os.path.join(outdir, frame), quality=95)
 
     # Also save the original image:
     args.init_image.save(os.path.join(outdir, f'remix_original.jpg'), quality=95)
