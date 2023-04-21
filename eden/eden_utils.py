@@ -718,5 +718,208 @@ def get_cut_ups_from_json_dir(json_dir):
     chunks = chunk_prompts(text_inputs)
     return create_prompts_from_chunks(chunks)
 
+
+################### for huemin ###################
+
+def huemin_background_gen(outdir,timestring,index):
+
+    color_map = {10:0,20:30,30:30, 50: 40, 60: 80, 70: 80, 80:90, 100:120, 140:150, 165:0}
+
+    def interp_hue(hue, color_map):
+        if hue < min(color_map.keys()) or hue > max(color_map.keys()):
+            return hue
+        sorted_keys = sorted(color_map.keys())
+        for i in range(len(sorted_keys)-1):
+            if sorted_keys[i] <= hue <= sorted_keys[i+1]:
+                interp_val = (hue - sorted_keys[i]) * (color_map[sorted_keys[i+1]] - color_map[sorted_keys[i]]) / (sorted_keys[i+1] - sorted_keys[i]) + color_map[sorted_keys[i]]
+                return interp_val
+
+    hue_val = random.randint(0,179)
+    #hue_val = interp_hue(hue_in,color_map)
+    spread = random.randint(0,1)
+    #print(hue_in,hue_val)
+    
+
+    def random_hsv():
+        # Generate random pastel color in the HSV color space
+        hue = (hue_val + random.randint(-spread, spread)) % 180
+        saturation = random.randint(80, 255)
+        value = random.randint(80, 255)
+        pastel = cv2.cvtColor(np.uint8([[[hue, saturation, value]]]), cv2.COLOR_HSV2RGB)
+        color = pastel[0][0]
+        color = (int(color[0]),int(color[1]),int(color[2]))
+        return color
+
+    def random_dark_hsv():
+        # Generate random pastel color in the HSV color space
+        hue = (hue_val + random.randint(-spread, spread)) % 180
+        saturation = random.randint(200, 250)
+        value = random.randint(0, 0)
+        pastel = cv2.cvtColor(np.uint8([[[hue, saturation, value]]]), cv2.COLOR_HSV2RGB)
+        color = pastel[0][0]
+        color = (int(color[0]),int(color[1]),int(color[2]))
+        return color
+
+    def add_gradient_background(canvas, start_color, end_color):
+        height, width = canvas.shape[:2]
+        start_color = np.array(start_color, dtype=np.uint8)
+        end_color = np.array(end_color, dtype=np.uint8)
+        gradient = np.linspace(start_color, end_color, width).astype(np.uint8)
+        canvas[:] = np.repeat(gradient[np.newaxis, :, :], height, axis=0)
+        return canvas
+
+    def add_random_gradient_background(canvas):
+        start_color = random_dark_hsv()
+        end_color = random_dark_hsv()
+        canvas = add_gradient_background(canvas, start_color, end_color)
+        return canvas
+
+    def create_canvas(height, width):
+        canvas = np.zeros((height, width, 3), dtype=np.uint8)
+        return canvas
+
+    def add_noise(canvas, noise_type, noise_param):
+        if noise_type == "gaussian":
+            # Add Gaussian noise to the canvas
+            canvas = canvas + np.random.normal(0, noise_param, canvas.shape)
+        elif noise_type == "salt_and_pepper":
+            # Add salt and pepper noise to the canvas
+            canvas = np.copy(canvas)
+            canvas[np.random.randint(0, canvas.shape[0], int(canvas.size * noise_param * 0.004))] = 255
+            canvas[np.random.randint(0, canvas.shape[0], int(canvas.size * (1 - noise_param) * 0.004))] = 0
+        else:
+            raise ValueError("Invalid noise type. Please specify 'gaussian' or 'salt_and_pepper'.")
+        return canvas
+
+    def add_stripes(canvas, stripe_width):
+        for i in range(0, canvas.shape[1], stripe_width*2):
+            cv2.rectangle(canvas, (i, 0), (i + stripe_width, canvas.shape[0]), (255, 255, 255), -1)
+        return canvas
+
+    def add_random_stripes(canvas):
+        stripe_height = canvas.shape[0]
+        stripe_num = random.randint(0,10)
+        stripe_width = random.randint(50, 100)
+        stripe_spacing = (canvas.shape[1] - (stripe_num*stripe_width)) // (stripe_num+1)
+        for i in range(stripe_num):
+            x1 = stripe_spacing + i*(stripe_width+stripe_spacing)
+            y1 = 0
+            x2 = x1 + stripe_width
+            y2 = stripe_height
+            color = random_hsv() 
+            cv2.rectangle(canvas, (x1, y1), (x2, y2), color, -1)
+        return canvas
+
+    def add_random_circles(canvas):
+        num_circles = random.randint(10,50)
+        for _ in range(num_circles):
+            color = random_hsv()
+            center = (random.randint(0, canvas.shape[1]), random.randint(0, canvas.shape[0]))
+            radius = random.randint(10, 80)
+            cv2.circle(canvas, center, radius, color, -1)
+        return canvas
+
+    def liquid_distortion(canvas, strength=0.1, scale=0.0):
+        strength = random.randint(0,100)/10
+        height, width = canvas.shape[:2]
+        dx = strength * np.random.randn(height, width)
+        dy = strength * np.random.randn(height, width)
+        x, y = np.meshgrid(np.arange(width), np.arange(height))
+        map1 = (x + dx).astype(np.float32)
+        map2 = (y + dy).astype(np.float32)
+        canvas = cv2.remap(canvas, map1, map2, cv2.INTER_LINEAR)
+        return canvas
+
+    def add_random_blur(canvas):
+        kernel_size = random.randint(3, 10)
+        if kernel_size % 2 == 0:
+            kernel_size += 1
+        sigma = random.uniform(1, 2)
+        canvas = cv2.GaussianBlur(canvas, (kernel_size, kernel_size), sigma)
+        return canvas
+
+    def zoom_in(canvas, zoom_percent):
+        height, width = canvas.shape[:2]
+        zoom_factor = 1 + zoom_percent / 100
+        new_height, new_width = int(height * zoom_factor), int(width * zoom_factor)
+        center = (width // 2, height // 2)
+        M = cv2.getRotationMatrix2D(center, 0, zoom_factor)
+        canvas = cv2.warpAffine(canvas, M, (new_width, new_height))
+        canvas = cv2.getRectSubPix(canvas, (width, height), center)
+        return canvas
+
+    def draw_random_rectangles_outlines(canvas):
+        # Get the height and width of the canvas
+        height, width = canvas.shape[:2]
+        n_rectangles = random.randint(10, 20)
+
+        for i in range(n_rectangles):
+            # Generate random rectangle properties
+            color = random_hsv()
+            size = np.random.randint(50, 200)
+            center = (np.random.randint(0, width), np.random.randint(0, height))
+            angle = np.random.choice([45, 90])
+
+            # Generate rectangle points
+            points = np.array([[center[0]-size, center[1]-size],
+                            [center[0]+size, center[1]-size],
+                            [center[0]+size, center[1]+size],
+                            [center[0]-size, center[1]+size]], dtype=np.float32)
+
+            # Rotate the rectangle
+            rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1)
+            points = cv2.transform(points.reshape(1, -1, 2), rotation_matrix).reshape(-1, 2)
+
+            # Draw the rectangle on the canvas
+            cv2.polylines(canvas, [points.astype(int)], True, color, 2)
+
+        return canvas
+
+    def draw_random_filled_rectangles(canvas):
+        # Get the height and width of the canvas
+        height, width = canvas.shape[:2]
+        n_rectangles = random.randint(20, 40)
+        w_scale = np.random.randint(50, 250)/1000
+        h_scale = np.random.randint(50, 250)/1000
+        for i in range(n_rectangles):
+            # Generate random rectangle properties
+            color = random_hsv()
+            W = np.random.randint(100, 150)
+            H = np.random.randint(25, 50)
+            center = (np.random.normal(loc=width*0.5,scale=width*w_scale), np.random.normal(loc=height*0.48,scale=height*h_scale))
+            angle = np.random.choice([0, 45, 90])
+
+            # Generate rectangle points
+            points = np.array([[center[0]-W, center[1]-H],
+                            [center[0]+W, center[1]-H],
+                            [center[0]+W, center[1]+H],
+                            [center[0]-W, center[1]+H]], dtype=np.float32)
+
+            # Rotate the rectangle
+            rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1)
+            points = cv2.transform(points.reshape(1, -1, 2), rotation_matrix).reshape(-1, 2)
+
+            # Draw the filled rectangle on the canvas
+            cv2.fillConvexPoly(canvas, points.astype(int), color, 16)
+
+        return canvas
+
+    canvas = create_canvas(1024, 1024)
+    #pastel_color = random_hsv()
+    #canvas[:] = (0,0,0)
+    canvas = add_random_gradient_background(canvas)
+    #canvas = add_random_stripes(canvas)
+    #canvas = add_random_circles(canvas)
+    #canvas = draw_random_rectangles_outlines(canvas)
+    canvas = draw_random_filled_rectangles(canvas)
+    canvas = liquid_distortion(canvas, strength=5, scale=5)
+    canvas = add_random_blur(canvas)
+    canvas = zoom_in(canvas, 10)
+    canvas = add_noise(canvas, "gaussian", 5)
+    gen_path = os.path.join(outdir,f"{timestring}_{index:05}_gen.jpg")
+    cv2.imwrite(gen_path, canvas)
+    return gen_path
+
+
 if __name__ == '__main__':
     pick_best_gpu_id()
