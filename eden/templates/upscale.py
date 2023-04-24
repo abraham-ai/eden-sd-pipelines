@@ -57,7 +57,6 @@ if __name__ == "__main__":
     # IO settings:
     outdir = "results/upscaling"
     init_image_data = "/home/rednax/2TBHDD/Art/BrainDrops_HDD/Stills/DreamScapes"
-    #init_image_data = "/home/rednax/Pictures/esthetic/01.jpg"
 
     # Upscaling settings:
     clip_interrogator_modes = ["fast"]
@@ -81,17 +80,11 @@ if __name__ == "__main__":
         for clip_interrogator_mode in clip_interrogator_modes:
             # # Run clip interrogator to get text input:
             interrogator_prompt = clip_interrogate(StableDiffusionSettings.ckpt, init_image, clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
-            interrogator_prompts = [
-                interrogator_prompt,
-                img_basename + ", " + interrogator_prompt,
-                ]
-            #del_clip_interrogator_models()
 
-            for prompt in interrogator_prompts:
-                for upscale_init_strength in init_strengths_per_img:
-                        # increase the number of pixels if the upscale_init_strength is lower:
-                        #target_n_pixels = int(base_target_n_pixels * max(1.0, (1.0 + (0.6 - upscale_init_strength) * 2.5)))
-                        target_n_pixels = base_target_n_pixels
-                        print(f"\n\nRunning remix with upscale_init_strength: {upscale_init_strength}, target_n_pixels: {target_n_pixels}\nprompt: {prompt}")
-                        remix(init_image, prompt, upscale_init_strength, target_n_pixels, steps, img_basename, outdir)
+            for upscale_init_strength in init_strengths_per_img:
+                    # increase the number of pixels if the upscale_init_strength is lower:
+                    #target_n_pixels = int(base_target_n_pixels * max(1.0, (1.0 + (0.6 - upscale_init_strength) * 2.5)))
+                    target_n_pixels = base_target_n_pixels
+                    print(f"\n\nRunning remix with upscale_init_strength: {upscale_init_strength}, target_n_pixels: {target_n_pixels}\nprompt: {interrogator_prompt}")
+                    remix(init_image, interrogator_prompt, upscale_init_strength, target_n_pixels, steps, img_basename, outdir)
 
