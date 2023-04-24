@@ -19,4 +19,4 @@ cd diffusers
 python -m pip install -e .
 
 cd /cog/eden-sd-pipelines/eden/templates
-python unit_test_all_templates
+python unit_test_all_templates.py
