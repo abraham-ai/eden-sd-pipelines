@@ -1,3 +1,4 @@
+mkdir /cog/
 cd /cog/
 git clone https://github.com/abraham-ai/eden-sd-pipelines
 
