@@ -494,7 +494,12 @@ def make_callback(
 
 from pipe import set_sampler
 
-def run_upscaler(args_, imgs, init_image_strength = 0.68, upscale_steps = 25, upscale_guidance_scale = 6.5):
+def run_upscaler(args_, imgs, 
+        init_image_strength    = 0.68, 
+        upscale_guidance_scale = 6.5,
+        target_upscale_steps   = 30, 
+        min_upscale_steps      = 12  # never do less than this amount of actual steps
+        ):
     args = copy(args_)
     args.W, args.H = args_.upscale_f * args_.W, args_.upscale_f * args_.H
     args.W = round_to_nearest_multiple(args.W, 64)
@@ -507,6 +512,9 @@ def run_upscaler(args_, imgs, init_image_strength = 0.68, upscale_steps = 25, up
     pipe_img2img.enable_xformers_memory_efficient_attention()
 
     set_sampler("euler", pipe_img2img)
+
+    # Avoid doing to little steps when init_image_strength is very high:
+    upscale_steps = int(max(target_upscale_steps * (1-init_image_strength), min_upscale_steps) / (1-init_image_strength))+1
 
     for i in range(len(imgs)): # upscale in a loop:
         args.init_image = imgs[i]
