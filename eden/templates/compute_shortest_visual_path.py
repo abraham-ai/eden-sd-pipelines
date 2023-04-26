@@ -11,7 +11,6 @@ from tsp_solver.greedy import solve_tsp
 
 from settings import _device
 from generation import *
-from prompts import text_inputs, style_modifiers
 from eden_utils import *
 
 def load_images(directory, target_size = int(768*1.5*768)):
@@ -82,10 +81,15 @@ def main(directory):
             shutil.copy(json_filepath, os.path.join(outdir, new_name.replace(".jpg", ".json")))
 
 if __name__ == "__main__":
+    '''
+    This script takes a directory of images and computes the shortest visual path through them using Traveling Salesman Solver
+
+    requires:
+    pip install tsp_solver2
+    
+    '''
     import argparse
     parser = argparse.ArgumentParser(description="Compute shortest visual path through images in a directory")
     parser.add_argument("directory", type=str, help="Directory containing images")
     args = parser.parse_args()
-    #main(args.directory)
-
-    main("/home/xander/Projects/cog/eden-sd-pipelines/eden/xander/images/STORAGE/martians/LORA_FACE_INTERPOLATION/tmp")
+    main(args.directory)

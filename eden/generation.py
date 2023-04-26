@@ -494,7 +494,7 @@ def make_callback(
 
 from pipe import set_sampler
 
-def run_upscaler(args_, imgs, init_image_strength = 0.70, upscale_steps = 20):
+def run_upscaler(args_, imgs, init_image_strength = 0.70, upscale_steps = 25):
     args = copy(args_)
     args.W, args.H = args_.upscale_f * args_.W, args_.upscale_f * args_.H
     args.W = round_to_nearest_multiple(args.W, 64)
