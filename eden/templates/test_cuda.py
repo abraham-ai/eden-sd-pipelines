@@ -49,8 +49,10 @@ if USE_TORCH in ENV_VARS_TRUE_AND_AUTO_VALUES and USE_TF not in ENV_VARS_TRUE_VA
                 print("CUDA available")
 
             import torch
+            print("PyTorch version:")
             print(torch.__version__)
             print("Cuda is_available: ", torch.cuda.is_available())
+            print("Cuda version:")
             print(torch.version.cuda)
         except importlib_metadata.PackageNotFoundError:
             _torch_available = False

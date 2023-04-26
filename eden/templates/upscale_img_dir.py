@@ -56,13 +56,13 @@ if __name__ == "__main__":
 
     # IO settings:
     outdir = "results/upscaling"
-    init_image_data = "/home/rednax/2TBHDD/Art/BrainDrops_HDD/Stills/DreamScapes"
+    init_image_data = "../assets"
 
     # Upscaling settings:
     clip_interrogator_modes = ["fast"]
-    steps                   = 60
+    steps                   = 40
     init_strengths_per_img  = [0.4, 0.5, 0.6]
-    base_target_n_pixels    = 1920*1080
+    base_target_n_pixels    = 1920*1080 # larger resolutions result in black imgs??
 
     ###########################################################
 

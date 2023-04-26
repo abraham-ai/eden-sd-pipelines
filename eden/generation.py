@@ -494,7 +494,7 @@ def make_callback(
 
 from pipe import set_sampler
 
-def run_upscaler(args_, imgs, init_image_strength = 0.70, upscale_steps = 25, upscale_guidance_scale = 6.5):
+def run_upscaler(args_, imgs, init_image_strength = 0.68, upscale_steps = 25, upscale_guidance_scale = 6.5):
     args = copy(args_)
     args.W, args.H = args_.upscale_f * args_.W, args_.upscale_f * args_.H
     args.W = round_to_nearest_multiple(args.W, 64)
@@ -505,7 +505,8 @@ def run_upscaler(args_, imgs, init_image_strength = 0.70, upscale_steps = 25, up
     pipe_img2img = StableDiffusionImg2ImgPipeline.from_pretrained(args.ckpt, torch_dtype=torch.float16)
     pipe_img2img = pipe_img2img.to(_device)
     pipe_img2img.enable_xformers_memory_efficient_attention()
-    set_sampler("ddim", pipe_img2img)
+
+    set_sampler("euler", pipe_img2img)
 
     for i in range(len(imgs)): # upscale in a loop:
         args.init_image = imgs[i]
