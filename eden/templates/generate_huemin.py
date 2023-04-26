@@ -13,18 +13,14 @@ from prompts import text_inputs, style_modifiers
 from eden_utils import *
 
 checkpoint_options = [
-    "runwayml/stable-diffusion-v1-5",
-    "prompthero/openjourney-v2",
-    "dreamlike-art/dreamlike-photoreal-2.0"
+    "huemin/fxhash_009"
 ]
-
-checkpoint_options = ["dreamlike-art/dreamlike-photoreal-2.0"]
 
 def generate_basic(text_input, outdir, 
     steps_per_update = None, # None to disable intermediate frames
     seed = int(time.time()),
     debug = False,
-    init_image_data = None,
+    init_image_data = "../assets/huemin_init.jpeg",
     prefix = "",
     suffix = ""):
 
@@ -33,18 +29,19 @@ def generate_basic(text_input, outdir,
     args = StableDiffusionSettings(
         ckpt = random.choice(checkpoint_options),
         mode = "generate",
-        W = 960,
-        H = 640,
+        W = 768,
+        H = 768,
         sampler = "euler",
-        steps = 20,
-        guidance_scale = 12,
-        upscale_f = 1.5,
+        steps = 100,
+        guidance_scale = 8,
+        upscale_f = 1.0,
         text_input = text_input,
+        uc_text = "mosaic maze 2d cloth texture simple rough saturated detailed green grid",
         seed = seed,
         n_samples = 1,
         lora_path = None,
-        #init_image_data = init_image_data,
-        #init_image_strength = 0.25,
+        init_image_data = init_image_data,
+        init_image_strength = 0.2,
     )
     
     name = f'{prefix}{args.text_input[:40]}_{args.seed}_{int(time.time())}{suffix}'
@@ -65,8 +62,8 @@ def generate_basic(text_input, outdir,
 if __name__ == "__main__":
 
     outdir = "results"
-    seed = 1
+    seed = 2185023741
 
     seed_everything(seed)
-    text_input = random.choice(text_inputs)
+    text_input = "isometric swirl made of solid rectangles, a screenprint, pastel oil on canvas, hd wallpaper, sculpture curves, 3d outline shader render isometric"
     generate_basic(text_input, outdir, seed = seed)

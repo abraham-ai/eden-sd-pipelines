@@ -24,12 +24,12 @@ class Planner():
     to enable audio-reactive video generation with SD
 
     """
-    def __init__(self, audio_zip_path, fps, total_frames):
+    def __init__(self, audio_load_path, fps, total_frames):
 
         self.fps = fps
         self.frame_index = 0
         
-        self.load_audio_features(audio_zip_path)
+        self.load_audio_features(audio_load_path)
         #self.modulation_text_c = get_prompt_conditioning("vibrant colors, high contrast, high saturation, masterpiece, trending on Artstation", 'autocast')
         
         # Compute which fraction of the total audio features are being rendered:
@@ -46,8 +46,8 @@ class Planner():
     def __len__(self):
         return len(self.frames)
 
-    def load_audio_features(self, audio_features_zip_path):
-        self.harmonic_energy, self.final_percus_features, self.metadata, self.audio_path = create_audio_features(audio_features_zip_path)
+    def load_audio_features(self, audio_load_path):
+        self.harmonic_energy, self.final_percus_features, self.metadata, self.audio_path = create_audio_features(audio_load_path)
         self.prep_audio_signals_for_render()
 
     def get_audio_push_curve(self, n_samples, prompt_index, n_frames_between_two_prompts, max_n_samples = 99999, verbose = 0):

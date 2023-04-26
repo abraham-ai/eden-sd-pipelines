@@ -28,8 +28,9 @@ from cog import BasePredictor, BaseModel, File, Input, Path
 
 checkpoint_options = [
     "runwayml/stable-diffusion-v1-5",
-    "prompthero/openjourney-v2",
-    "dreamlike-art/dreamlike-photoreal-2.0"
+    # "prompthero/openjourney-v2",
+    "dreamlike-art/dreamlike-photoreal-2.0",
+    "huemin/fxhash_009"
 ]
 
 
@@ -81,11 +82,11 @@ class Predictor(BasePredictor):
         ),
         width: int = Input(
             description="Width", 
-            ge=256, le=2048, default=512
+            ge=256, le=2048, default=768
         ),
         height: int = Input(
             description="Height", 
-            ge=256, le=2048, default=512
+            ge=256, le=2048, default=768
         ),
         checkpoint: str = Input(
             description="Which Stable Diffusion checkpoint to use",

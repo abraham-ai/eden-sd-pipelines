@@ -3,8 +3,12 @@ import sys
 from pathlib import Path
 
 SD_PATH = Path(os.path.dirname(os.path.realpath(__file__))).parents[0]
-LORA_PATH = os.path.join(SD_PATH, 'lora')
+ROOT_PATH = SD_PATH.parents[0]
+DIFFUSERS_PATH = os.path.join(ROOT_PATH, 'diffusers')
+LORA_PATH = os.path.join(ROOT_PATH, 'lora')
 LORA_DIFFUSION_PATH = os.path.join(LORA_PATH, 'lora_diffusion')
+
+sys.path.append(DIFFUSERS_PATH)
 sys.path.append(LORA_PATH)
 sys.path.append(LORA_DIFFUSION_PATH)
 
@@ -62,10 +66,15 @@ def load_pipe(args):
             print("Creating new StableDiffusionDepth2ImgPipeline..")
             pipe = StableDiffusionDepth2ImgPipeline.from_pretrained("stabilityai/stable-diffusion-2-depth", safety_checker=None, torch_dtype=torch.float16 if args.half_precision else torch.float32)
         else:
-            print(f"Creating new StableDiffusionEdenPipeline using {args.ckpt}")
-            vae = AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse").half() # Use the (slightly better) updated vae model from stability
-            pipe = StableDiffusionEdenPipeline.from_pretrained(args.ckpt, safety_checker=None, local_files_only = False, torch_dtype=torch.float16 if args.half_precision else torch.float32, vae=vae)
-            #pipe = StableDiffusionPipeline.from_pretrained(args.ckpt, safety_checker=None, torch_dtype=torch.float16 if args.half_precision else torch.float32, vae=vae)
+            vae = AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse").half()
+            if args.ckpt == "huemin/fxhash_009":
+                print("Creating new StableDiffusionEdenPipeline using huemin/fxhash_009")
+                location = os.path.join(SD_PATH, '.huggingface/diffusers/fxhash_009')
+                pipe = StableDiffusionEdenPipeline.from_pretrained(location, safety_checker=None, local_files_only = True, torch_dtype=torch.float16 if args.half_precision else torch.float32, vae=vae)    
+            else:
+                print("Creating new StableDiffusionEdenPipeline using ckpt {args.ckpt}")
+                pipe = StableDiffusionEdenPipeline.from_pretrained(args.ckpt, safety_checker=None, local_files_only = False, torch_dtype=torch.float16 if args.half_precision else torch.float32, vae=vae)    
+                vae = AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse").half()
     
     except Exception as e:
         print(e)

@@ -22,14 +22,14 @@ def remix(init_image_data, outdir,
     args = StableDiffusionSettings(
         mode = "remix",
         clip_interrogator_mode = "fast",
-        W = 578,
-        H = 578,
+        W = 640,
+        H = 640,
         sampler = "euler",
-        steps = 40,
+        steps = 20,
         guidance_scale = 12,
         seed = seed,
         n_samples = 2,
-        upscale_f = 1.0,
+        upscale_f = 1.5,
         init_image_strength = 0.175,
         init_image_data = init_image_data,
         #aesthetic_steps = 15,
@@ -49,7 +49,7 @@ def remix(init_image_data, outdir,
     for i, img in enumerate(generator):
         frame = f'{name}_{i}.jpg'
         os.makedirs(outdir, exist_ok = True)
-        img.save(os.path.join(outdir, frame))
+        img.save(os.path.join(outdir, frame), quality=95)
 
     # Also save the original image:
     args.init_image.save(os.path.join(outdir, f'remix_original.jpg'), quality=95)

@@ -512,7 +512,7 @@ def run_upscaler(args_, imgs, init_image_strength = 0.70, upscale_steps = 25):
         image = pipe_img2img(
             args.text_input,
             image=args.init_image.resize((args.W, args.H)),
-            strength=init_image_strength,
+            strength=1-init_image_strength,
             num_inference_steps=upscale_steps,
             negative_prompt=args.uc_text,
         ).images[0]
