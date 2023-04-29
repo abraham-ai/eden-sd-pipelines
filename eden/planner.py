@@ -134,12 +134,12 @@ class Planner():
 
         # increase the brightness of the init_img:
         enhancer = ImageEnhance.Brightness(image)
-        factor = 1 + 0.005 * self.fps_adjusted_percus_features[2, frame_index]
+        factor = 1 + 0.004 * self.fps_adjusted_percus_features[2, frame_index]
         image = enhancer.enhance(factor)
 
         # increase the contrast of the init_img:
         enhancer = ImageEnhance.Contrast(image)
-        factor = 1 + 0.5 * self.fps_adjusted_percus_features[1, frame_index]
+        factor = 1 + 0.4 * self.fps_adjusted_percus_features[1, frame_index]
         image = enhancer.enhance(factor)
 
         # increase the saturation of the init_img:
