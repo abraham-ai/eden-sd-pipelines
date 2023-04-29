@@ -54,11 +54,10 @@ if __name__ == "__main__":
 
     # audio_path is either a path of a .zip file, or a tuple of (audio_features_pickle, audio_mp3_path)
     audio_path = ("path_to_features.pkl", "path_to_audio.mp3")
-    audio_path = "/home/rednax/SSD2TB/SSDbackup_x/music_vr/Xander_Tools/Beat_Modulation/audio_data/Max_Cooper/beat_start_audio_features_80_40/beat_start_audio_features_80_40.zip"
     
     # Get random images from a directory: (this should be replaced with timeline imgs in WZRD)
     n_imgs = 6
-    input_dir = "/home/rednax/SSD2TB/stored_CLIP_results/AAA_init_imgs/random/real2real/random"
+    input_dir = "path_to_img_dir"
 
     seed      = 0        # different seeds will give different results
     outdir    = 'results/real2real_audioreactive'
