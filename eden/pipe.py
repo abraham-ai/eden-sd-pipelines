@@ -72,7 +72,7 @@ def load_pipe(args):
                 location = os.path.join(SD_PATH, '.huggingface/diffusers/fxhash_009')
                 pipe = StableDiffusionEdenPipeline.from_pretrained(location, safety_checker=None, local_files_only = True, torch_dtype=torch.float16 if args.half_precision else torch.float32, vae=vae)    
             else:
-                print("Creating new StableDiffusionEdenPipeline using ckpt {args.ckpt}")
+                print(f"Creating new StableDiffusionEdenPipeline using ckpt {args.ckpt}")
                 pipe = StableDiffusionEdenPipeline.from_pretrained(args.ckpt, safety_checker=None, local_files_only = False, torch_dtype=torch.float16 if args.half_precision else torch.float32, vae=vae)    
                 vae = AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse").half()
     

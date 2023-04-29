@@ -128,37 +128,47 @@ class Planner():
             plt.savefig("fps_adjusted_percus_features.png")
             plt.clf()
 
-    def morph_image(self, image, frame_index = None):
+    def morph_image(self, image, 
+                    frame_index = None,
+                    brightness_factor = 0.004,
+                    contrast_factor   = 0.4,
+                    saturation_factor = 0.5,
+                    zoom_factor       = 0.007,
+                    noise_factor      = 0.0,
+                    ):
         if frame_index is None:
             frame_index = self.frame_index
 
         # increase the brightness of the init_img:
         enhancer = ImageEnhance.Brightness(image)
-        factor = 1 + 0.004 * self.fps_adjusted_percus_features[2, frame_index]
+        factor = 1 + brightness_factor * self.fps_adjusted_percus_features[2, frame_index]
         image = enhancer.enhance(factor)
 
         # increase the contrast of the init_img:
         enhancer = ImageEnhance.Contrast(image)
-        factor = 1 + 0.4 * self.fps_adjusted_percus_features[1, frame_index]
+        factor = 1 + contrast_factor * self.fps_adjusted_percus_features[1, frame_index]
         image = enhancer.enhance(factor)
 
         # increase the saturation of the init_img:
         enhancer = ImageEnhance.Color(image)
-        factor = 1 + 0.5 * self.fps_adjusted_percus_features[1, frame_index]
+        factor = 1 + saturation_factor * self.fps_adjusted_percus_features[1, frame_index]
         image = enhancer.enhance(factor)
 
         # slightly crop and zoom in on the init_img:
-        zoom_factor = 1 + 0.007 * self.fps_adjusted_percus_features[0, frame_index]
+        factor = 1 + zoom_factor * self.fps_adjusted_percus_features[0, frame_index]
         # get the center pixel coordinates:
         x, y = image.size[0]//2, image.size[1]//2
-        image = zoom_at(image, x, y, zoom_factor)
+        image = zoom_at(image, x, y, factor)
 
         # slightly rotate the init_img:
         # rotation_angle = 0.5 * self.fps_adjusted_percus_features[2, self.frame_index]
         # image = image.rotate(rotation_angle)
 
-        # add noise to the init_img:
-        # TODO
+        # add random pixel noise to the img:
+        if noise_factor > 0:
+            noise_img = Image.fromarray(np.uint8(np.random.rand(image.size[1], image.size[0], 3) * 255))
+            factor = noise_factor * self.fps_adjusted_percus_features[2, frame_index]
+            image = Image.blend(image, noise_img, factor)
         
         return image
 
