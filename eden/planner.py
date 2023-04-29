@@ -60,7 +60,17 @@ class Planner():
         # select the relevant fraction of the audio features (based on the phase_index in the interpolation):
         start_index, end_index = prompt_index*(n_frames_between_two_prompts + 1), (prompt_index+1)*(n_frames_between_two_prompts + 1)
         current_push_segment = self.push_signal[start_index:end_index]
-        current_push_segment = current_push_segment / np.mean(current_push_segment)
+
+        # Currently the algo creates keyframe --> keyframe phases of equal # frames
+        # A constant, smooth video would result from a constant push_signal = 1
+        # The total visual change in such a phase is divided in segments to align with the push_signal as optimally as possible
+        # Therefore, we want the push signal in each phase to be normalized:
+        current_push_segment = current_push_segment #/ np.mean(current_push_segment)
+        # This however has the problem that the local variations in video speed depend on the normalization constant used above
+        # So for very quiet audio segments, subtle audio variations will result in large visual changes, whereas for other segments
+        # those same audio variations wont be noticeable at all.
+        # Ideally, we want to normalize the entire audio signal in one go. 
+        # However, this is also not ideal because the some segments would result in a super low "target push signal" (e.g. 0.1) that is unattainable
 
         if n_samples < (0.1 * max_n_samples): # require at least 10% of the max_n_samples to be already rendered before returning the actual audio features
             return np.ones(n_samples), np.ones_like(current_push_segment)
@@ -103,7 +113,6 @@ class Planner():
             self.fps_adjusted_percus_features.append(resample_signal(new_x, old_x, self.final_percus_features[i,:]) )
 
         self.fps_adjusted_percus_features = np.array(self.fps_adjusted_percus_features)
-
 
         self.push_signal = self.fps_adjusted_harmonic_energy
         #self.push_signal = self.fps_adjusted_percus_features[-1, :] + 0.025
