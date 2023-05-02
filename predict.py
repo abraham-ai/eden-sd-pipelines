@@ -27,11 +27,12 @@ import film
 from cog import BasePredictor, BaseModel, File, Input, Path
 
 checkpoint_options = [
-    "runwayml/stable-diffusion-v1-5",
-    # "prompthero/openjourney-v2",
-    "dreamlike-art/dreamlike-photoreal-2.0",
-    "huemin/fxhash_009"
+#    "runwayml:stable-diffusion-v1-5",
+#    "dreamlike-art:dreamlike-photoreal-2.0",
+#    "huemin:fxhash_009",
+    "eden:eden-v1"
 ]
+checkpoint_default = "eden:eden-v1"
 
 
 class CogOutput(BaseModel):
@@ -91,7 +92,7 @@ class Predictor(BasePredictor):
         checkpoint: str = Input(
             description="Which Stable Diffusion checkpoint to use",
             choices=checkpoint_options,
-            default="dreamlike-art/dreamlike-photoreal-2.0"
+            default=checkpoint_default
         ),
         lora: str = Input(
             description="(optional) URL of Lora finetuning",
@@ -109,15 +110,15 @@ class Predictor(BasePredictor):
         ),
         steps: int = Input(
             description="Diffusion steps", 
-            ge=10, le=100, default=40
+            ge=10, le=100, default=60
         ),
         guidance_scale: float = Input(
             description="Strength of text conditioning guidance", 
-            ge=0, le=30, default=10.0
+            ge=0, le=30, default=7.5
         ),
-        upscale_f: int = Input(
+        upscale_f: float = Input(
             description="Upscaling resolution",
-            ge=1, le=3, default=1
+            ge=1, le=2, default=1
         ),
 
         # Init image and mask
