@@ -6,7 +6,9 @@ from generation import *
 from eden_utils import *
 from prompts import text_inputs
 
-def lerp(interpolation_texts, outdir, 
+def lerp(
+    interpolation_texts, 
+    outdir, 
     args = None, 
     seed = int(time.time()), 
     interpolation_seeds = None,
@@ -26,19 +28,19 @@ def lerp(interpolation_texts, outdir,
         text_input = interpolation_texts[0],
         interpolation_texts = interpolation_texts,
         interpolation_seeds = interpolation_seeds if interpolation_seeds else [random.randint(1, 1e8) for i in range(n)],
-        n_frames = 24*n,
-        guidance_scale = 10,
+        n_frames = 40*n,
+        guidance_scale = 7.5,
         scale_modulation = 0.0,
         loop = True,
         smooth = True,
         latent_blending_skip_f = [0.15, 0.80],
         n_film = 0,
-        fps = 9,
+        fps = 12,
         steps = 40,
         sampler = "euler",
         seed = seed,
-        W = 640,
-        H = 512,
+        W = 768,
+        H = 768,
     )
 
     # always make sure these args are properly set:

@@ -5,7 +5,9 @@ from settings import StableDiffusionSettings
 from generation import *
 
 
-def real2real(input_images, outdir, 
+def real2real(
+    input_images, 
+    outdir, 
     args = None, 
     seed = int(time.time()), 
     name_str = "",
@@ -40,7 +42,7 @@ def real2real(input_images, outdir,
             n_frames = 24*n,
             loop = True,
             smooth = True,
-            n_film = 0,
+            n_film = 1,
             fps = 9,
             steps = 40,
             sampler = "euler",

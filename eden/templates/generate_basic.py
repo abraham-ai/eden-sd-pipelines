@@ -13,14 +13,20 @@ from prompts import text_inputs, style_modifiers
 from eden_utils import *
 
 checkpoint_options = [
-    "runwayml/stable-diffusion-v1-5",
-    "prompthero/openjourney-v2",
-    "dreamlike-art/dreamlike-photoreal-2.0"
+    "runwayml:stable-diffusion-v1-5",
+    "dreamlike-art:dreamlike-photoreal-2.0",
+    "huemin:fxhash_009",
+    "eden:eden-v1"
 ]
 
-checkpoint_options = ["dreamlike-art/dreamlike-photoreal-2.0"]
+checkpoint_options = ["eden:eden-v1"]
+# checkpoint_options = ["runwayml:stable-diffusion-v1-5"]
 
-def generate_basic(text_input, outdir, 
+
+
+def generate_basic(
+    text_input, 
+    outdir, 
     steps_per_update = None, # None to disable intermediate frames
     seed = int(time.time()),
     debug = False,
@@ -36,8 +42,8 @@ def generate_basic(text_input, outdir,
         W = 960,
         H = 640,
         sampler = "euler",
-        steps = 20,
-        guidance_scale = 12,
+        steps = 60,
+        guidance_scale = 7,
         upscale_f = 1.5,
         text_input = text_input,
         seed = seed,
@@ -68,5 +74,5 @@ if __name__ == "__main__":
     seed = 1
 
     seed_everything(seed)
-    text_input = random.choice(text_inputs)
+    text_input = "An audio waveform with musicians playing instruments on its peaks and troughs, print design style vector art, bold typography " #random.choice(text_inputs)
     generate_basic(text_input, outdir, seed = seed)
