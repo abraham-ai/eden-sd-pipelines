@@ -22,8 +22,6 @@ checkpoint_options = [
 checkpoint_options = ["eden:eden-v1"]
 # checkpoint_options = ["runwayml:stable-diffusion-v1-5"]
 
-
-
 def generate_basic(
     text_input, 
     outdir, 
@@ -34,15 +32,13 @@ def generate_basic(
     prefix = "",
     suffix = ""):
 
-    print(text_input)
-
     args = StableDiffusionSettings(
         ckpt = random.choice(checkpoint_options),
         mode = "generate",
         W = 960,
         H = 640,
         sampler = "euler",
-        steps = 60,
+        steps = 30,
         guidance_scale = 7,
         upscale_f = 1.5,
         text_input = text_input,

@@ -83,7 +83,7 @@ def load_pipe(args):
     except Exception as e:
         print(e)
         print("Failed to load from pretrained, trying to load from checkpoint")
-        pipe = load_pipeline_from_original_stable_diffusion_ckpt(args.ckpt, image_size = 512)
+        pipe = load_pipeline_from_original_stable_diffusion_ckpt(os.path.join(CHECKPOINTS_PATH, args.ckpt), image_size = 512)
 
     pipe.safety_checker = None
     print(f"Created new pipe in {(time.time() - start_time):.2f} seconds")

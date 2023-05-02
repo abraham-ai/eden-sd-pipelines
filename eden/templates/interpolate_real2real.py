@@ -37,24 +37,20 @@ def real2real(
             interpolation_init_images_min_strength = 0.3,  # a higher value will make the video smoother, but allows less visual change / journey
             interpolation_init_images_max_strength = 0.95,
             latent_blending_skip_f = [0.15, 0.75],
-            guidance_scale = 8,
+            guidance_scale = 7,
             scale_modulation = 0.0,
             n_frames = 24*n,
             loop = True,
             smooth = True,
             n_film = 1,
             fps = 9,
-            steps = 40,
+            steps = 30,
             sampler = "euler",
             seed = seed,
-            H = 576,
-            W = 576,
+            H = 640,
+            W = 640,
             upscale_f = 1.0,
             clip_interrogator_mode = "fast",
-            aesthetic_target             = None,  # None means we'll use the init_images as target
-            aesthetic_steps              = 10,
-            aesthetic_lr                 = 0.0001,
-            ag_L2_normalization_constant = 0.1, # for real2real, only normalize the aesthetic gradient a tiny bit
             lora_path = None,
         )
 
