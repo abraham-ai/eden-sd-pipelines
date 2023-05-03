@@ -507,15 +507,20 @@ def run_upscaler(args_, imgs,
 
     x_samples_upscaled, x_images_upscaled = [], []
 
-    location = os.path.join(CHECKPOINTS_PATH, args.ckpt)
+    # Load the upscaling model:
+    if os.path.isdir(os.path.join(CHECKPOINTS_PATH, args.ckpt)):
+        load_path = os.path.join(CHECKPOINTS_PATH, args.ckpt)
+    else:
+        load_path = args.ckpt
+
     pipe_img2img = StableDiffusionImg2ImgPipeline.from_pretrained(
-        location, 
+        load_path, 
         local_files_only = True, 
         torch_dtype=torch.float16 if args.half_precision else torch.float32
     )
     pipe_img2img = pipe_img2img.to(_device)
     pipe_img2img.enable_xformers_memory_efficient_attention()
-
+    pipe_img2img = update_pipe_with_lora(pipe_img2img, args)
     set_sampler("euler", pipe_img2img)
 
     # Avoid doing to little steps when init_image_strength is very high:

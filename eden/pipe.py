@@ -62,6 +62,12 @@ def set_sampler(sampler_name, pipe):
 def load_pipe(args):
     global pipe
     start_time = time.time()
+    
+    if os.path.isdir(os.path.join(CHECKPOINTS_PATH, args.ckpt)):
+        location = os.path.join(CHECKPOINTS_PATH, args.ckpt)
+    else:
+        location = args.ckpt
+        
     try:
         if args.mode == "depth2img":
             print(f"Creating new StableDiffusionDepth2ImgPipeline..")
@@ -73,7 +79,7 @@ def load_pipe(args):
         else:
             print(f"Creating new StableDiffusionEdenPipeline using {args.ckpt}")
             pipe = StableDiffusionEdenPipeline.from_pretrained(
-                os.path.join(CHECKPOINTS_PATH, args.ckpt), 
+                location, 
                 safety_checker=None, 
                 local_files_only=True, 
                 torch_dtype=torch.float16 if args.half_precision else torch.float32, 
@@ -83,7 +89,7 @@ def load_pipe(args):
     except Exception as e:
         print(e)
         print("Failed to load from pretrained, trying to load from checkpoint")
-        pipe = load_pipeline_from_original_stable_diffusion_ckpt(os.path.join(CHECKPOINTS_PATH, args.ckpt), image_size = 512)
+        pipe = load_pipeline_from_original_stable_diffusion_ckpt(location, image_size = 512)
 
     pipe.safety_checker = None
     print(f"Created new pipe in {(time.time() - start_time):.2f} seconds")
