@@ -26,6 +26,9 @@ def caption_image(root_dir, f, ci, args):
     else:
         prompt = ci.interrogate(image)
 
+    if len(args.prepend_txt) > 0:
+        prompt = args.prepend_txt + prompt
+
     with open(os.path.join(root_dir, f"{f}.txt"), 'w') as f:
         f.write(prompt)
 
@@ -70,6 +73,7 @@ if __name__ == '__main__':
     parser.add_argument('input_dir', type=str)
     parser.add_argument('--extensions', type=str, nargs='+', default=['.jpg', '.png', '.jpeg'])
     parser.add_argument('--fast', action='store_true')
+    parser.add_argument('--prepend_txt', type=str, default='')
     args = parser.parse_args()
 
     caption_folder(args)
