@@ -44,9 +44,7 @@ class StableDiffusionSettings:
     
     # model settings
     #ckpt: str = "runwayml/stable-diffusion-v1-5"
-    #ckpt: str = "stabilityai/stable-diffusion-2-1"
-    #ckpt: str = "prompthero/openjourney-v2"    # https://huggingface.co/prompthero/openjourney-v2
-    ckpt: str = "dreamlike-art/dreamlike-photoreal-2.0"  # https://huggingface.co/dreamlike-art/dreamlike-photoreal-2.0
+    ckpt: str = "eden:eden-v1"
 
     # Lora / finetuning:
     lora_path: str = None
@@ -68,7 +66,7 @@ class StableDiffusionSettings:
     sampler: str = "euler"
     steps: int = 60
     min_steps: int = 7  # low_n steps often give artifacts, so adopt a min-n-steps
-    guidance_scale: float = 10.0
+    guidance_scale: float = 7.5
     
     # ddim_eta: float = 0.0
     C: int = 4

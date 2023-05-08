@@ -35,7 +35,7 @@ def remix(init_image, prompt, upscale_init_strength, target_n_pixels, steps, img
     args.W, args.H = match_aspect_ratio(args.W * args.H, args.init_image)
 
     # Run the upscaler:
-    _, imgs = run_upscaler(args, [args.init_image], init_image_strength = upscale_init_strength, upscale_steps = steps)
+    _, imgs = run_upscaler(args, [args.init_image], init_image_strength = upscale_init_strength, upscale_steps = steps, min_upscale_steps = 20)
 
     name = f'{img_basename}_remix_{upscale_init_strength:.2f}_{int(time.time())}'
     for i, img in enumerate(imgs):
@@ -57,9 +57,10 @@ if __name__ == "__main__":
     # IO settings:
     outdir = "results/upscaling"
     init_image_data = "../assets"
+    init_image_data = "/home/rednax/SSD2TB/Github_repos/cog/eden-sd-pipelines/eden/xander/to_upscale"
 
     # Upscaling settings:
-    clip_interrogator_modes = ["fast"]
+    clip_interrogator_modes = ["fast", "full"]
     steps                   = 40
     init_strengths_per_img  = [0.4, 0.5, 0.6]
     base_target_n_pixels    = 1920*1080 # larger resolutions result in black imgs??

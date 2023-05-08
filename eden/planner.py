@@ -60,7 +60,17 @@ class Planner():
         # select the relevant fraction of the audio features (based on the phase_index in the interpolation):
         start_index, end_index = prompt_index*(n_frames_between_two_prompts + 1), (prompt_index+1)*(n_frames_between_two_prompts + 1)
         current_push_segment = self.push_signal[start_index:end_index]
-        current_push_segment = current_push_segment / np.mean(current_push_segment)
+
+        # Currently the algo creates keyframe --> keyframe phases of equal # frames
+        # A constant, smooth video would result from a constant push_signal = 1
+        # The total visual change in such a phase is divided in segments to align with the push_signal as optimally as possible
+        # Therefore, we want the push signal in each phase to be normalized:
+        current_push_segment = current_push_segment #/ np.mean(current_push_segment)
+        # This however has the problem that the local variations in video speed depend on the normalization constant used above
+        # So for very quiet audio segments, subtle audio variations will result in large visual changes, whereas for other segments
+        # those same audio variations wont be noticeable at all.
+        # Ideally, we want to normalize the entire audio signal in one go. 
+        # However, this is also not ideal because the some segments would result in a super low "target push signal" (e.g. 0.1) that is unattainable
 
         if n_samples < (0.1 * max_n_samples): # require at least 10% of the max_n_samples to be already rendered before returning the actual audio features
             return np.ones(n_samples), np.ones_like(current_push_segment)
@@ -104,7 +114,6 @@ class Planner():
 
         self.fps_adjusted_percus_features = np.array(self.fps_adjusted_percus_features)
 
-
         self.push_signal = self.fps_adjusted_harmonic_energy
         #self.push_signal = self.fps_adjusted_percus_features[-1, :] + 0.025
         self.push_signal = self.push_signal / np.mean(self.push_signal)
@@ -119,37 +128,47 @@ class Planner():
             plt.savefig("fps_adjusted_percus_features.png")
             plt.clf()
 
-    def morph_image(self, image, frame_index = None):
+    def morph_image(self, image, 
+                    frame_index = None,
+                    brightness_factor = 0.004,
+                    contrast_factor   = 0.4,
+                    saturation_factor = 0.5,
+                    zoom_factor       = 0.007,
+                    noise_factor      = 0.0,
+                    ):
         if frame_index is None:
             frame_index = self.frame_index
 
         # increase the brightness of the init_img:
         enhancer = ImageEnhance.Brightness(image)
-        factor = 1 + 0.005 * self.fps_adjusted_percus_features[2, frame_index]
+        factor = 1 + brightness_factor * self.fps_adjusted_percus_features[2, frame_index]
         image = enhancer.enhance(factor)
 
         # increase the contrast of the init_img:
         enhancer = ImageEnhance.Contrast(image)
-        factor = 1 + 0.5 * self.fps_adjusted_percus_features[1, frame_index]
+        factor = 1 + contrast_factor * self.fps_adjusted_percus_features[1, frame_index]
         image = enhancer.enhance(factor)
 
         # increase the saturation of the init_img:
         enhancer = ImageEnhance.Color(image)
-        factor = 1 + 0.5 * self.fps_adjusted_percus_features[1, frame_index]
+        factor = 1 + saturation_factor * self.fps_adjusted_percus_features[1, frame_index]
         image = enhancer.enhance(factor)
 
         # slightly crop and zoom in on the init_img:
-        zoom_factor = 1 + 0.007 * self.fps_adjusted_percus_features[0, frame_index]
+        factor = 1 + zoom_factor * self.fps_adjusted_percus_features[0, frame_index]
         # get the center pixel coordinates:
         x, y = image.size[0]//2, image.size[1]//2
-        image = zoom_at(image, x, y, zoom_factor)
+        image = zoom_at(image, x, y, factor)
 
         # slightly rotate the init_img:
         # rotation_angle = 0.5 * self.fps_adjusted_percus_features[2, self.frame_index]
         # image = image.rotate(rotation_angle)
 
-        # add noise to the init_img:
-        # TODO
+        # add random pixel noise to the img:
+        if noise_factor > 0:
+            noise_img = Image.fromarray(np.uint8(np.random.rand(image.size[1], image.size[0], 3) * 255))
+            factor = noise_factor * self.fps_adjusted_percus_features[2, frame_index]
+            image = Image.blend(image, noise_img, factor)
         
         return image
 

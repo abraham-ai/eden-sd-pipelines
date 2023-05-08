@@ -11,7 +11,7 @@ build:
     - "git+https://www.github.com/abraham-ai/diffusers"
     - "torch==1.13.1"
     - "ftfy==6.1.1"
-    - "scipy==1.10.0"
+    - "scipy==1.9.2"
     - "transformers==4.26.1"
     - "accelerate==0.16.0"
     - "lpips==0.1.4"
@@ -23,7 +23,7 @@ build:
     - "mediapipe==0.9.1.0"
     - "scikit-image==0.19.3"
     - "open_clip_torch==2.7.0"
-    - "xformers==0.0.17.dev464"
+    - "xformers==0.0.16"
     - "tokenizers==0.13.2"
     - "triton==2.0.0a1"
     - "apache-beam==2.45.0"
@@ -39,6 +39,7 @@ build:
    - pip install -e ./clip-interrogator --no-deps
    - pip install tensorflow==2.11.0
    - git clone https://github.com/abraham-ai/frame-interpolation
+   - pip install --upgrade transformers
 
 predict: "predict.py:Predictor"
 

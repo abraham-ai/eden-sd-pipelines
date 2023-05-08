@@ -22,6 +22,8 @@ def real2real_x(W, H, args, input_images, outdir, n, exp_name = "", audio_path =
         print("adding audio...")
         add_audio_to_video(args.planner.audio_path, video_path, video_path.replace(".mp4", "_audio.mp4"))
 
+    return frames_dir
+
 
 """
 
@@ -38,26 +40,37 @@ def get_random_img_paths_from_dir(directory_path, n_imgs, seed = 0):
     all_img_paths = [f for f in all_img_paths if os.path.splitext(f)[1] in img_exts]
     return random.sample(all_img_paths, n_imgs)
 
+from audioreactive_post_process_frames import post_process_audio_reactive_video_frames
 
 if __name__ == "__main__":
+
+    ##############################################################################
     
     # main render settings (eg specified by the user)
     H,W          = 768, 768
-    inter_frames = 84       # number of frames to interpolate between each pair of input images
-    n_steps      = 50       # n_diffusion steps per frame
+    inter_frames = 120      # number of frames to interpolate between each pair of input images
     output_fps   = 12       # final fps will be twice this when n_film = 1
-    seed         = 0        # different seeds will give different results
-    outdir    = 'real2real_audioreactive'
+    n_steps      = 36       # n_diffusion steps per frame
 
     # audio_path is either a path of a .zip file, or a tuple of (audio_features_pickle, audio_mp3_path)
     audio_path = ("path_to_features.pkl", "path_to_audio.mp3")
     
     # Get random images from a directory: (this should be replaced with timeline imgs in WZRD)
     n_imgs = 6
-    input_dir = "/home/rednax/SSD2TB/stored_CLIP_results/AAA_init_imgs/random/real2real/random"
+    input_dir = "path_to_img_dir"
+
+    seed      = 0        # different seeds will give different results
+    outdir    = 'results/real2real_audioreactive'
+
+    if 0: # debug: very fast render settings
+        H,W          = 640, 640
+        inter_frames = 42      # number of frames to interpolate between each pair of input images
+        n_imgs       = 3
+        n_steps      = 20
+
+    ##############################################################################
+    seed_everything(seed)
     img_paths = get_random_img_paths_from_dir(input_dir, n_imgs)
-
-
     n = len(img_paths)
 
     args = StableDiffusionSettings(
@@ -85,7 +98,12 @@ if __name__ == "__main__":
         clip_interrogator_mode = "fast",
     )
 
-    real2real_x(W, H, args, img_paths, outdir, n,
+    # Render the frames:
+    frames_dir = real2real_x(W, H, args, img_paths, outdir, n,
                 exp_name = "", audio_path = audio_path, 
-                save_phase_data = False,
-                save_distance_data = False)
+                save_phase_data = 1,
+                save_distance_data = 1)
+
+    # Add post processing audio modulation:
+    n_film = 0  # set n_film to 0 to disable FILM interpolation
+    post_process_audio_reactive_video_frames(frames_dir, audio_path, output_fps, n_film)

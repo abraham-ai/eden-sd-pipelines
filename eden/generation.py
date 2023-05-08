@@ -4,6 +4,7 @@ from pathlib import Path
 
 SD_PATH = Path(os.path.dirname(os.path.realpath(__file__))).parents[0]
 ROOT_PATH = SD_PATH.parents[0]
+CHECKPOINTS_PATH = os.path.join(SD_PATH, 'models/checkpoints')
 CLIP_INTERROGATOR_MODEL_PATH = os.path.join(ROOT_PATH, 'cache')
 LORA_PATH = os.path.join(ROOT_PATH, 'lora')
 sys.path.append(LORA_PATH)
@@ -319,7 +320,6 @@ def make_interpolation(args, force_timepoints = None):
                 splitting lpips_d: {args.interpolator.latent_tracker.frame_buffer.get_perceptual_distance_at_t(args.t_raw):.2f}),\
                 keyframe {return_index+1}/{len(args.interpolation_texts) - 1}...")
 
-
         args.lora_path = active_lora_path
         _, pil_images = generate(args, do_callback = True)
         img_pil = pil_images[0]
@@ -497,25 +497,41 @@ from pipe import set_sampler
 def run_upscaler(args_, imgs, 
         init_image_strength    = 0.68, 
         upscale_guidance_scale = 6.5,
-        target_upscale_steps   = 30, 
-        min_upscale_steps      = 12  # never do less than this amount of actual steps
-        ):
+        upscale_steps          = 30, 
+        min_upscale_steps      = 12  # never do less than this many steps
+        max_n_pixels           = 1536**2, # max number of pixels to avoid OOM
+    ):
     args = copy(args_)
     args.W, args.H = args_.upscale_f * args_.W, args_.upscale_f * args_.H
+
+    # set max_n_pixels to avoid OOM:
+    if args.W * args.H > max_n_pixels:
+        scale = math.sqrt(max_n_pixels / (args.W * args.H))
+        args.W, args.H = int(scale * args.W), int(scale * args.H)
+
     args.W = round_to_nearest_multiple(args.W, 64)
     args.H = round_to_nearest_multiple(args.H, 64)
 
     x_samples_upscaled, x_images_upscaled = [], []
 
-    pipe_img2img = StableDiffusionImg2ImgPipeline.from_pretrained(args.ckpt, torch_dtype=torch.float16)
+    # Load the upscaling model:
+    if os.path.isdir(os.path.join(CHECKPOINTS_PATH, args.ckpt)):
+        load_path = os.path.join(CHECKPOINTS_PATH, args.ckpt)
+    else:
+        load_path = args.ckpt
+
+    pipe_img2img = StableDiffusionImg2ImgPipeline.from_pretrained(
+        load_path, 
+        local_files_only = True, 
+        torch_dtype=torch.float16 if args.half_precision else torch.float32
+    )
     pipe_img2img = pipe_img2img.to(_device)
     pipe_img2img.enable_xformers_memory_efficient_attention()
     pipe_img2img = update_pipe_with_lora(pipe_img2img, args)
-
     set_sampler("euler", pipe_img2img)
 
     # Avoid doing to little steps when init_image_strength is very high:
-    upscale_steps = int(max(target_upscale_steps * (1-init_image_strength), min_upscale_steps) / (1-init_image_strength))+1
+    upscale_steps = int(max(upscale_steps * (1-init_image_strength), min_upscale_steps) / (1-init_image_strength))+1
 
     for i in range(len(imgs)): # upscale in a loop:
         args.init_image = imgs[i]
