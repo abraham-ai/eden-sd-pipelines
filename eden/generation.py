@@ -510,6 +510,7 @@ def run_upscaler(args_, imgs,
     pipe_img2img = StableDiffusionImg2ImgPipeline.from_pretrained(args.ckpt, torch_dtype=torch.float16)
     pipe_img2img = pipe_img2img.to(_device)
     pipe_img2img.enable_xformers_memory_efficient_attention()
+    pipe_img2img = update_pipe_with_lora(pipe_img2img, args)
 
     set_sampler("euler", pipe_img2img)
 

@@ -4,7 +4,7 @@ sys.path.append('..')
 from settings import StableDiffusionSettings
 from generation import *
 
-def find_lora_dir(lora_foldername, lora_root_dir = "/home/xander/Projects/cog/lora/exps"):
+def find_lora_dir(lora_foldername, lora_root_dir):
     # recursively crawl all the subdirectories inside lora_root_dir
     # and return the path that matches lora_foldername
     for subdir, dirs, files in os.walk(lora_root_dir):
@@ -22,7 +22,7 @@ def real2real_lora(input_images, lora_paths, interpolation_texts, outdir,
     save_video = True,
     remove_frames_dir = 0,
     save_phase_data = False,  # save condition vectors and scale for each frame (used for later upscaling)
-    save_distance_data = 1,  # save distance plots to disk
+    save_distance_data = 0,  # save distance plots to disk
     keyframe_offset = 0,
     debug = False):
 
@@ -50,9 +50,9 @@ def real2real_lora(input_images, lora_paths, interpolation_texts, outdir,
             interpolation_init_images_power = 3.0,
             interpolation_init_images_min_strength = 0.25,  # a higher value will make the video smoother, but allows less visual change / journey
             interpolation_init_images_max_strength = 0.97,
-            latent_blending_skip_f = [0.05, 0.65],
+            latent_blending_skip_f = [0.075, 0.7],
             guidance_scale = 10,
-            n_frames = 52*(n-1) + n,
+            n_frames = 64*(n-1) + n,
             #n_frames = 7*(n-1) + n,
             loop = True,
             smooth = True,
@@ -134,7 +134,7 @@ def replace_nones_with_closest(lora_paths):
 
     return lora_paths
 
-def get_txts_and_loras(json_paths, always_use_lora = True):
+def get_txts_and_loras(json_paths, lora_root_dir, always_use_lora = True):
     interpolation_texts = []
     lora_paths = []
     ckpts = []
@@ -145,13 +145,12 @@ def get_txts_and_loras(json_paths, always_use_lora = True):
             interpolation_texts.append(None)
             ckpts.append('dreamlike-art/dreamlike-photoreal-2.0')
         else:
-            print(json_path)
             with open(json_path) as f:
                 data = json.load(f)
                 interpolation_texts.append(data['text_input'])
                 ckpts.append(data['ckpt'])
                 lora_path_orig = data['lora_path']
-                lora_path = find_lora_dir(os.path.basename(os.path.dirname(lora_path_orig)))
+                lora_path = find_lora_dir(os.path.basename(os.path.dirname(lora_path_orig)), lora_root_dir)
 
                 if lora_path is not None:
                     lora_paths.append(lora_path + "/final_lora.safetensors")
@@ -167,15 +166,17 @@ def get_txts_and_loras(json_paths, always_use_lora = True):
 
 if __name__ == "__main__":
 
-    outdir = "results_karo"
-    lora_interpolation_dir = '/home/xander/Projects/cog/eden-sd-pipelines/eden/xander/images/karo/gd/interp'
-    keyframe_offset = 0
+    outdir = "real2real_zuzalu"
+    lora_interpolation_dir = '/home/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/zuzalu_v_art'
+    lora_root_dir = "/home/xander/Projects/cog/lora/exps/zuzalu"
+    keyframe_offset = 0  # skip a few keyframe imgs and start rendering the sequence later on
 
     # Load all .jsons and .jpgs in the lora_interpolation_dir
     jpgs  = sorted([os.path.join(lora_interpolation_dir, f) for f in os.listdir(lora_interpolation_dir) if f.endswith('.jpg')])
+    #all_jsons = sorted([os.path.join(lora_interpolation_dir, f) for f in os.listdir(lora_interpolation_dir) if f.endswith('.json')])
     jsons = []
     for jpg in jpgs:
-        json_path = jpg.replace('.jpg', '.json')
+        json_path = jpg.replace('_0.jpg', '.json')
         if os.path.exists(json_path):
             jsons.append(json_path)
         else:
@@ -187,32 +188,24 @@ if __name__ == "__main__":
     assert len(jsons) == len(jpgs)
 
     n = len(jsons)
-    n = 2
 
-    for i in [2,4]:
+    for i in [0]:
 
         seed = i
         random.seed(seed)
         indices = random.sample(range(len(jsons)), n)
         #indices = list(range(n))
+
         input_images = [jpgs[i] for i in indices]
         input_jsons = [jsons[i] for i in indices]
 
         if 1: # print full debug stacktrace
-            interpolation_texts, lora_paths, ckpts, abort = get_txts_and_loras(input_jsons)
+            interpolation_texts, lora_paths, ckpts, abort = get_txts_and_loras(input_jsons, lora_root_dir)
             assert len(interpolation_texts) == len(lora_paths) == len(ckpts) == len(input_images)
-
-            ant_img = "/home/xander/Projects/cog/eden-sd-pipelines/eden/xander/images/karo/gd/ant.jpg"
-            input_images = [ant_img] + input_images
-            lora_paths   = lora_paths + lora_paths
-            interpolation_texts = [None] + interpolation_texts
-
-            print(lora_paths)
-
             real2real_lora(input_images, lora_paths, interpolation_texts, outdir, seed = seed, keyframe_offset=keyframe_offset)
         else:
             try:
-                interpolation_texts, lora_paths, ckpts, abort = get_txts_and_loras(input_jsons)
+                interpolation_texts, lora_paths, ckpts, abort = get_txts_and_loras(input_jsons, lora_root_dir)
                 assert len(interpolation_texts) == len(lora_paths) == len(ckpts) == len(input_images)
                 real2real_lora(input_images, lora_paths, interpolation_texts, outdir, seed = seed, keyframe_offset=keyframe_offset)
             except Exception as e:
