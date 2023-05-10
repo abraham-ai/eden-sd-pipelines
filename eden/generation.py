@@ -105,6 +105,7 @@ def generate(
 
     if args.c is not None:
         prompt, negative_prompt = None, None
+
     else:
         prompt, negative_prompt = args.text_input, args.uc_text
         args.c, args.uc = None, None
@@ -497,7 +498,7 @@ from pipe import set_sampler
 def run_upscaler(args_, imgs, 
         init_image_strength    = 0.68, 
         upscale_guidance_scale = 6.5,
-        min_upscale_steps      = 12,  # never do less than this many steps
+        min_upscale_steps      = 16,  # never do less than this many steps
         max_n_pixels           = 1536**2, # max number of pixels to avoid OOM
     ):
     args = copy(args_)
