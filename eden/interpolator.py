@@ -327,6 +327,7 @@ class Interpolator():
 
                 if 0:
                     # create a full period sine curve that starts at 0 and ends at 0:
+                    # this slows down the keyframes and speeds up the middle frames
                     perceptual_target_curve = np.sin(np.linspace(-np.pi/2, 2*np.pi - np.pi/2, len(perceptual_distances)+1)) + 2.0
                     perceptual_target_curve = perceptual_target_curve / np.mean(perceptual_target_curve)
 

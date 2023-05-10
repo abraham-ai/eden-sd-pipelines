@@ -497,7 +497,6 @@ from pipe import set_sampler
 def run_upscaler(args_, imgs, 
         init_image_strength    = 0.68, 
         upscale_guidance_scale = 6.5,
-        upscale_steps          = 30, 
         min_upscale_steps      = 12,  # never do less than this many steps
         max_n_pixels           = 1536**2, # max number of pixels to avoid OOM
     ):
@@ -531,7 +530,7 @@ def run_upscaler(args_, imgs,
     set_sampler("euler", pipe_img2img)
 
     # Avoid doing to little steps when init_image_strength is very high:
-    upscale_steps = int(max(upscale_steps * (1-init_image_strength), min_upscale_steps) / (1-init_image_strength))+1
+    upscale_steps = int(max(args.steps * (1-init_image_strength), min_upscale_steps) / (1-init_image_strength))+1
 
     for i in range(len(imgs)): # upscale in a loop:
         args.init_image = imgs[i]
