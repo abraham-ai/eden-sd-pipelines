@@ -19,6 +19,7 @@ clip_model_names = [
 ]
 
 def caption_image(root_dir, f, ci, args):
+    basename, ext = os.path.splitext(f)
     image = Image.open(os.path.join(root_dir, f))
 
     if args.fast:
@@ -29,13 +30,12 @@ def caption_image(root_dir, f, ci, args):
     if len(args.prepend_txt) > 0:
         prompt = args.prepend_txt + prompt
 
-    with open(os.path.join(root_dir, f"{f}.txt"), 'w') as f:
+    with open(os.path.join(root_dir, f"{basename}.txt"), 'w') as f:
         f.write(prompt)
 
 
 def caption_folder(args):
     error_folder = "errors"
-    os.makedirs(error_folder, exist_ok=True)
 
     ci_config = Config(
         caption_model_name = 'blip-large',
@@ -48,9 +48,9 @@ def caption_folder(args):
     for root_dir, _, files in os.walk(args.input_dir):
         random.shuffle(files)
         for f in tqdm(files):
-            ext = os.path.splitext(f)[1]
+            basename, ext = os.path.splitext(f)
             if ext in args.extensions:
-                txt_path = os.path.join(root_dir, f"{f}.txt")
+                txt_path = os.path.join(root_dir, f"{basename}.txt")
                 
                 if os.path.exists(txt_path):
                     print("skipping!")
@@ -58,11 +58,11 @@ def caption_folder(args):
                 try:
                     caption_image(root_dir, f, ci, args)
                 except Exception as e:
-                    print(f"Error: {e}")
+                    print(f"Error with {f}: {e}")
+                    os.makedirs(error_folder, exist_ok=True)
                     os.rename(os.path.join(root_dir, f), os.path.join(error_folder, f))
-                    f_name = os.path.splitext(f)[0]
                     try:
-                        os.rename(os.path.join(root_dir, f"{f_name}.pt"), os.path.join(error_folder, f"{f_name}.pt"))
+                        os.rename(os.path.join(root_dir, f"{basename}.pt"), os.path.join(error_folder, f"{basename}.pt"))
                     except:
                         pass
 
