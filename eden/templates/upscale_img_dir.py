@@ -25,6 +25,7 @@ def remix(init_image, prompt, upscale_init_strength, target_n_pixels, steps, img
         W = int(np.sqrt(target_n_pixels)//64 * 64),
         H = int(np.sqrt(target_n_pixels)//64 * 64),
         sampler = "euler",
+        steps = steps,
         guidance_scale = 7,
         seed = seed,
         n_samples = 1,
@@ -35,7 +36,7 @@ def remix(init_image, prompt, upscale_init_strength, target_n_pixels, steps, img
     args.W, args.H = match_aspect_ratio(args.W * args.H, args.init_image)
 
     # Run the upscaler:
-    _, imgs = run_upscaler(args, [args.init_image], init_image_strength = upscale_init_strength, upscale_steps = steps, min_upscale_steps = 20)
+    _, imgs = run_upscaler(args, [args.init_image], init_image_strength = upscale_init_strength, min_upscale_steps = 20)
 
     name = f'{img_basename}_remix_{upscale_init_strength:.2f}_{int(time.time())}'
     for i, img in enumerate(imgs):
@@ -57,35 +58,47 @@ if __name__ == "__main__":
     # IO settings:
     outdir = "results/upscaling"
     init_image_data = "../assets"
-    init_image_data = "/home/rednax/SSD2TB/Github_repos/cog/eden-sd-pipelines/eden/xander/to_upscale"
+
+    try_to_load_prompts_from_disk = False  # if False, always use CLIP_INTERROGATOR
 
     # Upscaling settings:
-    clip_interrogator_modes = ["fast", "full"]
-    steps                   = 40
-    init_strengths_per_img  = [0.4, 0.5, 0.6]
+    clip_interrogator_modes = ["fast"] #["fast", "full"]
+    steps                   = 60
+    init_strengths_per_img  = [0.3, 0.4, 0.5]
     base_target_n_pixels    = 1920*1080 # larger resolutions result in black imgs??
 
     ###########################################################
 
-    if os.path.isdir(init_image_data):
-        # recursively grab all imgs in directory:
+    if os.path.isdir(init_image_data): # recursively grab all imgs in directory:
         init_image_data = sorted([os.path.join(init_image_data, f) for f in os.listdir(init_image_data) if f.endswith('.jpg') or f.endswith('.png')])
-    else:
-        # assume it's a single image:
+    else: # assume it's a single image:
         init_image_data = [init_image_data]
 
     for init_img_data in init_image_data:
         init_image   = load_img(init_img_data, 'RGB')
         img_basename = os.path.splitext(os.path.basename(init_img_data))[0]
 
-        for clip_interrogator_mode in clip_interrogator_modes:
-            # # Run clip interrogator to get text input:
-            interrogator_prompt = clip_interrogate(StableDiffusionSettings.ckpt, init_image, clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
+        prompts = None
+        if try_to_load_prompts_from_disk:
+            json_path = init_img_data.replace('.jpg', '.json').replace('.png', '.json')
+            if os.path.exists(json_path):
+                with open(json_path, 'r') as f:
+                    prompts = [json.load(f)['text_input']]
+                print("Loaded prompt from json!")
 
+        if prompts is None:
+            prompts = []
+            for clip_interrogator_mode in clip_interrogator_modes:
+                # # Run clip interrogator to get text input:
+                prompt = clip_interrogate(StableDiffusionSettings.ckpt, init_image, clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
+                prompts.append(prompt)
+
+        # Run the actual upscaling:
+        for prompt in prompts:
             for upscale_init_strength in init_strengths_per_img:
                     # increase the number of pixels if the upscale_init_strength is lower:
                     #target_n_pixels = int(base_target_n_pixels * max(1.0, (1.0 + (0.6 - upscale_init_strength) * 2.5)))
                     target_n_pixels = base_target_n_pixels
-                    print(f"\n\nRunning remix with upscale_init_strength: {upscale_init_strength}, target_n_pixels: {target_n_pixels}\nprompt: {interrogator_prompt}")
-                    remix(init_image, interrogator_prompt, upscale_init_strength, target_n_pixels, steps, img_basename, outdir)
+                    print(f"\n\nRunning remix with upscale_init_strength: {upscale_init_strength}, target_n_pixels: {target_n_pixels}\nprompt: {prompt}")
+                    remix(init_image, prompt, upscale_init_strength, target_n_pixels, steps, img_basename, outdir)
 
