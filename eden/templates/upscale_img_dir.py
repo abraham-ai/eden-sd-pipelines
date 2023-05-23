@@ -65,10 +65,10 @@ if __name__ == "__main__":
 
     # Upscaling settings:
     checkpoint_options      = ["eden:eden-v1"]
-    clip_interrogator_modes = ["fast"]
+    clip_interrogator_modes = ["fast", "full"]
     steps                   = 80
     init_strengths_per_img  = [0.4, 0.6]
-    base_target_n_pixels    = 512*512
+    base_target_n_pixels    = 1920*1080
     
     try_to_load_prompts_from_disk = False  # if False, always use CLIP_INTERROGATOR
 
@@ -109,6 +109,6 @@ if __name__ == "__main__":
                         # increase the number of pixels if the upscale_init_strength is lower:
                         #target_n_pixels = int(base_target_n_pixels * max(1.0, (1.0 + (0.6 - upscale_init_strength) * 2.5)))
                         target_n_pixels = base_target_n_pixels
-                        print(f"\n\nRunning remix with upscale_init_strength: {upscale_init_strength}, target_n_pixels: {target_n_pixels}, ckpt: {os.path.basename(checkpoint)}\nprompt: {interrogator_prompt}")
-                        remix(init_image, interrogator_prompt, upscale_init_strength, target_n_pixels, steps, img_basename, outdir, checkpoint)
+                        print(f"\n\nRunning remix with upscale_init_strength: {upscale_init_strength}, target_n_pixels: {target_n_pixels}, ckpt: {os.path.basename(checkpoint)}\nprompt: {prompt}")
+                        remix(init_image, prompt, upscale_init_strength, target_n_pixels, steps, img_basename, outdir, checkpoint)
 
