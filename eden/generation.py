@@ -457,7 +457,7 @@ def make_images(args):
 
         assert args.init_image is not None, "Must provide an init image in order to remix it!"
         
-        if random.random() > 0.5 and enable_random_lr_flipping:
+        if random.random() > 0.33 and enable_random_lr_flipping:
             args.init_image = args.init_image.transpose(Image.FLIP_LEFT_RIGHT)
 
         args.W, args.H = match_aspect_ratio(args.W * args.H, args.init_image)

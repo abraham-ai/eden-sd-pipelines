@@ -31,10 +31,7 @@ def remix(init_image_data, outdir,
         n_samples = 2,
         upscale_f = 1.5,
         init_image_strength = 0.175,
-        init_image_data = init_image_data,
-        #aesthetic_steps = 15,
-        #aesthetic_lr = 0.0001,
-        #ag_L2_normalization_constant = 0.05
+        init_image_data = init_image_data
     )
 
     if debug: # overwrite some args to make things go FAST
@@ -64,6 +61,5 @@ if __name__ == "__main__":
     outdir = "results"
     init_image_data = "https://generations.krea.ai/images/3cd0b8a8-34e5-4647-9217-1dc03a886b6a.webp"
     seed = int(time.time())
-    seed = 0
     remix(init_image_data, outdir, seed=seed)
 

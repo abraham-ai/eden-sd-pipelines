@@ -60,16 +60,17 @@ def remix(init_image, prompt, upscale_init_strength, target_n_pixels, steps, img
 if __name__ == "__main__":
 
     # IO settings:
-    outdir = "results/upscaled_twisting"
+    outdir = "results/upscaled"
     init_image_data = "../assets"
-    init_image_data = "/home/rednax/SSD2TB/Github_repos/cog/eden-sd-pipelines/eden/xander/to_upscale/best"
 
     # Upscaling settings:
-    checkpoint_options      = ["dreamlike-art/dreamlike-photoreal-2.0", "eden:eden-v1"]
-    clip_interrogator_modes = ["fast", "full"]
+    checkpoint_options      = ["eden:eden-v1"]
+    clip_interrogator_modes = ["fast"]
     steps                   = 80
     init_strengths_per_img  = [0.4, 0.6]
-    base_target_n_pixels    = 1920*1080 # larger resolutions result in black imgs??
+    base_target_n_pixels    = 512*512
+    
+    try_to_load_prompts_from_disk = False  # if False, always use CLIP_INTERROGATOR
 
     img_extensions = ['.jpg', '.png', '.jpeg']
 
@@ -86,10 +87,23 @@ if __name__ == "__main__":
         init_image   = load_img(init_img_data, 'RGB')
         img_basename = os.path.splitext(os.path.basename(init_img_data))[0]
 
-        for clip_interrogator_mode in clip_interrogator_modes:
-            # # Run clip interrogator to get text input:
-            interrogator_prompt = clip_interrogate(StableDiffusionSettings.ckpt, init_image, clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
+        prompts = None
+        if try_to_load_prompts_from_disk:
+            json_path = init_img_data.replace('.jpg', '.json').replace('.png', '.json')
+            if os.path.exists(json_path):
+                with open(json_path, 'r') as f:
+                    prompts = [json.load(f)['text_input']]
+                print("Loaded prompt from json!")
 
+        if prompts is None:
+            prompts = []
+            for clip_interrogator_mode in clip_interrogator_modes:
+                # # Run clip interrogator to get text input:
+                prompt = clip_interrogate(StableDiffusionSettings.ckpt, init_image, clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
+                prompts.append(prompt)
+
+        # Run the actual upscaling:
+        for prompt in prompts:
             for checkpoint in checkpoint_options:
                 for upscale_init_strength in init_strengths_per_img:
                         # increase the number of pixels if the upscale_init_strength is lower:
