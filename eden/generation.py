@@ -499,7 +499,7 @@ def run_upscaler(args_, imgs,
         init_image_strength    = 0.68, 
         upscale_guidance_scale = 6.5,
         min_upscale_steps      = 16,  # never do less than this many steps
-        max_n_pixels           = 1536**2, # max number of pixels to avoid OOM
+        max_n_pixels           = 1440**2, # max number of pixels to avoid OOM
     ):
     args = copy(args_)
     args.W, args.H = args_.upscale_f * args_.W, args_.upscale_f * args_.H
