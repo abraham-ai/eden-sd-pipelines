@@ -392,7 +392,7 @@ def video_style_transfer(args, force_timepoints = None):
         else:
             force_t_raw = None
 
-        if 0: # catch errors and try to complete the video
+        if True: # catch errors and try to complete the video
             try:
                 t, t_raw, c, init_latent, scale, return_index, _, _ = args.interpolator.get_next_conditioning(verbose=0, save_distances_to_dir = args.save_distances_to_dir, t_raw = force_t_raw)
             except Exception as e:

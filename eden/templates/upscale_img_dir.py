@@ -14,14 +14,16 @@ from generation import *
 from prompts import text_inputs
 from eden_utils import *
 
-def remix(init_image, prompt, upscale_init_strength, target_n_pixels, steps, img_basename, outdir, 
+def remix(init_image, prompt, upscale_init_strength, target_n_pixels, steps, img_basename, outdir, checkpoint,
     seed = int(time.time())):
 
     args = StableDiffusionSettings(
         mode = "remix",
+        ckpt = checkpoint,
         clip_interrogator_mode = "fast",
         text_input=prompt,
         init_image = init_image,
+        steps = steps,
         W = int(np.sqrt(target_n_pixels)//64 * 64),
         H = int(np.sqrt(target_n_pixels)//64 * 64),
         sampler = "euler",
@@ -35,11 +37,14 @@ def remix(init_image, prompt, upscale_init_strength, target_n_pixels, steps, img
     args.W, args.H = match_aspect_ratio(args.W * args.H, args.init_image)
 
     # Run the upscaler:
-    _, imgs = run_upscaler(args, [args.init_image], init_image_strength = upscale_init_strength, upscale_steps = steps, min_upscale_steps = 20)
+    _, imgs = run_upscaler(args, [args.init_image], init_image_strength = upscale_init_strength, min_upscale_steps = 20)
 
-    name = f'{img_basename}_remix_{upscale_init_strength:.2f}_{int(time.time())}'
+    name = f'{img_basename}_remix_{upscale_init_strength:.2f}_{os.path.basename(checkpoint)}_timestamp_{int(time.time())}'
     for i, img in enumerate(imgs):
-        frame = f'{name}_{i}.jpg'
+        if i>0:
+            frame = f'{name}_{i}.jpg'
+        else:
+            frame = f'{name}.jpg'
         os.makedirs(outdir, exist_ok = True)
         img.save(os.path.join(outdir, frame), quality=95)
 
@@ -55,21 +60,24 @@ def remix(init_image, prompt, upscale_init_strength, target_n_pixels, steps, img
 if __name__ == "__main__":
 
     # IO settings:
-    outdir = "results/upscaling"
+    outdir = "results/upscaled_twisting"
     init_image_data = "../assets"
-    init_image_data = "/home/rednax/SSD2TB/Github_repos/cog/eden-sd-pipelines/eden/xander/to_upscale"
+    init_image_data = "/home/rednax/SSD2TB/Github_repos/cog/eden-sd-pipelines/eden/xander/to_upscale/best"
 
     # Upscaling settings:
+    checkpoint_options      = ["dreamlike-art/dreamlike-photoreal-2.0", "eden:eden-v1"]
     clip_interrogator_modes = ["fast", "full"]
-    steps                   = 40
-    init_strengths_per_img  = [0.4, 0.5, 0.6]
+    steps                   = 80
+    init_strengths_per_img  = [0.4, 0.6]
     base_target_n_pixels    = 1920*1080 # larger resolutions result in black imgs??
+
+    img_extensions = ['.jpg', '.png', '.jpeg']
 
     ###########################################################
 
     if os.path.isdir(init_image_data):
         # recursively grab all imgs in directory:
-        init_image_data = sorted([os.path.join(init_image_data, f) for f in os.listdir(init_image_data) if f.endswith('.jpg') or f.endswith('.png')])
+        init_image_data = sorted([os.path.join(init_image_data, f) for f in os.listdir(init_image_data) if os.path.splitext(f)[1].lower() in img_extensions])
     else:
         # assume it's a single image:
         init_image_data = [init_image_data]
@@ -82,10 +90,11 @@ if __name__ == "__main__":
             # # Run clip interrogator to get text input:
             interrogator_prompt = clip_interrogate(StableDiffusionSettings.ckpt, init_image, clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
 
-            for upscale_init_strength in init_strengths_per_img:
-                    # increase the number of pixels if the upscale_init_strength is lower:
-                    #target_n_pixels = int(base_target_n_pixels * max(1.0, (1.0 + (0.6 - upscale_init_strength) * 2.5)))
-                    target_n_pixels = base_target_n_pixels
-                    print(f"\n\nRunning remix with upscale_init_strength: {upscale_init_strength}, target_n_pixels: {target_n_pixels}\nprompt: {interrogator_prompt}")
-                    remix(init_image, interrogator_prompt, upscale_init_strength, target_n_pixels, steps, img_basename, outdir)
+            for checkpoint in checkpoint_options:
+                for upscale_init_strength in init_strengths_per_img:
+                        # increase the number of pixels if the upscale_init_strength is lower:
+                        #target_n_pixels = int(base_target_n_pixels * max(1.0, (1.0 + (0.6 - upscale_init_strength) * 2.5)))
+                        target_n_pixels = base_target_n_pixels
+                        print(f"\n\nRunning remix with upscale_init_strength: {upscale_init_strength}, target_n_pixels: {target_n_pixels}, ckpt: {os.path.basename(checkpoint)}\nprompt: {interrogator_prompt}")
+                        remix(init_image, interrogator_prompt, upscale_init_strength, target_n_pixels, steps, img_basename, outdir, checkpoint)
 
