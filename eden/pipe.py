@@ -88,10 +88,10 @@ def load_pipe(args):
         )
     pipe.vae.enable_tiling()
     pipe.safety_checker = None
-    print(f"Created new pipe in {(time.time() - start_time):.2f} seconds")
     pipe = pipe.to(_device)
     #pipe.enable_xformers_memory_efficient_attention()
     pipe.unet.set_attn_processor(AttnProcessor2_0())
+    print(f"Created new pipe in {(time.time() - start_time):.2f} seconds")
     print_model_info(pipe)
     return pipe
 

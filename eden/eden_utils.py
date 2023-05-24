@@ -31,6 +31,19 @@ def pick_best_gpu_id():
     print("Using GPU %d" %best_gpu_id)
     return best_gpu_id
 
+def print_gpu_info(args, status_string, delimiter_string = "-", line_length = 80):
+    if args.gpu_info_verbose is False:
+        return
+    
+    timestamp = str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
+    margin_l = (line_length - len(status_string)-2)//2
+    print(f"{delimiter_string*margin_l} {status_string} {delimiter_string*margin_l}")
+    print(f"--- Time: {timestamp}")
+    gpu_ids = [i for i in range(torch.cuda.device_count())]
+    for gpu_id in gpu_ids:
+        free_memory, tot_mem = torch.cuda.mem_get_info(device=gpu_id)
+        print(f"--- GPU {gpu_id}: {(free_memory / 1024 / 1024):.0f} MB available (of {(tot_mem / 1024 / 1024):.0f} total MB)")    
+    print(f"{delimiter_string*line_length}")
 
 def patch_conv(**patch):
     # Enables tileable textures

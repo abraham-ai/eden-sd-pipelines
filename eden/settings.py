@@ -54,6 +54,7 @@ class StableDiffusionSettings:
     #precision: str = 'autocast'
     half_precision: bool = True
     activate_tileable_textures: bool = False
+    gpu_info_verbose: bool = True  # if True, print GPU info to console
 
     # mode
     mode: str = "generate"

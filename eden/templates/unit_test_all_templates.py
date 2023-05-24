@@ -61,7 +61,7 @@ def test_function(fname, function, args, kwargs, test_tracker):
 if __name__ == "__main__":
 
     functions_to_test = ["real2real", "lerp", "generate_basic", "generate_remix"]
-    debug  = 0  # optionally overwrite the default render args to make things go FAAAST
+    debug  = 1  # optionally overwrite the default render args to make things go FAAAST
 
     # template inputs:
     outdir = "unit_test_results"

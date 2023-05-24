@@ -162,6 +162,7 @@ def generate(
 
 @torch.no_grad()
 def make_interpolation(args, force_timepoints = None):
+    print_gpu_info(args, "start of make_interpolation()")
     
     # Always disbale upscaling for videos:
     args.upscale_f = 1.0
@@ -331,7 +332,7 @@ def make_interpolation(args, force_timepoints = None):
 
     # Flush the final metadata to disk if needed:
     args.interpolator.latent_tracker.reset_buffer()
-
+    print_gpu_info(args, "end of make_interpolation()")
 
 
 class Video_Frame_Indexer():
@@ -448,7 +449,7 @@ def video_style_transfer(args, force_timepoints = None):
 
 
 def make_images(args):
-
+    print_gpu_info(args, "start of make_images()")
     if args.mode == "remix":
         enable_random_lr_flipping = True  # randomly flip the init img for remixing?
 
@@ -470,7 +471,7 @@ def make_images(args):
 
     #pipe = update_aesthetic_gradient_settings(pipe, args)
     _, images_pil = generate(args)
-    
+    print_gpu_info(args, "end of make_images()")
     return images_pil
 
 
@@ -503,6 +504,7 @@ def run_upscaler(args_, imgs,
         max_n_pixels           = 1440**2, # max number of pixels to avoid OOM
     ):
     args = copy(args_)
+    print_gpu_info(args, "start of run_upscaler()")
     args.W, args.H = args_.upscale_f * args_.W, args_.upscale_f * args_.H
 
     # set max_n_pixels to avoid OOM:
@@ -549,6 +551,8 @@ def run_upscaler(args_, imgs,
         ).images[0]
         x_samples_upscaled.extend([])
         x_images_upscaled.extend([image])
+
+    print_gpu_info(args, "end of run_upscaler()")
 
     return x_samples_upscaled, x_images_upscaled
 

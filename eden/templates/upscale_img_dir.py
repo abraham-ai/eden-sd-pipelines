@@ -27,7 +27,7 @@ def remix(init_image, prompt, upscale_init_strength, target_n_pixels, steps, img
         W = int(np.sqrt(target_n_pixels)//64 * 64),
         H = int(np.sqrt(target_n_pixels)//64 * 64),
         sampler = "euler",
-        guidance_scale = 7,
+        guidance_scale = 8,
         seed = seed,
         n_samples = 1,
         upscale_f = 1.0,
@@ -62,7 +62,7 @@ if __name__ == "__main__":
     # IO settings:
     outdir = "results/upscaled"
     init_image_data = "../assets"
-
+    
     # Upscaling settings:
     checkpoint_options      = ["eden:eden-v1", "dreamlike-art/dreamlike-photoreal-2.0"]
     clip_interrogator_modes = ["fast", "full"]
@@ -72,6 +72,12 @@ if __name__ == "__main__":
 
     try_to_load_prompts_from_disk = True  # if False, always use CLIP_INTERROGATOR
     img_extensions = ['.jpg', '.png', '.jpeg']
+    
+    if 1:
+        steps                   = 100
+        init_strengths_per_img  = [0.51, 0.56]
+        base_target_n_pixels    = int(1920*1080*1.5)
+        init_image_data = "/home/rednax/SSD2TB/Github_repos/cog/eden-sd-pipelines/eden/xander/to_upscale/new3"
 
     ###########################################################
 
@@ -90,9 +96,12 @@ if __name__ == "__main__":
         if try_to_load_prompts_from_disk:
             json_path = init_img_data.replace('.jpg', '.json').replace('.png', '.json')
             if os.path.exists(json_path):
-                with open(json_path, 'r') as f:
-                    prompts = [json.load(f)['text_input']]
-                print("Loaded prompt from json!")
+                try:
+                    with open(json_path, 'r') as f:
+                        prompts = [json.load(f)['text_input']]
+                    print("Loaded prompt from json!")
+                except:
+                    print("Failed to load prompt from json!")
 
         if prompts is None:
             prompts = []
