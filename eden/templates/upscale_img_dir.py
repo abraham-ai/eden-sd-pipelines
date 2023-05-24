@@ -37,7 +37,7 @@ def remix(init_image, prompt, upscale_init_strength, target_n_pixels, steps, img
     args.W, args.H = match_aspect_ratio(args.W * args.H, args.init_image)
 
     # Run the upscaler:
-    _, imgs = run_upscaler(args, [args.init_image], init_image_strength = upscale_init_strength, min_upscale_steps = 20)
+    _, imgs = run_upscaler(args, [args.init_image], init_image_strength = upscale_init_strength, min_upscale_steps = 20, max_n_pixels = target_n_pixels)
 
     name = f'{img_basename}_remix_{upscale_init_strength:.2f}_{os.path.basename(checkpoint)}_timestamp_{int(time.time())}'
     for i, img in enumerate(imgs):
@@ -66,12 +66,11 @@ if __name__ == "__main__":
     # Upscaling settings:
     checkpoint_options      = ["eden:eden-v1", "dreamlike-art/dreamlike-photoreal-2.0"]
     clip_interrogator_modes = ["fast", "full"]
-    steps                   = 80
-    init_strengths_per_img  = [0.4, 0.6]
+    steps                   = 60
+    init_strengths_per_img  = [0.4, 0.5]
     base_target_n_pixels    = 1920*1080
-    
-    try_to_load_prompts_from_disk = True  # if False, always use CLIP_INTERROGATOR
 
+    try_to_load_prompts_from_disk = True  # if False, always use CLIP_INTERROGATOR
     img_extensions = ['.jpg', '.png', '.jpeg']
 
     ###########################################################

@@ -19,6 +19,7 @@ from safetensors.torch import safe_open, save_file
 from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline, StableDiffusionDepth2ImgPipeline
 from diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion_eden import StableDiffusionEdenPipeline
 from diffusers.models import AutoencoderKL
+from diffusers.models.cross_attention import AttnProcessor2_0
 
 from diffusers import (
     LMSDiscreteScheduler, 
@@ -39,6 +40,8 @@ global last_lora_path
 pipe = None
 last_checkpoint = None
 last_lora_path = None
+
+
 
 def set_sampler(sampler_name, pipe):
     schedulers = {
@@ -83,11 +86,12 @@ def load_pipe(args):
             torch_dtype=torch.float16 if args.half_precision else torch.float32, 
             vae=AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse").half()
         )
-
+    pipe.vae.enable_tiling()
     pipe.safety_checker = None
     print(f"Created new pipe in {(time.time() - start_time):.2f} seconds")
     pipe = pipe.to(_device)
-    pipe.enable_xformers_memory_efficient_attention()
+    #pipe.enable_xformers_memory_efficient_attention()
+    pipe.unet.set_attn_processor(AttnProcessor2_0())
     print_model_info(pipe)
     return pipe
 

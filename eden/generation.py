@@ -494,6 +494,7 @@ def make_callback(
     return diffusers_callback
 
 from pipe import set_sampler
+from diffusers.models.cross_attention import AttnProcessor2_0
 
 def run_upscaler(args_, imgs, 
         init_image_strength    = 0.68, 
@@ -526,7 +527,10 @@ def run_upscaler(args_, imgs,
         torch_dtype=torch.float16 if args.half_precision else torch.float32
     )
     pipe_img2img = pipe_img2img.to(_device)
-    pipe_img2img.enable_xformers_memory_efficient_attention()
+    # Reduces max memory footprint:
+    pipe_img2img.vae.enable_tiling()
+    # Fixes black imgs bug for big imgs:
+    pipe_img2img.unet.set_attn_processor(AttnProcessor2_0())
     pipe_img2img = update_pipe_with_lora(pipe_img2img, args)
     set_sampler("euler", pipe_img2img)
 
