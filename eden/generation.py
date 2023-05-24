@@ -530,7 +530,7 @@ def run_upscaler(args_, imgs,
     pipe_img2img = update_pipe_with_lora(pipe_img2img, args)
     set_sampler("euler", pipe_img2img)
 
-    # Avoid doing to little steps when init_image_strength is very high:
+    # Avoid doing too little steps when init_image_strength is very high:
     upscale_steps = int(max(args.steps * (1-init_image_strength), min_upscale_steps) / (1-init_image_strength))+1
 
     for i in range(len(imgs)): # upscale in a loop:

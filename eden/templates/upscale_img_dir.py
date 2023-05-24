@@ -64,13 +64,13 @@ if __name__ == "__main__":
     init_image_data = "../assets"
 
     # Upscaling settings:
-    checkpoint_options      = ["eden:eden-v1"]
+    checkpoint_options      = ["eden:eden-v1", "dreamlike-art/dreamlike-photoreal-2.0"]
     clip_interrogator_modes = ["fast", "full"]
     steps                   = 80
     init_strengths_per_img  = [0.4, 0.6]
     base_target_n_pixels    = 1920*1080
     
-    try_to_load_prompts_from_disk = False  # if False, always use CLIP_INTERROGATOR
+    try_to_load_prompts_from_disk = True  # if False, always use CLIP_INTERROGATOR
 
     img_extensions = ['.jpg', '.png', '.jpeg']
 

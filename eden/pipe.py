@@ -18,7 +18,6 @@ import torch
 from safetensors.torch import safe_open, save_file
 from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline, StableDiffusionDepth2ImgPipeline
 from diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion_eden import StableDiffusionEdenPipeline
-from diffusers.pipelines.stable_diffusion.convert_from_ckpt import load_pipeline_from_original_stable_diffusion_ckpt
 from diffusers.models import AutoencoderKL
 
 from diffusers import (
@@ -68,28 +67,22 @@ def load_pipe(args):
     else:
         location = args.ckpt
         
-    try:
-        if args.mode == "depth2img":
-            print(f"Creating new StableDiffusionDepth2ImgPipeline..")
-            pipe = StableDiffusionDepth2ImgPipeline.from_pretrained(
-                "stabilityai/stable-diffusion-2-depth", 
-                safety_checker=None, 
-                torch_dtype=torch.float16 if args.half_precision else torch.float32
-            )
-        else:
-            print(f"Creating new StableDiffusionEdenPipeline using {args.ckpt}")
-            pipe = StableDiffusionEdenPipeline.from_pretrained(
-                location, 
-                safety_checker=None, 
-                local_files_only=True, 
-                torch_dtype=torch.float16 if args.half_precision else torch.float32, 
-                vae=AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse").half()
-            )
-    
-    except Exception as e:
-        print(e)
-        print("Failed to load from pretrained, trying to load from checkpoint")
-        pipe = load_pipeline_from_original_stable_diffusion_ckpt(location, image_size = 512)
+    if args.mode == "depth2img":
+        print(f"Creating new StableDiffusionDepth2ImgPipeline..")
+        pipe = StableDiffusionDepth2ImgPipeline.from_pretrained(
+            "stabilityai/stable-diffusion-2-depth", 
+            safety_checker=None, 
+            torch_dtype=torch.float16 if args.half_precision else torch.float32
+        )
+    else:
+        print(f"Creating new StableDiffusionEdenPipeline using {args.ckpt}")
+        pipe = StableDiffusionEdenPipeline.from_pretrained(
+            location, 
+            safety_checker=None, 
+            local_files_only=True, 
+            torch_dtype=torch.float16 if args.half_precision else torch.float32, 
+            vae=AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse").half()
+        )
 
     pipe.safety_checker = None
     print(f"Created new pipe in {(time.time() - start_time):.2f} seconds")
