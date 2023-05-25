@@ -60,7 +60,7 @@ def remix(init_image, prompt, upscale_init_strength, target_n_pixels, steps, img
 if __name__ == "__main__":
 
     # IO settings:
-    outdir = "results/upscaled"
+    outdir = "results/upscaled_aesthetics"
     init_image_data = "../assets"
     
     # Upscaling settings:
@@ -74,10 +74,11 @@ if __name__ == "__main__":
     img_extensions = ['.jpg', '.png', '.jpeg']
     
     if 1:
-        steps                   = 100
-        init_strengths_per_img  = [0.51, 0.56]
+        clip_interrogator_modes = ["fast"]
+        steps                   = 80
+        init_strengths_per_img  = [0.35]
         base_target_n_pixels    = int(1920*1080*1.5)
-        init_image_data = "/home/rednax/SSD2TB/Github_repos/cog/eden-sd-pipelines/eden/xander/to_upscale/new3"
+        init_image_data = "/home/rednax/SSD2TB/Fast_Datasets/Stored_Datasets/Image/Great_Micro/Esthetic"
 
     ###########################################################
 

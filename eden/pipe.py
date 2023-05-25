@@ -86,7 +86,7 @@ def load_pipe(args):
             torch_dtype=torch.float16 if args.half_precision else torch.float32, 
             vae=AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse").half()
         )
-    pipe.vae.enable_tiling()
+    #pipe.vae.enable_tiling()
     pipe.safety_checker = None
     pipe = pipe.to(_device)
     #pipe.enable_xformers_memory_efficient_attention()

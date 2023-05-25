@@ -530,7 +530,7 @@ def run_upscaler(args_, imgs,
     )
     pipe_img2img = pipe_img2img.to(_device)
     # Reduces max memory footprint:
-    pipe_img2img.vae.enable_tiling()
+    #pipe_img2img.vae.enable_tiling()
     # Fixes black imgs bug for big imgs:
     pipe_img2img.unet.set_attn_processor(AttnProcessor2_0())
     pipe_img2img = update_pipe_with_lora(pipe_img2img, args)
