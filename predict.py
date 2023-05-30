@@ -30,7 +30,8 @@ checkpoint_options = [
 #    "runwayml:stable-diffusion-v1-5",
 #    "dreamlike-art:dreamlike-photoreal-2.0",
 #    "huemin:fxhash_009",
-    "eden:eden-v1"
+    "eden:eden-v1",
+    "gordon-berger:gordon-berger-figurative",
 ]
 checkpoint_default = "eden:eden-v1"
 
@@ -151,7 +152,7 @@ class Predictor(BasePredictor):
         # Interpolate mode
         n_frames: int = Input(
             description="Total number of frames (mode==interpolate)",
-            ge=3, le=300, default=48
+            ge=3, le=1000, default=60
         ),
 
         # Interpolate mode
