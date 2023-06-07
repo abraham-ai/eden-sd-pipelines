@@ -41,6 +41,12 @@ pipe = None
 last_checkpoint = None
 last_lora_path = None
 
+global upscaling_pipe
+global upscaling_last_checkpoint
+global upscaling_last_lora_path
+upscaling_pipe = None
+upscaling_last_checkpoint = None
+upscaling_last_lora_path = None
 
 
 def set_sampler(sampler_name, pipe):
@@ -153,3 +159,68 @@ def update_pipe_with_lora(pipe, args):
     print(f" ---> Updated pipe in {(time.time() - start_time):.2f}s using lora from {args.lora_path} with scale = {args.lora_scale:.2f}")
 
     return pipe.to(_device)
+
+
+"""
+same as the above, but specifically for img2img pipes (upscaler)
+"""
+
+def load_upscaling_pipe(args):
+    global upscaling_pipe
+    start_time = time.time()
+
+    if os.path.isdir(os.path.join(CHECKPOINTS_PATH, args.ckpt)):
+        load_path = os.path.join(CHECKPOINTS_PATH, args.ckpt)
+    else:
+        load_path = args.ckpt
+
+    pipe_img2img = StableDiffusionImg2ImgPipeline.from_pretrained(
+        load_path, 
+        local_files_only = True, 
+        torch_dtype=torch.float16 if args.half_precision else torch.float32
+    )
+
+    pipe_img2img.unet.set_attn_processor(AttnProcessor2_0())
+    pipe_img2img = pipe_img2img.to(_device)
+
+    # Reduces max memory footprint:
+    #pipe_img2img.vae.enable_tiling()
+
+    print(f"Created new upscaling pipe in {(time.time() - start_time):.2f} seconds")
+    return pipe_img2img
+
+def get_upscaling_pipe(args, force_reload = False):
+    global upscaling_pipe
+    global upscaling_last_checkpoint
+    global upscaling_last_lora_path
+
+    # create a persistent, global upscaling_pipe object:
+
+    if args.ckpt != upscaling_last_checkpoint:
+        force_reload = True
+        upscaling_last_checkpoint = args.ckpt
+
+    if not args.lora_path and upscaling_last_lora_path:
+        force_reload = True
+
+    if (upscaling_pipe is None) or force_reload:
+        del upscaling_pipe
+        torch.cuda.empty_cache()
+
+        if args.activate_tileable_textures:
+            patch_conv(padding_mode='circular')
+
+        upscaling_pipe = load_upscaling_pipe(args)
+
+    # Potentially update the pipe:
+    upscaling_pipe = set_sampler(args.sampler, upscaling_pipe)
+    upscaling_pipe = update_pipe_with_lora(upscaling_pipe, args)
+    
+    if args.lora_path is not None:
+        tune_lora_scale(upscaling_pipe.unet, args.lora_scale)
+        tune_lora_scale(upscaling_pipe.text_encoder, args.lora_scale)
+
+    upscaling_last_lora_path = args.lora_path
+    set_sampler("euler", upscaling_pipe)
+
+    return upscaling_pipe

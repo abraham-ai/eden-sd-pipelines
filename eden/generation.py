@@ -494,9 +494,6 @@ def make_callback(
               
     return diffusers_callback
 
-from pipe import set_sampler
-from diffusers.models.cross_attention import AttnProcessor2_0
-
 def run_upscaler(args_, imgs, 
         init_image_strength    = 0.68, 
         upscale_guidance_scale = 6.5,
@@ -518,23 +515,7 @@ def run_upscaler(args_, imgs,
     x_samples_upscaled, x_images_upscaled = [], []
 
     # Load the upscaling model:
-    if os.path.isdir(os.path.join(CHECKPOINTS_PATH, args.ckpt)):
-        load_path = os.path.join(CHECKPOINTS_PATH, args.ckpt)
-    else:
-        load_path = args.ckpt
-
-    pipe_img2img = StableDiffusionImg2ImgPipeline.from_pretrained(
-        load_path, 
-        local_files_only = True, 
-        torch_dtype=torch.float16 if args.half_precision else torch.float32
-    )
-    pipe_img2img = pipe_img2img.to(_device)
-    # Reduces max memory footprint:
-    #pipe_img2img.vae.enable_tiling()
-    # Fixes black imgs bug for big imgs:
-    pipe_img2img.unet.set_attn_processor(AttnProcessor2_0())
-    pipe_img2img = update_pipe_with_lora(pipe_img2img, args)
-    set_sampler("euler", pipe_img2img)
+    pipe_img2img = eden_pipe.get_upscaling_pipe(args)
 
     # Avoid doing too little steps when init_image_strength is very high:
     upscale_steps = int(max(args.steps * (1-init_image_strength), min_upscale_steps) / (1-init_image_strength))+1

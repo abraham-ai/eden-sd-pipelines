@@ -49,22 +49,22 @@ def real2real_lora(input_images, lora_paths, interpolation_texts, outdir,
             interpolation_init_images_use_img2txt = True,
             interpolation_init_images_power = 3.0,
             interpolation_init_images_min_strength = 0.25,  # a higher value will make the video smoother, but allows less visual change / journey
-            interpolation_init_images_max_strength = 0.97,
-            latent_blending_skip_f = [0.075, 0.7],
-            guidance_scale = 10,
-            n_frames = 64*(n-1) + n,
-            #n_frames = 7*(n-1) + n,
+            interpolation_init_images_max_strength = 0.96,
+            latent_blending_skip_f = [0.0, 0.65],
+            guidance_scale = 9,
+            #n_frames = 64*(n-1) + n,
+            n_frames = 7*(n-1) + n,
             loop = True,
             smooth = True,
             n_film = 0,
             fps = 9,
-            steps = 70,
+            steps = 50,
             sampler = "euler",
             seed = seed,
             H = 960,
             W = 960,
             upscale_f = 1.0,
-            clip_interrogator_mode = "full",
+            clip_interrogator_mode = "fast",
             lora_scale = 0.8,
             lora_paths = lora_paths,
             lora_path = lora_paths[0],
@@ -152,6 +152,9 @@ def get_txts_and_loras(json_paths, lora_root_dir, always_use_lora = True):
                 lora_path_orig = data['lora_path']
                 lora_path = find_lora_dir(os.path.basename(os.path.dirname(lora_path_orig)), lora_root_dir)
 
+                #lora_paths.append("/home/xander/Projects/cog/lora/exps/lieven_fin/small_train_00_6530f9/final_lora.safetensors")
+                #continue
+                
                 if lora_path is not None:
                     lora_paths.append(lora_path + "/final_lora.safetensors")
                 else:
@@ -166,9 +169,9 @@ def get_txts_and_loras(json_paths, lora_root_dir, always_use_lora = True):
 
 if __name__ == "__main__":
 
-    outdir = "real2real_zuzalu"
-    lora_interpolation_dir = '/home/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/zuzalu_v_art'
-    lora_root_dir = "/home/xander/Projects/cog/lora/exps/zuzalu"
+    outdir = "real2real_lieven"
+    lora_interpolation_dir = '/home/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/lieven_interpolations'
+    lora_root_dir = "/home/xander/Projects/cog/lora/exps/lieven_fin"
     keyframe_offset = 0  # skip a few keyframe imgs and start rendering the sequence later on
 
     # Load all .jsons and .jpgs in the lora_interpolation_dir
@@ -188,8 +191,9 @@ if __name__ == "__main__":
     assert len(jsons) == len(jpgs)
 
     n = len(jsons)
+    n = 3
 
-    for i in [0]:
+    for i in range(20):
 
         seed = i
         random.seed(seed)
@@ -202,6 +206,8 @@ if __name__ == "__main__":
         if 1: # print full debug stacktrace
             interpolation_texts, lora_paths, ckpts, abort = get_txts_and_loras(input_jsons, lora_root_dir)
             assert len(interpolation_texts) == len(lora_paths) == len(ckpts) == len(input_images)
+            for i in range(len(interpolation_texts)):
+                print(f"{i:03d}: {interpolation_texts[i]}, {os.path.basename(os.path.dirname(lora_paths[i]))}")
             real2real_lora(input_images, lora_paths, interpolation_texts, outdir, seed = seed, keyframe_offset=keyframe_offset)
         else:
             try:
