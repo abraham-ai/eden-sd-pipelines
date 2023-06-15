@@ -174,20 +174,20 @@ def load_upscaling_pipe(args):
     else:
         load_path = args.ckpt
 
-    pipe_img2img = StableDiffusionImg2ImgPipeline.from_pretrained(
+    upscaling_pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
         load_path, 
         local_files_only = True, 
         torch_dtype=torch.float16 if args.half_precision else torch.float32
     )
 
-    pipe_img2img.unet.set_attn_processor(AttnProcessor2_0())
-    pipe_img2img = pipe_img2img.to(_device)
+    upscaling_pipe.unet.set_attn_processor(AttnProcessor2_0())
+    upscaling_pipe = upscaling_pipe.to(_device)
 
     # Reduces max memory footprint:
-    #pipe_img2img.vae.enable_tiling()
+    #upscaling_pipe.vae.enable_tiling()
 
     print(f"Created new upscaling pipe in {(time.time() - start_time):.2f} seconds")
-    return pipe_img2img
+    return upscaling_pipe
 
 def get_upscaling_pipe(args, force_reload = False):
     global upscaling_pipe

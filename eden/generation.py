@@ -164,19 +164,16 @@ def generate(
 def make_interpolation(args, force_timepoints = None):
     print_gpu_info(args, "start of make_interpolation()")
     
-    # Always disbale upscaling for videos:
+    # Always disbale upscaling for videos (since it introduces frame jitter)
     args.upscale_f = 1.0
-    
-    if args.text_input == "real2real" and args.interpolation_texts:
-        assert len(args.interpolation_texts) == len(args.interpolation_init_images), "When overwriting prompts for real2real, you must provide the same number of interpolation texts as init_imgs!"
-        real2real_texts = args.interpolation_texts
-    else:
-        real2real_texts = None
 
-    if not args.interpolation_texts:
-        args.interpolation_texts = [args.text_input]
-        if args.interpolation_init_images:
-            args.interpolation_texts = args.interpolation_texts * len(args.interpolation_init_images)
+    if args.interpolation_init_images and all(args.interpolation_init_images):
+        if isinstance(args.interpolation_texts, list):
+            if len(args.interpolation_texts) == 0:
+                args.interpolation_texts = [None]*len(args.interpolation_init_images)
+            else:
+                assert len(args.interpolation_texts) == len(args.interpolation_init_images), "When providing manuel prompts for real2real, you must provide the same number of interpolation texts as init_imgs!"
+
     if not args.interpolation_init_images:
         args.interpolation_init_images = [None]
         if args.interpolation_texts:
@@ -185,7 +182,7 @@ def make_interpolation(args, force_timepoints = None):
         args.interpolation_seeds = [args.seed]
         args.n_frames = 1
 
-    assert args.n_samples==1, "Batch size >1 not implemented yet"
+    assert args.n_samples==1, "Batch size >1 not implemented for interpolation!"
     assert len(args.interpolation_texts) == len(args.interpolation_seeds)
     assert len(args.interpolation_init_images) == len(args.interpolation_seeds)
 
@@ -197,8 +194,7 @@ def make_interpolation(args, force_timepoints = None):
     global pipe
     pipe = eden_pipe.get_pipe(args)
     #model = update_aesthetic_gradient_settings(model, args)
-    #loraBlender = LoraBlender(args.lora_scale) if args.lora_paths is not None else None
-    
+
     # if there are init images, change width/height to their average
     interpolation_init_images = None
     if args.interpolation_init_images and all(args.interpolation_init_images):
@@ -208,20 +204,16 @@ def make_interpolation(args, force_timepoints = None):
         interpolation_init_images = get_uniformly_sized_crops(args.interpolation_init_images, args.H * args.W)
         args.W, args.H = interpolation_init_images[0].size
 
-        # if args.interpolation_init_images_use_img2txt, then use clip-interrogator to overwrite interpolation_texts
         if args.interpolation_init_images_use_img2txt:
-            if real2real_texts is None:
-                init_img_prompts = [clip_interrogate(args.ckpt, init_img, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH) for init_img in interpolation_init_images]
-                args.interpolation_texts = init_img_prompts
-                print("Overwriting prompts with clip-interrogator results:", init_img_prompts)
-            else:
-                # get prompts for the images that dont have one:
+            if args.interpolation_texts is None:
+                args.interpolation_texts = [clip_interrogate(args.ckpt, init_img, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH) for init_img in interpolation_init_images]
+                print("Overwriting prompts with clip-interrogator results:", args.interpolation_texts)
+            else: # get prompts for the images that dont have one:
                 for jj, init_img in enumerate(interpolation_init_images):
-                    if real2real_texts[jj] is None:
+                    if args.interpolation_texts[jj] is None:
                         init_img_prompt = clip_interrogate(args.ckpt, init_img, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
                         print(f"Generated prompt for init_img_{jj}: {init_img_prompt}")
-                        real2real_texts[jj] = init_img_prompt
-                args.interpolation_texts = real2real_texts
+                        args.interpolation_texts[jj] = init_img_prompt
 
             # We're in Real2Real mode here --> overwrite args.aesthetic_target with the interpolation_init_images
             # This activates aesthetic gradient finetuning of the individual prompt conditioning vectors on each single init_image:
@@ -230,6 +222,7 @@ def make_interpolation(args, force_timepoints = None):
     else:
         args.use_init = False
 
+    # Release CLIP memory:
     del_clip_interrogator_models()
 
     args.interpolator = Interpolator(
@@ -246,7 +239,6 @@ def make_interpolation(args, force_timepoints = None):
     )
 
     #args.n_anchor_imgs = max(3, int(args.anchor_img_fraction * args.interpolator.n_frames_between_two_prompts))
-    #args.n_anchor_imgs = min(args.n_anchor_imgs, 7)
     print("Using", args.n_anchor_imgs, "anchor images per prompt pair")
 
     n_frames = len(args.interpolator.ts)
@@ -258,10 +250,9 @@ def make_interpolation(args, force_timepoints = None):
     ######################################
 
     for f in range(n_frames):
+        force_t_raw = None
         if force_timepoints is not None:
             force_t_raw = force_timepoints[f]
-        else:
-            force_t_raw = None
 
         if True: # catch errors and try to complete the video
             try:
@@ -276,18 +267,13 @@ def make_interpolation(args, force_timepoints = None):
         args.guidance_scale = scale
         args.t_raw = t_raw
 
-        if args.lora_paths is not None:
-            # Maybe update the lora to the next person:
+        if args.lora_paths is not None: # Maybe update the lora:
             if args.lora_paths[return_index] != active_lora_path:
                 active_lora_path = args.lora_paths[return_index]
                 print("Switching to lora path", active_lora_path)
                 args.lora_path = active_lora_path
 
-        #if loraBlender is not None:
-        #    lora_path1, lora_path2 = args.lora_paths[return_index], args.lora_paths[(return_index + 1) % len(args.lora_paths)]
-        #    loraBlender.patch_pipe(pipe, t, lora_path1, lora_path2)
-
-        if 1 and (args.interpolation_init_images and all(args.interpolation_init_images) or len(args.interpolator.latent_tracker.frame_buffer.ts) >= args.n_anchor_imgs):
+        if (args.interpolation_init_images and all(args.interpolation_init_images) or len(args.interpolator.latent_tracker.frame_buffer.ts) >= args.n_anchor_imgs):
 
             if interpolation_init_images is None: # lerping mode (no init imgs)
                 is_real2real = False
@@ -305,7 +291,6 @@ def make_interpolation(args, force_timepoints = None):
             else:
                 # perform Latent-Blending initialization:
                 args.init_latent, args.init_image, args.init_image_strength = create_init_latent(args, t, init_img1, init_img2, _device, pipe, real2real = is_real2real)
-
 
         else: #only use the raw init_latent noise from interpolator (using the input seeds)
             print("Using raw init noise (strenght 0.0)...")
@@ -345,6 +330,116 @@ class Video_Frame_Indexer():
         frame_index = int(t_raw * self.video_frames_per_phase) % self.n_video_frames
         print(f"t_raw = {t_raw:.5f}, frame_index = {frame_index}")
         return frame_index
+
+def make_images(args):
+    print_gpu_info(args, "start of make_images()")
+    if args.mode == "remix":
+        enable_random_lr_flipping = True  # randomly flip the init img for remixing?
+
+        if args.init_image_data:
+            args.init_image = load_img(args.init_image_data, 'RGB')
+
+        assert args.init_image is not None, "Must provide an init image in order to remix it!"
+        
+        if random.random() > 0.33 and enable_random_lr_flipping:
+            args.init_image = args.init_image.transpose(Image.FLIP_LEFT_RIGHT)
+
+        args.W, args.H = match_aspect_ratio(args.W * args.H, args.init_image)
+        args.aesthetic_target = [args.init_image]
+        args.text_input = clip_interrogate(args.ckpt, args.init_image, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
+
+        del_clip_interrogator_models()
+
+    assert args.text_input is not None
+
+    #pipe = update_aesthetic_gradient_settings(pipe, args)
+    _, images_pil = generate(args)
+    print_gpu_info(args, "end of make_images()")
+    return images_pil
+
+
+def make_callback(
+    latent_tracker=None,
+    extra_callback=None,
+):
+    # Callback for _call_ in diffusers repo, called thus:
+    #   callback(i, t, latents)
+    def diffusers_callback(i, t, latents):
+        if latent_tracker is not None:
+            latent_tracker.add_latent(latents)
+        if extra_callback and False: # TODO fix this function for discord etc...
+            x = model.decode_first_stage(args_dict['x'])
+            x = torch.clamp((x + 1.0) / 2.0, min=0.0, max=1.0)
+            x = 255. * rearrange(x, 'b c h w -> b h w c')
+            x = x.cpu().numpy().astype(np.uint8)
+            x = [Image.fromarray(x_) for x_ in x]
+            extra_callback(x, args_dict['i'])
+              
+    return diffusers_callback
+
+def run_upscaler(args_, imgs, 
+        init_image_strength    = 0.68, 
+        upscale_guidance_scale = 6.5,
+        min_upscale_steps      = 16,  # never do less than this many steps
+        max_n_pixels           = 1440**2, # max number of pixels to avoid OOM
+    ):
+    args = copy(args_)
+    print_gpu_info(args, "start of run_upscaler()")
+    args.W, args.H = args_.upscale_f * args_.W, args_.upscale_f * args_.H
+
+    # set max_n_pixels to avoid OOM:
+    if args.W * args.H > max_n_pixels:
+        scale = math.sqrt(max_n_pixels / (args.W * args.H))
+        args.W, args.H = int(scale * args.W), int(scale * args.H)
+
+    args.W = round_to_nearest_multiple(args.W, 64)
+    args.H = round_to_nearest_multiple(args.H, 64)
+
+    x_samples_upscaled, x_images_upscaled = [], []
+
+    # Load the upscaling model:
+    global upscaling_pipe
+    upscaling_pipe = eden_pipe.get_upscaling_pipe(args)
+
+    # Avoid doing too little steps when init_image_strength is very high:
+    upscale_steps = int(max(args.steps * (1-init_image_strength), min_upscale_steps) / (1-init_image_strength))+1
+
+    for i in range(len(imgs)): # upscale in a loop:
+        args.init_image = imgs[i]
+        image = upscaling_pipe(
+            args.text_input,
+            image=args.init_image.resize((args.W, args.H)),
+            guidance_scale=upscale_guidance_scale,
+            strength=1-init_image_strength,
+            num_inference_steps=upscale_steps,
+            negative_prompt=args.uc_text,
+        ).images[0]
+        x_samples_upscaled.extend([])
+        x_images_upscaled.extend([image])
+
+    print_gpu_info(args, "end of run_upscaler()")
+
+    return x_samples_upscaled, x_images_upscaled
+
+
+def interrogate(args):
+    if args.init_image_data:
+        args.init_image = load_img(args.init_image_data, 'RGB')
+    
+    assert args.init_image is not None, "Must provide an init image"
+    interrogated_prompt = clip_interrogate(args.ckpt, args.init_image, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
+    #del_clip_interrogator_models()
+
+    return interrogated_prompt
+    
+
+
+##########################################################
+##########################################################
+############## DEPRECATED: TO BE REMOVED #################
+##########################################################
+##########################################################
+
 
 
 @torch.no_grad()
@@ -446,105 +541,3 @@ def video_style_transfer(args, force_timepoints = None):
 
     # Flush the final metadata to disk if needed:
     args.interpolator.latent_tracker.reset_buffer()
-
-
-def make_images(args):
-    print_gpu_info(args, "start of make_images()")
-    if args.mode == "remix":
-        enable_random_lr_flipping = True  # randomly flip the init img for remixing?
-
-        if args.init_image_data:
-            args.init_image = load_img(args.init_image_data, 'RGB')
-
-        assert args.init_image is not None, "Must provide an init image in order to remix it!"
-        
-        if random.random() > 0.33 and enable_random_lr_flipping:
-            args.init_image = args.init_image.transpose(Image.FLIP_LEFT_RIGHT)
-
-        args.W, args.H = match_aspect_ratio(args.W * args.H, args.init_image)
-        args.aesthetic_target = [args.init_image]
-        args.text_input = clip_interrogate(args.ckpt, args.init_image, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
-
-        del_clip_interrogator_models()
-
-    assert args.text_input is not None
-
-    #pipe = update_aesthetic_gradient_settings(pipe, args)
-    _, images_pil = generate(args)
-    print_gpu_info(args, "end of make_images()")
-    return images_pil
-
-
-def make_callback(
-    latent_tracker=None,
-    extra_callback=None,
-):
-    # Callback for _call_ in diffusers repo, called thus:
-    #   callback(i, t, latents)
-    def diffusers_callback(i, t, latents):
-        if latent_tracker is not None:
-            latent_tracker.add_latent(latents)
-        if extra_callback and False: # TODO fix this function for discord etc...
-            x = model.decode_first_stage(args_dict['x'])
-            x = torch.clamp((x + 1.0) / 2.0, min=0.0, max=1.0)
-            x = 255. * rearrange(x, 'b c h w -> b h w c')
-            x = x.cpu().numpy().astype(np.uint8)
-            x = [Image.fromarray(x_) for x_ in x]
-            extra_callback(x, args_dict['i'])
-              
-    return diffusers_callback
-
-def run_upscaler(args_, imgs, 
-        init_image_strength    = 0.68, 
-        upscale_guidance_scale = 6.5,
-        min_upscale_steps      = 16,  # never do less than this many steps
-        max_n_pixels           = 1440**2, # max number of pixels to avoid OOM
-    ):
-    args = copy(args_)
-    print_gpu_info(args, "start of run_upscaler()")
-    args.W, args.H = args_.upscale_f * args_.W, args_.upscale_f * args_.H
-
-    # set max_n_pixels to avoid OOM:
-    if args.W * args.H > max_n_pixels:
-        scale = math.sqrt(max_n_pixels / (args.W * args.H))
-        args.W, args.H = int(scale * args.W), int(scale * args.H)
-
-    args.W = round_to_nearest_multiple(args.W, 64)
-    args.H = round_to_nearest_multiple(args.H, 64)
-
-    x_samples_upscaled, x_images_upscaled = [], []
-
-    # Load the upscaling model:
-    pipe_img2img = eden_pipe.get_upscaling_pipe(args)
-
-    # Avoid doing too little steps when init_image_strength is very high:
-    upscale_steps = int(max(args.steps * (1-init_image_strength), min_upscale_steps) / (1-init_image_strength))+1
-
-    for i in range(len(imgs)): # upscale in a loop:
-        args.init_image = imgs[i]
-        image = pipe_img2img(
-            args.text_input,
-            image=args.init_image.resize((args.W, args.H)),
-            guidance_scale=upscale_guidance_scale,
-            strength=1-init_image_strength,
-            num_inference_steps=upscale_steps,
-            negative_prompt=args.uc_text,
-        ).images[0]
-        x_samples_upscaled.extend([])
-        x_images_upscaled.extend([image])
-
-    print_gpu_info(args, "end of run_upscaler()")
-
-    return x_samples_upscaled, x_images_upscaled
-
-
-def interrogate(args):
-    if args.init_image_data:
-        args.init_image = load_img(args.init_image_data, 'RGB')
-    
-    assert args.init_image is not None, "Must provide an init image"
-    interrogated_prompt = clip_interrogate(args.ckpt, args.init_image, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
-    #del_clip_interrogator_models()
-
-    return interrogated_prompt
-    
