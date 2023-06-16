@@ -202,6 +202,7 @@ class Predictor(BasePredictor):
         ),
         
     ) -> Iterator[CogOutput]:
+    #) -> Path:
         print("cog:predict:")
         import generation
 
@@ -267,7 +268,7 @@ class Predictor(BasePredictor):
                 f.write(interrogation)
             attributes = {'interrogation': interrogation}
             yield CogOutput(file=out_path, name=interrogation, thumbnail=None, attributes=attributes, isFinal=True, progress=1.0)
-
+            #yield out_path
         elif mode == "generate" or mode == "remix":
             frames = generation.make_images(args)
             frame = frames[0]  # just one frame for now
@@ -281,7 +282,8 @@ class Predictor(BasePredictor):
             frame.save(out_path, format='JPEG', subsampling=0, quality=95)
             
             yield CogOutput(file=out_path, name=name, thumbnail=out_path, attributes=attributes, isFinal=True, progress=1.0)
-            
+            #yield out_path
+
         else:
             
             if mode == "interpolate":
@@ -302,6 +304,7 @@ class Predictor(BasePredictor):
                 if not thumbnail:
                     thumbnail = out_path
                 if stream and f % stream_every == 0:
+                    #yield out_path
                     yield CogOutput(file=out_path, thumbnail=None, attributes=attributes, progress=progress)
 
             # run FILM
@@ -320,3 +323,4 @@ class Predictor(BasePredictor):
             name = " => ".join(args.interpolation_texts)
 
             yield CogOutput(file=out_path, name=name, thumbnail=thumbnail, attributes=attributes, isFinal=True, progress=1.0)
+            #yield out_path

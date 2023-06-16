@@ -5,9 +5,27 @@ import numpy as np
 from pathlib import Path
 
 SD_PATH = Path(os.path.dirname(os.path.realpath(__file__))).parents[0]
+print("SD path: ", SD_PATH)
 ROOT_PATH = SD_PATH.parents[0]
-FILM_PATH = os.path.join(ROOT_PATH, 'frame-interpolation')
-FILM_MODEL_PATH = os.path.join(SD_PATH, '../models/film/film_net/Style/saved_model')
+print("Root path: ", ROOT_PATH)
+ROOT_ROOT_PATH = ROOT_PATH.parents[0]
+print("Root root path: ", ROOT_ROOT_PATH)
+
+"""
+on lambda:
+SD path:    /home/xander/Projects/cog/eden-sd-pipelines/eden
+Root path:  /home/xander/Projects/cog/eden-sd-pipelines
+
+on cog:
+SD path:    /src/eden
+Root path:  /src
+
+"""
+# lambda:
+#FILM_PATH = os.path.join(ROOT_PATH, 'frame-interpolation')
+# cog:
+FILM_PATH = os.path.join(ROOT_ROOT_PATH, 'frame-interpolation')
+FILM_MODEL_PATH = os.path.join(ROOT_PATH, 'models/film/film_net/Style/saved_model')
 sys.path.append(FILM_PATH)
 
 # avoid tf from allocating all gpu memory:

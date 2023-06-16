@@ -5,6 +5,7 @@ import torchvision
 import os, time, math, random
 from PIL import Image
 
+import matplotlib.pyplot as plt
 from generation import *
 from einops import rearrange, repeat
 from eden_utils import seed_everything, slerp, lerp, create_seeded_noise, DataTracker
@@ -355,7 +356,6 @@ class Interpolator():
             # plot the current distances / target perceptual curves:
             if self.args.save_distance_data:
                 os.makedirs(os.path.join(self.args.frames_dir, "distances"), exist_ok = True)
-                import matplotlib.pyplot as plt
                 plt.figure(figsize = (12,6))
                 ts = np.linspace(0,1,len(perceptual_distances))
                 plt.bar(ts, perceptual_distances / np.mean(perceptual_distances), label = "current distances (before split)", edgecolor='black', width=1/(len(ts)+1))
@@ -366,6 +366,7 @@ class Interpolator():
                 plt.ylim([0,4])
                 plt.savefig(os.path.join(os.path.join(self.args.frames_dir, "distances"), "distance_targets_%04d.png" %self.interpolation_step))
                 plt.clf()
+                plt.close()
 
             return next_t, False
 
