@@ -1,3 +1,6 @@
+# don't push DEBUG_MODE = True to Replicate!
+DEBUG_MODE = True
+
 import os
 import sys
 import tempfile
@@ -57,7 +60,10 @@ def download(url, folder, ext):
     return filepath
 
 
+
 class Predictor(BasePredictor):
+
+    GENERATOR_OUTPUT_TYPE = Path if DEBUG_MODE else CogOutput
 
     def setup(self):
         print("cog:setup")
@@ -200,9 +206,9 @@ class Predictor(BasePredictor):
             description="Frames per second (mode==interpolate)",
             default=12, ge=1, le=60
         ),
-        
-    ) -> Iterator[CogOutput]:
-    #) -> Path:
+
+    ) -> Iterator[GENERATOR_OUTPUT_TYPE]:
+    
         print("cog:predict:")
         import generation
 
@@ -267,8 +273,11 @@ class Predictor(BasePredictor):
             with open(out_path, 'w') as f:
                 f.write(interrogation)
             attributes = {'interrogation': interrogation}
-            yield CogOutput(file=out_path, name=interrogation, thumbnail=None, attributes=attributes, isFinal=True, progress=1.0)
-            #yield out_path
+            if DEBUG_MODE:
+                yield out_path
+            else:
+                yield CogOutput(file=out_path, name=interrogation, thumbnail=None, attributes=attributes, isFinal=True, progress=1.0)
+
         elif mode == "generate" or mode == "remix":
             frames = generation.make_images(args)
             frame = frames[0]  # just one frame for now
@@ -281,8 +290,10 @@ class Predictor(BasePredictor):
             out_path = out_dir / f"frame.jpg"
             frame.save(out_path, format='JPEG', subsampling=0, quality=95)
             
-            yield CogOutput(file=out_path, name=name, thumbnail=out_path, attributes=attributes, isFinal=True, progress=1.0)
-            #yield out_path
+            if DEBUG_MODE:
+                yield out_path
+            else:
+                yield CogOutput(file=out_path, name=name, thumbnail=out_path, attributes=attributes, isFinal=True, progress=1.0)
 
         else:
             
@@ -304,8 +315,10 @@ class Predictor(BasePredictor):
                 if not thumbnail:
                     thumbnail = out_path
                 if stream and f % stream_every == 0:
-                    #yield out_path
-                    yield CogOutput(file=out_path, thumbnail=None, attributes=attributes, progress=progress)
+                    if DEBUG_MODE:
+                        yield out_path
+                    else:
+                        yield CogOutput(file=out_path, thumbnail=None, attributes=attributes, progress=progress)
 
             # run FILM
             if args.n_film > 0:
@@ -322,5 +335,8 @@ class Predictor(BasePredictor):
 
             name = " => ".join(args.interpolation_texts)
 
-            yield CogOutput(file=out_path, name=name, thumbnail=thumbnail, attributes=attributes, isFinal=True, progress=1.0)
-            #yield out_path
+            if DEBUG_MODE:
+                yield out_path
+            else:
+                yield CogOutput(file=out_path, name=name, thumbnail=thumbnail, attributes=attributes, isFinal=True, progress=1.0)
+    
