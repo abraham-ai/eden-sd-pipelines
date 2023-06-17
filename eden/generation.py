@@ -168,11 +168,8 @@ def make_interpolation(args, force_timepoints = None):
     args.upscale_f = 1.0
 
     if args.interpolation_init_images and all(args.interpolation_init_images):
-        if isinstance(args.interpolation_texts, list):
-            if len(args.interpolation_texts) == 0:
-                args.interpolation_texts = [None]*len(args.interpolation_init_images)
-            else:
-                assert len(args.interpolation_texts) == len(args.interpolation_init_images), "When providing manuel prompts for real2real, you must provide the same number of interpolation texts as init_imgs!"
+        if not args.interpolation_texts: #len(args.interpolation_texts) == 0:
+            args.interpolation_texts = [None]*len(args.interpolation_init_images)
 
     if not args.interpolation_init_images:
         args.interpolation_init_images = [None]
@@ -183,8 +180,9 @@ def make_interpolation(args, force_timepoints = None):
         args.n_frames = 1
 
     assert args.n_samples==1, "Batch size >1 not implemented for interpolation!"
-    assert len(args.interpolation_texts) == len(args.interpolation_seeds)
-    assert len(args.interpolation_init_images) == len(args.interpolation_seeds)
+    assert len(args.interpolation_texts) == len(args.interpolation_seeds), "Number of interpolation texts does not match number of interpolation seeds"
+    assert len(args.interpolation_texts) == len(args.interpolation_init_images), "Number of interpolation texts does not match number of interpolation init images"
+    assert len(args.interpolation_init_images) == len(args.interpolation_seeds), "Number of interpolation init images does not match number of interpolation seeds"
 
     if args.loop and len(args.interpolation_texts) > 2:
         args.interpolation_texts.append(args.interpolation_texts[0])
@@ -350,7 +348,7 @@ def make_images(args):
 
         del_clip_interrogator_models()
 
-    assert args.text_input is not None
+    assert args.text_input is not None, "No text input provided!"
 
     #pipe = update_aesthetic_gradient_settings(pipe, args)
     _, images_pil = generate(args)
@@ -452,7 +450,7 @@ def video_style_transfer(args, force_timepoints = None):
     if not args.interpolation_seeds:
         args.interpolation_seeds = [args.seed]*len(args.interpolation_texts)
     assert args.n_samples==1, "Batch size >1 not implemented yet"
-    assert len(args.interpolation_texts) == len(args.interpolation_seeds)
+    assert len(args.interpolation_texts) == len(args.interpolation_seeds), "Number of prompts and seeds must match!"
 
     global pipe
     pipe = eden_pipe.get_pipe(args)
