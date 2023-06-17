@@ -1,5 +1,5 @@
 # don't push DEBUG_MODE = True to Replicate!
-DEBUG_MODE = True
+DEBUG_MODE = False
 
 import os
 import sys
@@ -40,9 +40,9 @@ checkpoint_default = "eden:eden-v1"
 
 
 class CogOutput(BaseModel):
-    file: Path
+    files: list[Path]
     name: Optional[str] = None
-    thumbnail: Optional[Path] = None
+    thumbnails: Optional[list[Path]] = [None]
     attributes: Optional[dict] = None
     progress: Optional[float] = None
     isFinal: bool = False
@@ -276,24 +276,27 @@ class Predictor(BasePredictor):
             if DEBUG_MODE:
                 yield out_path
             else:
-                yield CogOutput(file=out_path, name=interrogation, thumbnail=None, attributes=attributes, isFinal=True, progress=1.0)
+                yield CogOutput(files=[out_path], name=interrogation, thumbnails=[None], attributes=attributes, isFinal=True, progress=1.0)
 
         elif mode == "generate" or mode == "remix":
             frames = generation.make_images(args)
-            frame = frames[0]  # just one frame for now
-
+            
             attributes = None
             if mode == "remix":
                 attributes = {"interrogation": args.text_input}
 
             name = args.text_input
-            out_path = out_dir / f"frame.jpg"
-            frame.save(out_path, format='JPEG', subsampling=0, quality=95)
+
+            out_paths = []
+            for f, frame in enumerate(frames):
+                out_path = out_dir / f"frame_{f:04d}.jpg"
+                frame.save(out_path, format='JPEG', subsampling=0, quality=95)
+                out_paths.append(out_path)
             
             if DEBUG_MODE:
-                yield out_path
+                yield out_paths[0]
             else:
-                yield CogOutput(file=out_path, name=name, thumbnail=out_path, attributes=attributes, isFinal=True, progress=1.0)
+                yield CogOutput(files=out_paths, name=name, thumbnails=out_paths, attributes=attributes, isFinal=True, progress=1.0)
 
         else:
             
@@ -318,7 +321,7 @@ class Predictor(BasePredictor):
                     if DEBUG_MODE:
                         yield out_path
                     else:
-                        yield CogOutput(file=out_path, thumbnail=None, attributes=attributes, progress=progress)
+                        yield CogOutput(files=[out_path], thumbnails=[None], attributes=attributes, progress=progress)
 
             # run FILM
             if args.n_film > 0:
@@ -338,5 +341,5 @@ class Predictor(BasePredictor):
             if DEBUG_MODE:
                 yield out_path
             else:
-                yield CogOutput(file=out_path, name=name, thumbnail=thumbnail, attributes=attributes, isFinal=True, progress=1.0)
+                yield CogOutput(files=[out_path], name=name, thumbnails=[thumbnail], attributes=attributes, isFinal=True, progress=1.0)
     
