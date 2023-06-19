@@ -276,7 +276,7 @@ class Predictor(BasePredictor):
             if DEBUG_MODE:
                 yield out_path
             else:
-                yield CogOutput(files=[out_path], name=interrogation, thumbnails=[None], attributes=attributes, isFinal=True, progress=1.0)
+                yield CogOutput(files=[out_path], name=interrogation, thumbnails=[out_path], attributes=attributes, isFinal=True, progress=1.0)
 
         elif mode == "generate" or mode == "remix":
             frames = generation.make_images(args)
@@ -321,7 +321,7 @@ class Predictor(BasePredictor):
                     if DEBUG_MODE:
                         yield out_path
                     else:
-                        yield CogOutput(files=[out_path], thumbnails=[None], attributes=attributes, progress=progress)
+                        yield CogOutput(files=[out_path], thumbnails=[out_path], attributes=attributes, progress=progress)
 
             # run FILM
             if args.n_film > 0:
