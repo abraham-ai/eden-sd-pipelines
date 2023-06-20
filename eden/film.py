@@ -3,6 +3,7 @@ import sys
 import shutil
 import numpy as np
 from pathlib import Path
+import gc
 
 SD_PATH = Path(os.path.dirname(os.path.realpath(__file__))).parents[0]
 ROOT_PATH = SD_PATH.parents[0]
@@ -10,16 +11,19 @@ FILM_PATH = os.path.join(ROOT_PATH, 'frame-interpolation')
 FILM_MODEL_PATH = os.path.join(SD_PATH, '../models/film/film_net/Style/saved_model')
 sys.path.append(FILM_PATH)
 
-# avoid tf from allocating all gpu memory:
 import tensorflow as tf
+
+# avoid tf from allocating all gpu memory:
 gpus = tf.config.experimental.list_physical_devices('GPU')
 for gpu in gpus:
-  tf.config.experimental.set_memory_growth(gpu, True)
-from eval import interpolator_cli
+    tf.config.experimental.set_memory_growth(gpu, True)
+    
 from absl import flags
 FLAGS = flags.FLAGS
 
 def interpolate_FILM(frames_dir, times_to_interpolate, max_n_images_per_chunk = 500, remove_orig_files = False, add_prefix=""):
+
+    from eval import interpolator_cli
 
     allowed_extensions = ['.jpg', '.png', '.jpeg']
     frame_paths = sorted([f for f in os.listdir(frames_dir) if os.path.splitext(f)[1] in allowed_extensions])
@@ -62,7 +66,18 @@ def interpolate_FILM(frames_dir, times_to_interpolate, max_n_images_per_chunk = 
             "--model_path", FILM_MODEL_PATH,
             "--times_to_interpolate", str(times_to_interpolate)]
         FLAGS(args)
+
+        # Run the FILM interpolation with TF:
         interpolator_cli._run_pipeline()
+
+    # delete the pipeline object (so we can clear all gpu memory)
+    del interpolator_cli
+    # run garbage collection:
+    gc.collect()
+    # release all tf memory:
+    tf.keras.backend.clear_session()
+    tf.compat.v1.reset_default_graph()
+    tf.compat.v1.Session.close()
         
     return os.path.join(frames_dir, "interpolated_frames")
 
