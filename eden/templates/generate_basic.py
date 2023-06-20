@@ -43,7 +43,7 @@ def generate_basic(
         upscale_f = 1.5,
         text_input = text_input,
         seed = seed,
-        n_samples = 1,
+        n_samples = 2,
         lora_path = None,
         #init_image_data = init_image_data,
         #init_image_strength = 0.25,
@@ -70,5 +70,6 @@ if __name__ == "__main__":
     seed = 1
 
     seed_everything(seed)
-    text_input = "An audio waveform with musicians playing instruments on its peaks and troughs, print design style vector art, bold typography " #random.choice(text_inputs)
+    text_input = "An audio waveform with musicians playing instruments on its peaks and troughs, print design style vector art, bold typography "
+    #text_input = random.choice(text_inputs)
     generate_basic(text_input, outdir, seed = seed)

@@ -105,10 +105,15 @@ def generate(
 
     if args.c is not None:
         prompt, negative_prompt = None, None
-
     else:
         prompt, negative_prompt = args.text_input, args.uc_text
         args.c, args.uc = None, None
+
+    if args.n_samples > 1:
+        # Correctly handle batches:
+        prompt = [prompt] * args.n_samples
+        negative_prompt = [negative_prompt] * args.n_samples
+        args.n_samples = 1
 
     if args.mode == 'depth2img':
         pipe_output = pipe(
