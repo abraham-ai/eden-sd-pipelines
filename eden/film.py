@@ -14,10 +14,14 @@ sys.path.append(FILM_PATH)
 import tensorflow as tf
 
 # avoid tf from allocating all gpu memory:
+tf_memory_limit = 1024 * 6 # 12GB
 gpus = tf.config.experimental.list_physical_devices('GPU')
-for gpu in gpus:
-    tf.config.experimental.set_memory_growth(gpu, True)
-    
+tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
+tf.config.experimental.set_memory_growth(gpus[0], True)  # Enable memory growth
+tf.config.experimental.set_virtual_device_configuration(
+    gpus[0],
+    [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=tf_memory_limit)])
+
 from absl import flags
 FLAGS = flags.FLAGS
 
@@ -94,3 +98,15 @@ def get_n_interpolate(target_n_frames, n_source_frames = 2):
         times_to_interpolate += 1
 
     return times_to_interpolate
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--frames_dir', type=str, help='Root directory of the frames to be interpolated')
+    parser.add_argument('--times_to_interpolate', type=int, default=1, help='0,1,2,... how many times to interpolate each frame')
+    parser.add_argument('--max_n_images_per_chunk', type=int, default=500, help='How many frames to process at once (default: 500)')
+    parser.add_argument('--remove_orig_files', action='store_true', help='Whether to remove the original frames after interpolation')
+    parser.add_argument('--add_prefix', type=str, default="", help='Prefix to add to the interpolated frames')
+    args = parser.parse_args()
+    
+    output_folder = interpolate_FILM(args.frames_dir, args.times_to_interpolate, args.max_n_images_per_chunk, args.remove_orig_files, args.add_prefix)

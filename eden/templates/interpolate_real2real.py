@@ -1,9 +1,8 @@
-import os, time, random, sys, shutil
+import os, time, random, sys, shutil, subprocess
 sys.path.append('..')
 
 from settings import StableDiffusionSettings
 from generation import *
-
 
 def real2real(
     input_images, 
@@ -39,16 +38,16 @@ def real2real(
             latent_blending_skip_f = [0.15, 0.75],
             guidance_scale = 7,
             scale_modulation = 0.0,
-            n_frames = 24*n,
+            n_frames = 16*n,
             loop = True,
             smooth = True,
             n_film = 1,
             fps = 9,
-            steps = 30,
+            steps = 25,
             sampler = "euler",
             seed = seed,
-            H = 640,
-            W = 640,
+            H = 512,
+            W = 512,
             upscale_f = 1.0,
             clip_interrogator_mode = "fast",
             lora_path = None,
@@ -81,8 +80,17 @@ def real2real(
 
     # run FILM postprocessing (frame blending)
     if args.n_film > 0:
-        from film import interpolate_FILM
-        frames_dir = interpolate_FILM(frames_dir, args.n_film)
+        if 0: # old way, run FILM inside main thread, causes gpu memory leak from TF
+            from film import interpolate_FILM
+            frames_dir = interpolate_FILM(frames_dir, args.n_film)
+        else: # run FILM as a subprocess:
+            command = ["python", os.path.join(str(SD_PATH), "eden/film.py"), "--frames_dir", frames_dir, "--times_to_interpolate", str(args.n_film)]
+            print("running command:", ' '.join(command))
+            result = subprocess.run(command, text=True, capture_output=True)
+            print(result)
+            print(result.stdout)
+            frames_dir = os.path.join(frames_dir, "interpolated_frames")
+
         args.fps = args.fps * (args.n_film + 1)
 
     if save_video:
@@ -110,7 +118,7 @@ def real2real(
 if __name__ == "__main__":
 
     outdir = "results"
-    n = 3
+    n = 2
 
     init_imgs = [
         "https://generations.krea.ai/images/3cd0b8a8-34e5-4647-9217-1dc03a886b6a.webp",
