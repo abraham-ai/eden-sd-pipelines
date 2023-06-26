@@ -1,9 +1,11 @@
+
 # don't push DEBUG_MODE = True to Replicate!
 DEBUG_MODE = False
 
 import os
-import subprocess
 import sys
+import gc
+import torch
 import tempfile
 import requests
 from typing import Iterator, Optional
@@ -24,19 +26,18 @@ sys.path.extend([
     "/clip-interrogator",
 ])
 
-from settings import StableDiffusionSettings
-import eden_utils
-from cog import BasePredictor, BaseModel, File, Input, Path
+import subprocess
+import signal
 
-checkpoint_options = [
-#    "runwayml:stable-diffusion-v1-5",
-#    "dreamlike-art:dreamlike-photoreal-2.0",
-#    "huemin:fxhash_009",
-    "eden:eden-v1",
-    "gordon-berger:gordon-berger-figurative",
-]
-checkpoint_default = "eden:eden-v1"
-
+def run_and_kill(command):
+    p = subprocess.Popen(command, text=True)
+    time.sleep(0.5)
+    p.send_signal(signal.SIGTERM) # Sends termination signal
+    p.wait()  # Waits for process to terminate
+    # If p.wait() does not return in a timely manner, forcefully kill it:
+    if p.poll() is None:  # If the process hasn't ended yet
+        p.kill()  # Forcefully kill the process
+        p.wait()  # Wait for the process to terminate
 
 class CogOutput(BaseModel):
     files: list[Path]
@@ -45,7 +46,6 @@ class CogOutput(BaseModel):
     attributes: Optional[dict] = None
     progress: Optional[float] = None
     isFinal: bool = False
-
 
 def download(url, folder, ext):
     filename = url.split('/')[-1]+ext
@@ -58,6 +58,19 @@ def download(url, folder, ext):
         f.write(raw_file.read())
     return filepath
 
+
+from settings import StableDiffusionSettings
+import eden_utils
+from cog import BasePredictor, BaseModel, File, Input, Path
+
+checkpoint_options = [
+#    "runwayml:stable-diffusion-v1-5",
+#    "dreamlike-art:dreamlike-photoreal-2.0",
+#    "huemin:fxhash_009",
+    "eden:eden-v1",
+    "gordon-berger:gordon-berger-figurative",
+]
+checkpoint_default = "eden:eden-v1"
 
 
 class Predictor(BasePredictor):
@@ -326,16 +339,12 @@ class Predictor(BasePredictor):
                 FILM_MODEL_PATH = "/src/models/film/film_net/Style/saved_model"
                 abs_out_dir_path = os.path.abspath(str(out_dir))
                 command = ["python", "/src/eden/film.py", "--frames_dir", abs_out_dir_path, "--times_to_interpolate", str(args.n_film), '--update_film_model_path', FILM_MODEL_PATH]
-                result = subprocess.run(command, text=True, capture_output=True)
-                out_dir = os.path.join(abs_out_dir_path, "interpolated_frames")
-                out_dir = Path(out_dir)
                 
-                # release all the gpu memory from tensorflow:
-                from tensorflow.keras import backend as K
-                K.clear_session()
+                run_and_kill(command)
 
-            # Do even more stuff to try and clear memory:
-            import gc
+                out_dir = Path(os.path.join(abs_out_dir_path, "interpolated_frames"))
+
+            # Cleanup:
             gc.collect()
             torch.cuda.empty_cache()
 
@@ -353,4 +362,3 @@ class Predictor(BasePredictor):
                 yield out_path
             else:
                 yield CogOutput(files=[out_path], name=name, thumbnails=[thumbnail], attributes=attributes, isFinal=True, progress=1.0)
-    
