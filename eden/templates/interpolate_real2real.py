@@ -1,6 +1,12 @@
 import os, time, random, sys, shutil, subprocess
 sys.path.append('..')
 
+os.environ["TORCH_HOME"] = "/src/.torch"
+os.environ["TRANSFORMERS_CACHE"] = "/src/.huggingface/"
+os.environ["DIFFUSERS_CACHE"] = "/src/.huggingface/"
+os.environ["HF_HOME"] = "/src/.huggingface/"
+os.environ["LPIPS_HOME"] = "/src/models/lpips/"
+
 from settings import StableDiffusionSettings
 from generation import *
 
@@ -84,6 +90,7 @@ def real2real(
             from film import interpolate_FILM
             frames_dir = interpolate_FILM(frames_dir, args.n_film)
         else: # run FILM as a subprocess:
+            frames_dir = os.path.abspath(frames_dir)
             command = ["python", os.path.join(str(SD_PATH), "eden/film.py"), "--frames_dir", frames_dir, "--times_to_interpolate", str(args.n_film)]
             print("running command:", ' '.join(command))
             result = subprocess.run(command, text=True, capture_output=True)

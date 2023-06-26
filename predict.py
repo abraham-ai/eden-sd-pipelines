@@ -2,6 +2,7 @@
 DEBUG_MODE = False
 
 import os
+import subprocess
 import sys
 import tempfile
 import requests
@@ -71,7 +72,6 @@ class Predictor(BasePredictor):
         import interpolator
         generation.CLIP_INTERROGATOR_MODEL_PATH = '/src/cache'
         interpolator.LPIPS_DIR = "/src/models/lpips/weights/v0.1/alex.pth"
-        film.FILM_MODEL_PATH = "/src/models/film/film_net/Style/saved_model"
 
     def predict(
         self,
@@ -325,8 +325,12 @@ class Predictor(BasePredictor):
 
             # run FILM
             if args.n_film > 0:
-                film.interpolate_FILM(str(out_dir), n_film)
-                out_dir = out_dir / "interpolated_frames"
+                FILM_MODEL_PATH = "/src/models/film/film_net/Style/saved_model"
+                abs_out_dir_path = os.path.abspath(str(out_dir))
+                command = ["python", "/src/eden/film.py", "--frames_dir", abs_out_dir_path, "--times_to_interpolate", str(args.n_film), '--update_film_model_path', FILM_MODEL_PATH]
+                result = subprocess.run(command, text=True, capture_output=True)
+                out_dir = os.path.join(abs_out_dir_path, "interpolated_frames")
+                out_dir = Path(out_dir)
 
             # save video
             loop = (args.loop and len(args.interpolation_seeds) == 2)

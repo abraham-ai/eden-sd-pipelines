@@ -26,7 +26,15 @@ tf.config.experimental.set_virtual_device_configuration(
 from absl import flags
 FLAGS = flags.FLAGS
 
-def interpolate_FILM(frames_dir, times_to_interpolate, max_n_images_per_chunk = 500, remove_orig_files = False, add_prefix=""):
+def interpolate_FILM(frames_dir, times_to_interpolate, 
+    max_n_images_per_chunk = 500, 
+    remove_orig_files = False, 
+    add_prefix="",
+    update_film_model_path = None):
+
+    if update_film_model_path is not None:
+        global FILM_MODEL_PATH
+        FILM_MODEL_PATH = update_film_model_path
 
     from eval import interpolator_cli
 
@@ -108,6 +116,7 @@ if __name__ == "__main__":
     parser.add_argument('--max_n_images_per_chunk', type=int, default=500, help='How many frames to process at once (default: 500)')
     parser.add_argument('--remove_orig_files', action='store_true', help='Whether to remove the original frames after interpolation')
     parser.add_argument('--add_prefix', type=str, default="", help='Prefix to add to the interpolated frames')
+    parser.add_argument('--update_film_model_path', type=str, default=None, help='overwrite the film model path')
     args = parser.parse_args()
     
-    output_folder = interpolate_FILM(args.frames_dir, args.times_to_interpolate, args.max_n_images_per_chunk, args.remove_orig_files, args.add_prefix)
+    output_folder = interpolate_FILM(args.frames_dir, args.times_to_interpolate, args.max_n_images_per_chunk, args.remove_orig_files, args.add_prefix, args.update_film_model_path)
