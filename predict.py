@@ -39,14 +39,6 @@ def run_and_kill(command):
         p.kill()  # Forcefully kill the process
         p.wait()  # Wait for the process to terminate
 
-class CogOutput(BaseModel):
-    files: list[Path]
-    name: Optional[str] = None
-    thumbnails: Optional[list[Path]] = [None]
-    attributes: Optional[dict] = None
-    progress: Optional[float] = None
-    isFinal: bool = False
-
 def download(url, folder, ext):
     filename = url.split('/')[-1]+ext
     filepath = folder / filename
@@ -72,6 +64,13 @@ checkpoint_options = [
 ]
 checkpoint_default = "eden:eden-v1"
 
+class CogOutput(BaseModel):
+    files: list[Path]
+    name: Optional[str] = None
+    thumbnails: Optional[list[Path]] = [None]
+    attributes: Optional[dict] = None
+    progress: Optional[float] = None
+    isFinal: bool = False
 
 class Predictor(BasePredictor):
 
