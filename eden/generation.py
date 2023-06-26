@@ -419,6 +419,6 @@ def interrogate(args):
     
     assert args.init_image is not None, "Must provide an init image"
     interrogated_prompt = clip_interrogate(args.ckpt, args.init_image, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
-    #del_clip_interrogator_models()
+    del_clip_interrogator_models()
 
     return interrogated_prompt

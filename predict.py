@@ -22,12 +22,10 @@ sys.path.extend([
     "./lora",
     "./lora/lora_diffusion",
     "/clip-interrogator",
-    "/frame-interpolation"
 ])
 
 from settings import StableDiffusionSettings
 import eden_utils
-import film
 from cog import BasePredictor, BaseModel, File, Input, Path
 
 checkpoint_options = [
@@ -331,6 +329,15 @@ class Predictor(BasePredictor):
                 result = subprocess.run(command, text=True, capture_output=True)
                 out_dir = os.path.join(abs_out_dir_path, "interpolated_frames")
                 out_dir = Path(out_dir)
+                
+                # release all the gpu memory from tensorflow:
+                from tensorflow.keras import backend as K
+                K.clear_session()
+
+            # Do even more stuff to try and clear memory:
+            import gc
+            gc.collect()
+            torch.cuda.empty_cache()
 
             # save video
             loop = (args.loop and len(args.interpolation_seeds) == 2)
