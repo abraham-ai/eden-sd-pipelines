@@ -4,8 +4,6 @@ DEBUG_MODE = False
 
 import os
 import sys
-import gc
-import torch
 import tempfile
 import requests
 from typing import Iterator, Optional
@@ -342,10 +340,6 @@ class Predictor(BasePredictor):
                 run_and_kill(command)
 
                 out_dir = Path(os.path.join(abs_out_dir_path, "interpolated_frames"))
-
-            # Cleanup:
-            gc.collect()
-            torch.cuda.empty_cache()
 
             # save video
             loop = (args.loop and len(args.interpolation_seeds) == 2)
