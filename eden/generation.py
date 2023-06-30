@@ -103,17 +103,19 @@ def generate(
     generator = torch.Generator(device=_device).manual_seed(args.seed)
     #generator = None
 
-    if args.c is not None:
-        prompt, negative_prompt = None, None
-    else:
-        prompt, negative_prompt = args.text_input, args.uc_text
-        args.c, args.uc = None, None
-
     if args.n_samples > 1:
         # Correctly handle batches:
         prompt = [prompt] * args.n_samples
         negative_prompt = [negative_prompt] * args.n_samples
         args.n_samples = 1
+
+    if args.c is not None:
+        assert args.uc is not None, "Must provide negative prompt conditioning if providing positive prompt conditioning"
+        prompt, negative_prompt = None, None
+        print("Using absolute conditioning inputs (c and uc) instead of prompt/negative_prompt")
+    else:
+        prompt, negative_prompt = args.text_input, args.uc_text
+        args.c, args.uc = None, None
 
     if args.mode == 'depth2img':
         pipe_output = pipe(
@@ -157,17 +159,30 @@ def generate(
     if args.interpolator is not None and final_latents is not None:  # add the final denoised latent to the tracker:
         args.interpolator.latent_tracker.add_latent(final_latents, init_image_strength = args.init_image_strength)
 
+
     if args.upscale_f != 1.0:
         print(f"Upscaling with f = {args.upscale_f:.3f}...")
         pt_images, pil_images = run_upscaler(args, pil_images)
 
     pil_images = maybe_apply_watermark(args, pil_images)
-    return pt_images, pil_images
+
+    if args.c is None or args.uc is None:
+        prompt_embeds = pipe._encode_prompt(
+                prompt,
+                _device,
+                args.n_samples,
+                args.guidance_scale > 1.0,
+                negative_prompt,
+            )
+    else:
+        prompt_embeds = torch.cat([args.uc, args.c])
+
+    return prompt_embeds, pil_images
 
 
 @torch.no_grad()
 def make_interpolation(args, force_timepoints = None):
-    print_gpu_info(args, "start of make_interpolation()")
+    #print_gpu_info(args, "start of make_interpolation()")
     
     # Always disbale upscaling for videos (since it introduces frame jitter)
     args.upscale_f = 1.0
@@ -320,10 +335,10 @@ def make_interpolation(args, force_timepoints = None):
 
     # Flush the final metadata to disk if needed:
     args.interpolator.latent_tracker.reset_buffer()
-    print_gpu_info(args, "end of make_interpolation()")
+    #print_gpu_info(args, "end of make_interpolation()")
 
 def make_images(args):
-    print_gpu_info(args, "start of make_images()")
+    #print_gpu_info(args, "start of make_images()")
     if args.mode == "remix":
         enable_random_lr_flipping = True  # randomly flip the init img for remixing?
 
@@ -345,7 +360,7 @@ def make_images(args):
 
     #pipe = update_aesthetic_gradient_settings(pipe, args)
     _, images_pil = generate(args)
-    print_gpu_info(args, "end of make_images()")
+    #print_gpu_info(args, "end of make_images()")
     return images_pil
 
 
@@ -371,11 +386,19 @@ def make_callback(
 def run_upscaler(args_, imgs, 
         init_image_strength    = 0.68, 
         upscale_guidance_scale = 6.5,
-        min_upscale_steps      = 16,  # never do less than this many steps
-        max_n_pixels           = 1440**2, # max number of pixels to avoid OOM
+        min_upscale_steps      = 20,  # never do less than this many steps
+        max_n_pixels           = 1536**2, # max number of pixels to avoid OOM
     ):
     args = copy(args_)
-    print_gpu_info(args, "start of run_upscaler()")
+
+    if args.c is not None:
+        assert args.uc is not None, "Must provide negative prompt conditioning if providing positive prompt conditioning"
+        args.uc_text, args.text_input = None, None
+        print("Using absolute conditioning inputs (c and uc) instead of prompt/negative_prompt")
+    else:
+        args.c, args.uc = None, None
+
+    #print_gpu_info(args, "start of run_upscaler()")
     args.W, args.H = args_.upscale_f * args_.W, args_.upscale_f * args_.H
 
     # set max_n_pixels to avoid OOM:
@@ -391,6 +414,7 @@ def run_upscaler(args_, imgs,
     # Load the upscaling model:
     global upscaling_pipe
     upscaling_pipe = eden_pipe.get_upscaling_pipe(args)
+    upscaling_pipe.safety_checker = None
 
     # Avoid doing too little steps when init_image_strength is very high:
     upscale_steps = int(max(args.steps * (1-init_image_strength), min_upscale_steps) / (1-init_image_strength))+1
@@ -404,11 +428,14 @@ def run_upscaler(args_, imgs,
             strength=1-init_image_strength,
             num_inference_steps=upscale_steps,
             negative_prompt=args.uc_text,
+            prompt_embeds = args.c,
+            negative_prompt_embeds = args.uc,
+
         ).images[0]
         x_samples_upscaled.extend([])
         x_images_upscaled.extend([image])
 
-    print_gpu_info(args, "end of run_upscaler()")
+    #print_gpu_info(args, "end of run_upscaler()")
 
     return x_samples_upscaled, x_images_upscaled
 

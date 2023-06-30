@@ -66,7 +66,6 @@ def set_sampler(sampler_name, pipe):
     pipe.scheduler = schedulers[sampler_name]
     return pipe
 
-
 def load_pipe(args):
     global pipe
     start_time = time.time()
