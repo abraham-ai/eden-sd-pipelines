@@ -102,13 +102,7 @@ def generate(
 
     generator = torch.Generator(device=_device).manual_seed(args.seed)
     #generator = None
-
-    if args.n_samples > 1:
-        # Correctly handle batches:
-        prompt = [prompt] * args.n_samples
-        negative_prompt = [negative_prompt] * args.n_samples
-        args.n_samples = 1
-
+    
     if args.c is not None:
         assert args.uc is not None, "Must provide negative prompt conditioning if providing positive prompt conditioning"
         prompt, negative_prompt = None, None
@@ -116,6 +110,12 @@ def generate(
     else:
         prompt, negative_prompt = args.text_input, args.uc_text
         args.c, args.uc = None, None
+
+    if args.n_samples > 1:
+        # Correctly handle batches:
+        prompt = [prompt] * args.n_samples
+        negative_prompt = [negative_prompt] * args.n_samples
+        args.n_samples = 1
 
     if args.mode == 'depth2img':
         pipe_output = pipe(
