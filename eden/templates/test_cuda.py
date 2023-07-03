@@ -78,3 +78,21 @@ try:
 except importlib_metadata.PackageNotFoundError:
     _xformers_available = False
     print("xformers is not installed")
+
+print("#####################################################################################")
+print("#####################################################################################")
+print("#####################################################################################")
+print("#####################################################################################")
+
+# Test tensorflow:
+import tensorflow as tf
+is_gpu_available = tf.test.is_gpu_available(cuda_only=False, min_cuda_compute_capability=None)
+
+print("Successfully imported tensorflow version ", tf.__version__)
+print("TF is_gpu_available:", str(is_gpu_available))
+
+# Checks and prints out detailed info about GPUs
+gpus = tf.config.list_physical_devices('GPU')
+print("Num GPUs Available: ", len(gpus))
+for gpu in gpus:
+    print("Name:", gpu.name, "  Type:", gpu.device_type)

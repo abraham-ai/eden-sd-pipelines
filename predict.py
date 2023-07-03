@@ -3,6 +3,7 @@
 DEBUG_MODE = False
 
 import os
+import time
 import sys
 import tempfile
 import requests
@@ -27,15 +28,40 @@ sys.path.extend([
 import subprocess
 import signal
 
-def run_and_kill(command):
-    p = subprocess.Popen(command, text=True)
+def run_and_kill(command, pipe_output=True):
+    p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     time.sleep(0.5)
+
+    # Get output from stdout and stderr
+    stdout, stderr = p.communicate()    
+    # Print the output to stdout in the main process
+    if pipe_output:
+        if stdout:
+            print("FILM, stdout:")
+            print(stdout)
+        if stderr:
+            print("FILM, stderr:")
+            print(stderr)
+
     p.send_signal(signal.SIGTERM) # Sends termination signal
     p.wait()  # Waits for process to terminate
-    # If p.wait() does not return in a timely manner, forcefully kill it:
-    if p.poll() is None:  # If the process hasn't ended yet
+
+    # Get output from stdout and stderr
+    stdout, stderr = p.communicate()
+
+    # If the process hasn't ended yet
+    if p.poll() is None:  
         p.kill()  # Forcefully kill the process
         p.wait()  # Wait for the process to terminate
+
+    # Print the output to stdout in the main process
+    if pipe_output:
+        if stdout:
+            print("FILM done, stdout:")
+            print(stdout)
+        if stderr:
+            print("FILM done, stderr:")
+            print(stderr)
 
 def download(url, folder, ext):
     filename = url.split('/')[-1]+ext
@@ -61,6 +87,7 @@ checkpoint_options = [
     "gordon-berger:gordon-berger-figurative",
 ]
 checkpoint_default = "eden:eden-v1"
+#checkpoint_default = "gordon-berger:gordon-berger-figurative"
 
 class CogOutput(BaseModel):
     files: list[Path]
@@ -333,12 +360,13 @@ class Predictor(BasePredictor):
 
             # run FILM
             if args.n_film > 0:
+                print('predict.py: running FILM...')
                 FILM_MODEL_PATH = "/src/models/film/film_net/Style/saved_model"
                 abs_out_dir_path = os.path.abspath(str(out_dir))
                 command = ["python", "/src/eden/film.py", "--frames_dir", abs_out_dir_path, "--times_to_interpolate", str(args.n_film), '--update_film_model_path', FILM_MODEL_PATH]
                 
                 run_and_kill(command)
-
+                print("predict.py: FILM done.")
                 out_dir = Path(os.path.join(abs_out_dir_path, "interpolated_frames"))
 
             # save video

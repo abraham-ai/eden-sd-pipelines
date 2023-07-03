@@ -637,7 +637,26 @@ def get_uniformly_sized_crops(imgs, target_n_pixels):
 
 
 def write_video(frames_dir, video_filename, loop=False, fps=30, codec = 'libx264'):
-    frames = sorted([os.path.join(frames_dir, f) for f in os.listdir(frames_dir) if f.endswith(".jpg")])
+    try:
+        frames = sorted([os.path.join(frames_dir, f) for f in os.listdir(frames_dir) if f.endswith(".jpg")])
+    except:
+        print(f"Could not find input frames dir {frames_dir}")
+        print("Folder structure looks as follows:")
+        parent_folder = os.path.dirname(frames_dir)
+        try:
+            print(f"Parent folder contents ({parent_folder}):")
+            print(sorted(os.listdir(parent_folder)))
+        except:
+            print("Could not find parent folder either")
+            return
+
+        try:
+            print(f"Input folder contents ({frames_dir}):")
+            print(sorted(os.listdir(frames_dir)))
+        except:
+            print(f"Could not find input folder {frames_dir}")
+            return
+
     if loop:
         frames += frames[::-1]
     clip = mpy.ImageSequenceClip(frames, fps=fps)

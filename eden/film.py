@@ -32,6 +32,8 @@ def interpolate_FILM(frames_dir, times_to_interpolate,
     add_prefix="",
     update_film_model_path = None):
 
+    print("Starting FILM interpolation function...")
+
     if update_film_model_path is not None:
         global FILM_MODEL_PATH
         FILM_MODEL_PATH = update_film_model_path
@@ -87,10 +89,12 @@ def interpolate_FILM(frames_dir, times_to_interpolate,
     del interpolator_cli
     # run garbage collection:
     gc.collect()
-    # release all tf memory:
-    tf.keras.backend.clear_session()
-    tf.compat.v1.reset_default_graph()
-    tf.compat.v1.Session.close()
+
+    try: # release all tf memory:
+        tf.keras.backend.clear_session()
+        tf.compat.v1.reset_default_graph()
+    except:
+        pass
         
     return os.path.join(frames_dir, "interpolated_frames")
 
