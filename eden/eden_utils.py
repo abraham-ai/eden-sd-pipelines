@@ -639,6 +639,7 @@ def get_uniformly_sized_crops(imgs, target_n_pixels):
 def write_video(frames_dir, video_filename, loop=False, fps=30, codec = 'libx264'):
     try:
         frames = sorted([os.path.join(frames_dir, f) for f in os.listdir(frames_dir) if f.endswith(".jpg")])
+        print(f"write_video() found {len(frames)} frames, rendering into video...")
     except:
         print(f"Could not find input frames dir {frames_dir}")
         print("Folder structure looks as follows:")

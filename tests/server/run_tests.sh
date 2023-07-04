@@ -28,7 +28,7 @@ curl -s -X POST -d '{"version": "fef11678ae5dc4cc024f8d3b4860c65124118a015fecac1
 
 echo "Interrogate request fired!!!"
   
-curl -s -X POST -d '{"version": "fef11678ae5dc4cc024f8d3b4860c65124118a015fecac10fb2f0d652c7538d4", "input": {"mode": "generate", "text_input": "A picture of <person1> wearing a French beret", "seed": 15, "width": 768, "height": 768, "steps": 100, "lora": "https://minio.aws.abraham.fun/creations-stg/c91f7a73aeaeca746f5137fa03a9b3993ba165322c0398e12ceae2f85f2f3c5a.txt", "lora_scale": 1.0}}' \
+curl -s -X POST -d '{"version": "fef11678ae5dc4cc024f8d3b4860c65124118a015fecac10fb2f0d652c7538d4", "input": {"mode": "generate", "text_input": "A picture of <person1> wearing a French beret", "seed": 15, "width": 768, "height": 768, "steps": 100, "lora": "https://minio.aws.abraham.fun/creations-stg/1bb9ccaab94c05c4483fd4f732a3c4745c8e99f127c25a914462ebb27721da66.safetensors", "lora_scale": 1.0}}' \
   -H "Authorization: Token $REPLICATE_API_TOKEN" \
   -H 'Content-Type: application/json' \
   "http://0.0.0.0:5000/predictions"
