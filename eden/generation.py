@@ -384,7 +384,7 @@ def make_callback(
     return diffusers_callback
 
 def run_upscaler(args_, imgs, 
-        init_image_strength    = 0.68, 
+        init_image_strength    = 0.65, 
         upscale_guidance_scale = 6.5,
         min_upscale_steps      = 20,  # never do less than this many steps
         max_n_pixels           = 1536**2, # max number of pixels to avoid OOM

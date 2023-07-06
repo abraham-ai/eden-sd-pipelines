@@ -60,7 +60,7 @@ def remix(init_image, prompt, upscale_init_strength, target_n_pixels, steps, img
 if __name__ == "__main__":
 
     # IO settings:
-    outdir = "results/upscaled_aesthetics"
+    outdir = "results/upscaled_imgs"
     init_image_data = "../assets"
     
     # Upscaling settings:
@@ -75,10 +75,10 @@ if __name__ == "__main__":
     
     if 1:
         clip_interrogator_modes = ["fast"]
-        steps                   = 80
-        init_strengths_per_img  = [0.35]
+        steps                   = 60
+        init_strengths_per_img  = [0.35,0.45,0.55]
         base_target_n_pixels    = int(1920*1080*1.5)
-        init_image_data = "/home/rednax/SSD2TB/Fast_Datasets/Stored_Datasets/Image/Great_Micro/Esthetic"
+        init_image_data = "/home/rednax/Pictures/gems/new_collection/BEST_random_C/to_upscale"
 
     ###########################################################
 
@@ -89,35 +89,35 @@ if __name__ == "__main__":
         # assume it's a single image:
         init_image_data = [init_image_data]
 
-    for init_img_data in init_image_data:
-        init_image   = load_img(init_img_data, 'RGB')
-        img_basename = os.path.splitext(os.path.basename(init_img_data))[0]
+    for checkpoint in checkpoint_options:
+        for init_img_data in init_image_data:
+            init_image   = load_img(init_img_data, 'RGB')
+            img_basename = os.path.splitext(os.path.basename(init_img_data))[0]
 
-        prompts = None
-        if try_to_load_prompts_from_disk:
-            json_path = init_img_data.replace('.jpg', '.json').replace('.png', '.json')
-            if os.path.exists(json_path):
-                try:
-                    with open(json_path, 'r') as f:
-                        prompts = [json.load(f)['text_input']]
-                    print("Loaded prompt from json!")
-                except:
-                    print("Failed to load prompt from json!")
+            prompts = None
+            if try_to_load_prompts_from_disk:
+                json_path = init_img_data.replace('.jpg', '.json').replace('.png', '.json')
+                if os.path.exists(json_path):
+                    try:
+                        with open(json_path, 'r') as f:
+                            prompts = [json.load(f)['text_input']]
+                        print("Loaded prompt from json!")
+                    except:
+                        print("Failed to load prompt from json!")
 
-        if prompts is None:
-            prompts = []
-            for clip_interrogator_mode in clip_interrogator_modes:
-                # # Run clip interrogator to get text input:
-                prompt = clip_interrogate(StableDiffusionSettings.ckpt, init_image, clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
-                prompts.append(prompt)
+            if prompts is None:
+                prompts = []
+                for clip_interrogator_mode in clip_interrogator_modes:
+                    # # Run clip interrogator to get text input:
+                    prompt = clip_interrogate(StableDiffusionSettings.ckpt, init_image, clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
+                    prompts.append(prompt)
 
-        # Run the actual upscaling:
-        for prompt in prompts:
-            for checkpoint in checkpoint_options:
-                for upscale_init_strength in init_strengths_per_img:
-                        # increase the number of pixels if the upscale_init_strength is lower:
-                        #target_n_pixels = int(base_target_n_pixels * max(1.0, (1.0 + (0.6 - upscale_init_strength) * 2.5)))
-                        target_n_pixels = base_target_n_pixels
-                        print(f"\n\nRunning remix with upscale_init_strength: {upscale_init_strength}, target_n_pixels: {target_n_pixels}, ckpt: {os.path.basename(checkpoint)}\nprompt: {prompt}")
-                        remix(init_image, prompt, upscale_init_strength, target_n_pixels, steps, img_basename, outdir, checkpoint)
+            # Run the actual upscaling:
+            for prompt in prompts:
+                    for upscale_init_strength in init_strengths_per_img:
+                            # increase the number of pixels if the upscale_init_strength is lower:
+                            #target_n_pixels = int(base_target_n_pixels * max(1.0, (1.0 + (0.6 - upscale_init_strength) * 2.5)))
+                            target_n_pixels = base_target_n_pixels
+                            print(f"\n\nRunning remix with upscale_init_strength: {upscale_init_strength}, target_n_pixels: {target_n_pixels}, ckpt: {os.path.basename(checkpoint)}\nprompt: {prompt}")
+                            remix(init_image, prompt, upscale_init_strength, target_n_pixels, steps, img_basename, outdir, checkpoint)
 
