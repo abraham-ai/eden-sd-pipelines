@@ -1,4 +1,3 @@
-
 # don't push DEBUG_MODE = True to Replicate!
 DEBUG_MODE = False
 
@@ -7,6 +6,8 @@ import time
 import sys
 import tempfile
 import requests
+import subprocess
+import signal
 from typing import Iterator, Optional
 from dotenv import load_dotenv
 
@@ -25,8 +26,6 @@ sys.path.extend([
     "/clip-interrogator",
 ])
 
-import subprocess
-import signal
 
 def run_and_kill(command, pipe_output=True):
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -247,6 +246,8 @@ class Predictor(BasePredictor):
         print("cog:predict:")
         import generation
 
+        t_start = time.time()
+
         interpolation_texts = interpolation_texts.split('|') if interpolation_texts else None
         interpolation_seeds = [float(i) for i in interpolation_seeds.split('|')] if interpolation_seeds else None
         interpolation_init_images = interpolation_init_images.split('|') if interpolation_init_images else None
@@ -383,3 +384,6 @@ class Predictor(BasePredictor):
                 yield out_path
             else:
                 yield CogOutput(files=[out_path], name=name, thumbnails=[thumbnail], attributes=attributes, isFinal=True, progress=1.0)
+
+        t_end = time.time()
+        print(f"predict.py: done in {t_end - t_start:.2f} seconds")
