@@ -12,7 +12,6 @@ import PIL
 from PIL import Image
 import torch
 from einops import rearrange, repeat
-from skimage.exposure import match_histograms
 import moviepy.editor as mpy
 
 
@@ -436,22 +435,6 @@ def prepare_mask(mask_image, mask_shape, mask_brightness_adjust=1.0, mask_contra
     
     mask = np.clip(mask,0,1)
     return mask
-
-
-def maintain_colors(prev_img, color_match_sample, mode):
-    if mode == 'Match Frame 0 RGB':
-        return match_histograms(prev_img, color_match_sample, multichannel=True)
-    elif mode == 'Match Frame 0 HSV':
-        prev_img_hsv = cv2.cvtColor(prev_img, cv2.COLOR_RGB2HSV)
-        color_match_hsv = cv2.cvtColor(color_match_sample, cv2.COLOR_RGB2HSV)
-        matched_hsv = match_histograms(prev_img_hsv, color_match_hsv, multichannel=True)
-        return cv2.cvtColor(matched_hsv, cv2.COLOR_HSV2RGB)
-    else: # Match Frame 0 LAB
-        prev_img_lab = cv2.cvtColor(prev_img, cv2.COLOR_RGB2LAB)
-        color_match_lab = cv2.cvtColor(color_match_sample, cv2.COLOR_RGB2LAB)
-        matched_lab = match_histograms(prev_img_lab, color_match_lab, multichannel=True)
-        return cv2.cvtColor(matched_lab, cv2.COLOR_LAB2RGB)
-
 
 def add_noise(sample: torch.Tensor, noise_amt: float):
     return sample + torch.randn(sample.shape, device=sample.device) * noise_amt

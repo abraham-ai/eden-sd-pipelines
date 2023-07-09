@@ -86,10 +86,12 @@ class StableDiffusionSettings:
     #init_image_inpaint_mode: str = None # ["mean_fill", "edge_pad", "cv2_telea", "cv2_ns"]
     init_sample: str = None
     init_latent: str = None
-
+    
     # conditioning vectors:
     c: str = None   # force a specific prompt conditioning vector
     uc: str = None  # force a specific negative prompt conditioning vector
+    pooled_prompt_embeds: str = None  # force a specific pooled prompt conditioning vector
+    negative_pooled_prompt_embeds: str = None  # force a specific pooled negative prompt conditioning vector
 
     # mask
     # mask_image: Image = None

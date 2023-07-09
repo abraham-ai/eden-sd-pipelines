@@ -9,15 +9,16 @@ CHECKPOINTS_PATH = os.path.join(SD_PATH, 'models/checkpoints')
 LORA_PATH = os.path.join(SD_PATH, 'lora')
 LORA_DIFFUSION_PATH = os.path.join(LORA_PATH, 'lora_diffusion')
 
-sys.path.append(DIFFUSERS_PATH)
+#sys.path.insert(0,DIFFUSERS_PATH)
 sys.path.append(LORA_PATH)
 sys.path.append(LORA_DIFFUSION_PATH)
 
 import time
 import torch
 from safetensors.torch import safe_open, save_file
+from diffusers import DiffusionPipeline
 from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline, StableDiffusionDepth2ImgPipeline
-from diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion_eden import StableDiffusionEdenPipeline
+#from diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion_eden import StableDiffusionEdenPipeline
 from diffusers.models import AutoencoderKL
 from diffusers.models.cross_attention import AttnProcessor2_0
 
@@ -84,22 +85,29 @@ def load_pipe(args):
         )
     else:
         print(f"Creating new StableDiffusionEdenPipeline using {args.ckpt}")
-        pipe = StableDiffusionEdenPipeline.from_pretrained(
-            location, 
-            safety_checker=None, 
-            local_files_only=True, 
-            torch_dtype=torch.float16 if args.half_precision else torch.float32, 
-            vae=AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse").half()
-        )
-    #pipe.vae.enable_tiling()
+
+        if 0:
+            pipe = StableDiffusionEdenPipeline.from_pretrained(
+                location, 
+                #safety_checker=None, 
+                local_files_only=True, 
+                torch_dtype=torch.float16 if args.half_precision else torch.float32, 
+                vae=AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse").half()
+            )
+        else:  #SDXL
+            pipe = DiffusionPipeline.from_pretrained(
+                location, 
+                #safety_checker=None, 
+                #local_files_only=True, 
+                torch_dtype=torch.float16, use_safetensors=True, variant="fp16"
+            )
+
     pipe.safety_checker = None
     pipe = pipe.to(_device)
-    #pipe.enable_xformers_memory_efficient_attention()
     pipe.unet.set_attn_processor(AttnProcessor2_0())
     print(f"Created new pipe in {(time.time() - start_time):.2f} seconds")
     print_model_info(pipe)
     return pipe
-
 
 def get_pipe(args, force_reload = False):
     global pipe

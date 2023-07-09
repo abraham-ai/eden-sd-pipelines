@@ -129,23 +129,43 @@ def generate(
             num_images_per_prompt = args.n_samples,
         )
     else:
-        pipe_output = pipe(
-            prompt = prompt,
-            negative_prompt = negative_prompt, 
-            width = args.W, 
-            height = args.H,
-            image=args.init_image, 
-            strength=1-args.init_image_strength, 
-            num_inference_steps = n_steps,
-            guidance_scale = args.guidance_scale,
-            num_images_per_prompt = args.n_samples,
-            prompt_embeds = args.c,
-            negative_prompt_embeds = args.uc,
-            generator = generator,
-            latents = args.init_latent,
-            force_starting_latent = force_starting_latent,
-            callback = callback_,
-        )
+        if 0:
+            pipe_output = pipe(
+                prompt = prompt,
+                negative_prompt = negative_prompt, 
+                width = args.W, 
+                height = args.H,
+                image=args.init_image, 
+                strength=1-args.init_image_strength, 
+                num_inference_steps = n_steps,
+                guidance_scale = args.guidance_scale,
+                num_images_per_prompt = args.n_samples,
+                prompt_embeds = args.c,
+                negative_prompt_embeds = args.uc,
+                generator = generator,
+                latents = args.init_latent,
+                force_starting_latent = force_starting_latent,
+                callback = callback_,
+            )
+
+        else:
+            pipe_output = pipe(
+                prompt = prompt,
+                negative_prompt = negative_prompt, 
+                width = args.W, 
+                height = args.H,
+                #image=args.init_image, 
+                #strength=1-args.init_image_strength, 
+                num_inference_steps = n_steps,
+                guidance_scale = args.guidance_scale,
+                num_images_per_prompt = args.n_samples,
+                prompt_embeds = args.c,
+                negative_prompt_embeds = args.uc,
+                generator = generator,
+                #latents = args.init_latent,
+                #force_starting_latent = force_starting_latent,
+                #callback = callback_,
+            )
         
     pil_images = pipe_output.images
 
@@ -167,13 +187,31 @@ def generate(
     pil_images = maybe_apply_watermark(args, pil_images)
 
     if args.c is None or args.uc is None:
-        prompt_embeds = pipe._encode_prompt(
+        try:
+            prompt_embeds = pipe._encode_prompt(
+                    prompt,
+                    _device,
+                    args.n_samples,
+                    args.guidance_scale > 1.0,
+                    negative_prompt,
+                )
+        except:
+            (
+                prompt_embeds,
+                negative_prompt_embeds,
+                pooled_prompt_embeds,
+                negative_pooled_prompt_embeds,
+            ) = pipe.encode_prompt(
                 prompt,
                 _device,
                 args.n_samples,
                 args.guidance_scale > 1.0,
-                negative_prompt,
-            )
+                negative_prompt)
+            
+            prompt_embeds_dict = {}
+            prompt_embeds_dict['prompt_embeds'] = torch.cat([negative_prompt_embeds, prompt_embeds], dim=0)
+            prompt_embeds_dict['pooled_prompt_embeds'] = torch.cat([negative_pooled_prompt_embeds, pooled_prompt_embeds], dim=0)
+            prompt_embeds = prompt_embeds_dict
     else:
         prompt_embeds = torch.cat([args.uc, args.c])
 
