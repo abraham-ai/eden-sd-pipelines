@@ -14,14 +14,15 @@ sys.path.append(FILM_PATH)
 
 import tensorflow as tf
 
-# avoid tf from allocating all gpu memory:
-tf_memory_limit = 1024 * 6 # 12GB
-gpus = tf.config.experimental.list_physical_devices('GPU')
-tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
-tf.config.experimental.set_memory_growth(gpus[0], True)  # Enable memory growth
-tf.config.experimental.set_virtual_device_configuration(
-    gpus[0],
-    [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=tf_memory_limit)])
+if 1:
+    # avoid tf from allocating all gpu memory:
+    tf_memory_limit = 1024 * 16 # 12GB
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
+    tf.config.experimental.set_memory_growth(gpus[0], True)  # Enable memory growth
+    tf.config.experimental.set_virtual_device_configuration(
+        gpus[0],
+        [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=tf_memory_limit)])
 
 from absl import flags
 FLAGS = flags.FLAGS

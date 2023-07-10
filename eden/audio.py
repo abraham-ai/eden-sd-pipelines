@@ -136,15 +136,14 @@ def warp_signal(input_signal, fps, min_v = 0.25, power = 1, decay = 0.9, clip_fr
 
 
 
-def create_audio_features(audio_path, verbose = 0):
-  if '.zip' in audio_path:
-    audio_features, audio_path = load_zip(audio_path)
-  elif isinstance(audio_path, tuple):
-    pickle_path, audio_path = audio_path
-    with open(pickle_path, 'rb') as f:
+def create_audio_features(feature_path, verbose = 0):
+  if '.zip' in feature_path:
+    audio_features, _ = load_zip(feature_path)
+  elif '.pkl' in feature_path:
+    with open(feature_path, 'rb') as f:
       audio_features = pickle.load(f)
   else:
-     raise ValueError('Audio path should be a zip file or a tuple of (features_pickle_path, audio_mp3_path)')
+     raise ValueError('Audio path should be a zip file or a .pkl file')
 
   if verbose > 0:
     for key in audio_features.keys():
@@ -240,5 +239,5 @@ def create_audio_features(audio_path, verbose = 0):
   plot_signal(harmonic_energy, range = None, title = 'harmonic_energy', path = "harmonic_energy.png")
   #plot_signal(base, range = None, title = 'base', path = "base.png")
 
-  return harmonic_energy, final_percus_features, audio_features['metadata'], audio_path
+  return harmonic_energy, final_percus_features, audio_features['metadata']
 

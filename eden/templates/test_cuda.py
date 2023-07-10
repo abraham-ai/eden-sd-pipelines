@@ -5,7 +5,6 @@ import sys
 from collections import OrderedDict
 from typing import Union
 
-from huggingface_hub.utils import is_jinja_available  # noqa: F401
 from packaging import version
 from packaging.version import Version, parse
 

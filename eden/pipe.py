@@ -16,7 +16,7 @@ sys.path.append(LORA_DIFFUSION_PATH)
 import time
 import torch
 from safetensors.torch import safe_open, save_file
-from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline, StableDiffusionDepth2ImgPipeline
+from diffusers import StableDiffusionImg2ImgPipeline, StableDiffusionDepth2ImgPipeline
 from diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion_eden import StableDiffusionEdenPipeline
 from diffusers.models import AutoencoderKL
 from diffusers.models.cross_attention import AttnProcessor2_0

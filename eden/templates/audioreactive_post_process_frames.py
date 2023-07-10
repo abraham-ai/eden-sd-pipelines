@@ -241,7 +241,7 @@ def make_audio_reactive(frames_dir, audio_planner):
     
     return outdir
 
-def post_process_audio_reactive_video_frames(frames_dir, audio_path, fps, n_film):
+def post_process_audio_reactive_video_frames(frames_dir, fps, n_film, audio_feature_path, audio_path = None, out_video_path = None):
 
     output_video_dir = os.path.dirname(frames_dir)
     name_str = os.path.basename(frames_dir) + "_post"
@@ -259,17 +259,10 @@ def post_process_audio_reactive_video_frames(frames_dir, audio_path, fps, n_film
     
     frame_paths = sorted([os.path.join(frames_dir, f) for f in os.listdir(frames_dir) if f.endswith(".jpg")])
 
-    if audio_path is not None:
+    if audio_feature_path is not None:
         from planner import Planner
-        audio_planner = Planner(audio_path, fps, len(frame_paths))
+        audio_planner = Planner(audio_feature_path, fps, len(frame_paths))
         frames_dir = make_audio_reactive(frames_dir, audio_planner)
-
-    if 0: # deprecated, TODO: remove this?
-        n_film     = 0
-        video_crf  = 18
-        sigma_seconds = 0.05  # sigma of the latent smoothing kernel in seconds
-        out_video_path = os.path.splitext(input_path)[0] + f"_smoothed_n_film_{n_film}.mp4"
-        #smooth(input_path, n_film, out_video_path, sigma_seconds, video_crf = video_crf)
 
     video_path = os.path.join(os.path.dirname(frames_dir), f"{name_str}.mp4")
     write_video(frames_dir, video_path, fps=fps)
@@ -277,12 +270,15 @@ def post_process_audio_reactive_video_frames(frames_dir, audio_path, fps, n_film
     if audio_path is not None:
         print("adding audio...")
         fin_video_path = video_path.replace(".mp4", "_audio.mp4")
-        add_audio_to_video(audio_planner.audio_path, video_path, fin_video_path)
+        add_audio_to_video(audio_path, video_path, fin_video_path)
     else:
         fin_video_path = video_path
 
-    os.system(f"mv {fin_video_path} {os.path.join(output_video_dir, os.path.basename(fin_video_path))}")
-    print(f"final video is at {fin_video_path}")
+    if out_video_path is None:
+        out_video_path = os.path.join(output_video_dir, os.path.basename(fin_video_path))
+
+    os.system(f"mv {fin_video_path} {out_video_path}")
+    print(f"final video is at {out_video_path}")
 
 """
 
@@ -295,10 +291,10 @@ python post_process_frames.py
 if __name__ == "__main__":
 
     frames_dir     = "/home/rednax/SSD2TB/Github_repos/cog/eden-sd-pipelines/eden/templates/real2real_audioreactive/real2real_seed_0__0_168276749608"
-    audio_path = "/home/rednax/SSD2TB/SSDbackup_x/music_vr/Xander_Tools/Beat_Modulation/audio_data/Max_Cooper/beat_start_audio_features_80_40/beat_start_audio_features_80_40.zip"
-    #audio_path = None
+    audio_features_path = None
+    audio_path = None
 
     fps = 16    # orig fps, before FILM
     n_film = 0  # set n_film to 0 to disable FILM interpolation
 
-    post_process_audio_reactive_video_frames(frames_dir, audio_path, fps, n_film)
+    post_process_audio_reactive_video_frames(frames_dir, fps, n_film, audio_feature_path, audio_path = audio_path)
