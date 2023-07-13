@@ -179,7 +179,6 @@ def generate(
     if args.interpolator is not None and final_latents is not None:  # add the final denoised latent to the tracker:
         args.interpolator.latent_tracker.add_latent(final_latents, init_image_strength = args.init_image_strength)
 
-
     if args.upscale_f != 1.0:
         print(f"Upscaling with f = {args.upscale_f:.3f}...")
         pt_images, pil_images = run_upscaler(args, pil_images)
@@ -422,9 +421,9 @@ def make_callback(
     return diffusers_callback
 
 def run_upscaler(args_, imgs, 
-        init_image_strength    = 0.65, 
-        upscale_guidance_scale = 6.5,
-        min_upscale_steps      = 20,  # never do less than this many steps
+        init_image_strength    = 0.68, 
+        upscale_guidance_scale = 5.0,
+        min_upscale_steps      = 16,  # never do less than this many steps
         max_n_pixels           = 1536**2, # max number of pixels to avoid OOM
     ):
     args = copy(args_)

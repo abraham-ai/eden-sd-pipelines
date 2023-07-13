@@ -13,6 +13,7 @@ v1_model_names = [
     "runwayml/stable-diffusion-v1-5",
     "prompthero/openjourney-v2",
     "dreamlike-art/dreamlike-photoreal-2.0",
+    "eden:eden-v1",
 ]
 
 def load_ci(sd_model_name, force_reload=False, clip_model_path=None):

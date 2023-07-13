@@ -19,8 +19,9 @@ checkpoint_options = [
     "eden:eden-v1"
 ]
 
-checkpoint_options = ["eden:eden-v1"]
 # checkpoint_options = ["runwayml:stable-diffusion-v1-5"]
+checkpoint_options = ["eden:eden-v1"]
+checkpoint_options = ["stabilityai/stable-diffusion-xl-base-0.9"]
 
 def generate_basic(
     text_input, 
@@ -35,15 +36,15 @@ def generate_basic(
     args = StableDiffusionSettings(
         ckpt = random.choice(checkpoint_options),
         mode = "generate",
-        W = 960,
-        H = 640,
+        W = 1024,
+        H = 1024,
         sampler = "euler",
         steps = 30,
-        guidance_scale = 7,
+        guidance_scale = 6,
         upscale_f = 1.5,
         text_input = text_input,
         seed = seed,
-        n_samples = 2,
+        n_samples = 1,
         lora_path = None,
         #init_image_data = init_image_data,
         #init_image_strength = 0.25,
@@ -67,7 +68,7 @@ def generate_basic(
 if __name__ == "__main__":
 
     outdir = "results"
-    seed = 1
+    seed = 0
 
     seed_everything(seed)
     text_input = "An audio waveform with musicians playing instruments on its peaks and troughs, print design style vector art, bold typography "

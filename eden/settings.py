@@ -36,15 +36,14 @@ else:
     _device = torch.device("cuda:%d" %gpu_id if torch.cuda.is_available() else "cpu")
 torch.cuda.set_device(_device)
 
-
 @dataclass
 class StableDiffusionSettings:
     # unique identifier for this generation:
     uid: str = str(uuid.uuid4())
     
     # model settings
-    #ckpt: str = "runwayml/stable-diffusion-v1-5"
     ckpt: str = "eden:eden-v1"
+    #ckpt: str = "stabilityai/stable-diffusion-xl-base-0.9"
 
     # Lora / finetuning:
     lora_path: str = None

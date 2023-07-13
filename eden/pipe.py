@@ -49,6 +49,8 @@ upscaling_pipe = None
 upscaling_last_checkpoint = None
 upscaling_last_lora_path = None
 
+_local_files_only = False
+
 
 def set_sampler(sampler_name, pipe):
     schedulers = {
@@ -90,7 +92,7 @@ def load_pipe(args):
             pipe = StableDiffusionEdenPipeline.from_pretrained(
                 location, 
                 #safety_checker=None, 
-                local_files_only=True, 
+                local_files_only=_local_files_only, 
                 torch_dtype=torch.float16 if args.half_precision else torch.float32, 
                 vae=AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse").half()
             )
@@ -98,7 +100,7 @@ def load_pipe(args):
             pipe = DiffusionPipeline.from_pretrained(
                 location, 
                 #safety_checker=None, 
-                #local_files_only=True, 
+                #local_files_only=_local_files_only, 
                 torch_dtype=torch.float16, use_safetensors=True, variant="fp16"
             )
 
@@ -173,6 +175,8 @@ same as the above, but specifically for img2img pipes (upscaler)
 """
 
 def load_upscaling_pipe(args):
+    # use SDXL-refiner as default upscaling model:
+    args.ckpt = "stabilityai/stable-diffusion-xl-refiner-0.9"
     global upscaling_pipe
     start_time = time.time()
 
@@ -181,9 +185,9 @@ def load_upscaling_pipe(args):
     else:
         load_path = args.ckpt
 
-    upscaling_pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
+    upscaling_pipe = DiffusionPipeline.from_pretrained(
         load_path, 
-        local_files_only = True, 
+        local_files_only = _local_files_only, 
         torch_dtype=torch.float16 if args.half_precision else torch.float32
     )
 
