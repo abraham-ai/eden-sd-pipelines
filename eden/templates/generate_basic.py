@@ -20,7 +20,7 @@ checkpoint_options = [
 ]
 
 # checkpoint_options = ["runwayml:stable-diffusion-v1-5"]
-checkpoint_options = ["eden:eden-v1"]
+#checkpoint_options = ["eden:eden-v1"]
 checkpoint_options = ["stabilityai/stable-diffusion-xl-base-0.9"]
 
 def generate_basic(

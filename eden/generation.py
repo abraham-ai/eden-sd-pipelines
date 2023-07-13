@@ -29,6 +29,12 @@ from clip_tools import *
 from planner import LatentTracker, create_init_latent, blend_inits
 from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline, StableDiffusionDepth2ImgPipeline
 
+print("-----------------------------------------------------------------")
+print("-----------------------------------------------------------------")
+print("-----------------------sdxl branch!!-----------------------------")
+print("-----------------------------------------------------------------")
+print("-----------------------------------------------------------------")
+
 def maybe_apply_watermark(args, x_images):
     # optionally, apply watermark to final image:
     if args.watermark_path is not None:

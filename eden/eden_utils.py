@@ -55,17 +55,106 @@ def patch_conv(**patch):
     cls.__init__ = __init__
 
 
-def print_model_info(pipe):
-    # Find all the parameters in all of the underlying nn modules and count them up:
-    module_names = ["vae", "text_encoder", "unet"]
-    modules = [pipe.vae, pipe.text_encoder, pipe.unet]
-    total_n_params = 0
+import matplotlib.pyplot as plt
+from collections import defaultdict
+
+def inspect_module(ax, nn_module, module_name, total_params):
+    layer_map = {'att': 'attention', 'conv': 'conv', 'emb': 'embedding', 
+                 'norm': 'norm', 'fc': 'fc', 'proj': 'fc'}
+    
+    layer_color_map = {'attention': '#3498db', 'conv': '#e67e22', 'embedding': '#2ecc71', 
+                    'norm': '#e74c3c', 'fc': '#34495e', 'unk': '#95a5a6'}
+    
+    n_params, layer_types = [], []
+    
+    for name, param in nn_module.named_parameters():
+        layer_type = 'unk'
+        for keyword, ltype in layer_map.items():
+            if keyword in name:
+                layer_type = ltype
+                break
+        if param.numel() > 1024:
+            n_params.append(param.numel())
+            layer_types.append(layer_type)
+
+    cumulative_n_params = 0
+    for n_param, layer_type in zip(n_params, layer_types):
+        color = layer_color_map[layer_type]
+        ax.barh(module_name, n_param, left=cumulative_n_params, color=color, label=layer_type)
+        cumulative_n_params += n_param
+
+    # remove the x and y axis completely:
+    ax.set_axis_off()
+
+    #ax.set_xlabel('Network layers from left to right (width = n_params)', fontsize=14)
+    ax.set_title(f'# params per layer of {module_name} ({total_params/1000000.:.0f}M total params): ', fontsize=20)
+
+    # Define a threshold for the minimum number of total parameters
+    min_total_params = total_params/1000
+
+    # Calculate the total number of parameters for each layer type
+    total_params = defaultdict(int)
+    for n_param, layer_type in zip(n_params, layer_types):
+        total_params[layer_type] += n_param
+
+    # Create a consistent legend mapping, excluding layer types with a low number of total parameters
+    handles = [plt.Rectangle((0,0),1,1, color=layer_color_map[layer_type]) for layer_type in layer_color_map.keys() if total_params[layer_type] >= min_total_params]
+    labels = [layer_type for layer_type in layer_color_map.keys() if total_params[layer_type] >= min_total_params]
+
+    ax.legend(handles, labels, loc='upper right', fontsize=12)
+
+def inspect_total_params(ax, modules, module_names, total_params_list):
+    cumulative_n_params = 0
+    # Define color map for the modules
+    color_map = {'text_encoder': '#1f77b4',  # Blue shade for text_encoder
+             'text_encoder_2': '#3498db',  # Different blue shade for text_encoder_2
+             'vae': '#8CBF26',  # Matching green
+             'unet': '#A35817'}  # Matching brown
+
+    for n_param, module_name in zip(total_params_list, module_names):
+        color = color_map.get(module_name, '#d62728')  # default to a color if the module_name isn't found in the color_map
+        ax.barh('Total', n_param, left=cumulative_n_params, color=color, label=module_name)
+        cumulative_n_params += n_param
+
+    # remove the x and y axis completely:
+    ax.set_axis_off()
+
+    ax.set_title(f'Total # params per module ({sum(total_params_list)/1000000.:.0f}M total params): ', fontsize=30)
+    ax.legend(loc='upper right', fontsize=12)
+
+def print_model_info(pipe, plot=0):
+    module_names = ["text_encoder", "vae", "unet"]
+    modules = [pipe.text_encoder, pipe.vae, pipe.unet]
+
+    try:
+        modules.insert(1, pipe.text_encoder_2)
+        module_names.insert(1, "text_encoder_2")
+    except:
+        pass
+
+    total_params_list = [sum(p.numel() for p in m.parameters() if p.requires_grad) for m in modules]
+
+    max_total_params = max(total_params_list)  # Get the maximum number of parameters
+
+    if plot:
+        fig, axs = plt.subplots(len(modules) + 1, 1, figsize=(18, 6 * (len(modules) + 1)))
+        inspect_total_params(axs[0], modules, module_names, total_params_list)
+
     for i, m in enumerate(modules):
-        if m is not None:
-            num_params = sum(p.numel() for p in m.parameters() if p.requires_grad)
-            print(f"{num_params/1000000.:.2f}M params in {module_names[i]}")
-            total_n_params += num_params
-    print(f"Total number of parameters: {total_n_params/1000000.:.2f}M")
+        total_params = total_params_list[i]
+        print(f"{module_names[i]}: {total_params / 1000000.:.2f}M params")
+
+        if plot:
+            inspect_module(axs[i + 1], m, module_names[i], total_params)
+            # axs[i].set_xlim(0, max_total_params)  # Set a common x-axis limit
+
+    if plot:
+        plt.tight_layout()
+        plt.savefig("modulevis.png")
+        plt.clf()
+        plt.close()
+
+
 
 
 def reorder_timepoints(timepoints, verbose = 0):
