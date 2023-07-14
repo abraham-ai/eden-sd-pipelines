@@ -8,7 +8,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 from generation import *
 from einops import rearrange, repeat
-from eden_utils import seed_everything, slerp, lerp, create_seeded_noise, DataTracker
+from eden_utils import seed_everything, slerp, lerp, create_seeded_noise
 from settings import _device
 
 import lpips
@@ -80,10 +80,9 @@ class Interpolator():
     '''
 
     def __init__(self, pipe, prompts, n_frames_target, args, device, 
-        smooth = False, 
+        smooth = True, 
         seeds = None, 
         scales = None, 
-        scale_modulation_amplitude_multiplier = 0,  # decrease the guidance scale at the midpoint of each keyframe transition
         lora_paths = None,
         loop = False):
 
@@ -93,7 +92,6 @@ class Interpolator():
         self.prompts, self.seeds, self.scales = prompts, seeds, scales
         self.n = len(self.prompts)        
         self.smooth = smooth
-        self.scale_modulation_amplitude_multiplier = scale_modulation_amplitude_multiplier
 
         # Figure out the number of frames per prompt:
         self.n_frames = n_frames_target
@@ -104,13 +102,10 @@ class Interpolator():
         self.interpolation_step, self.prompt_index = 0, 0
         self.ts = np.linspace(0, self.n - 1, self.n_frames)
 
-        self.data_tracker = DataTracker()
-
         # Initialize the frame buffer and latent tracker:
         self.latent_tracker = LatentTracker(self.args, self.pipe, self.smooth)
         self.clear_buffer_at_next_iteration = False
         self.prev_prompt_index = 0
-
 
         if self.seeds is None:
             self.seeds = np.random.randint(0, high=9999, size=self.n)
@@ -119,12 +114,10 @@ class Interpolator():
         
         assert len(self.seeds) == len(self.prompts), "Number of given seeds must match number of prompts!"
         assert len(self.scales) == len(self.prompts), "Number of given scales must match number of prompts!"
-        if self.scale_modulation_amplitude_multiplier > 0:
-            print(f"Modulating scale between prompts, scale_modulation_amplitude_multiplier: {self.scale_modulation_amplitude_multiplier:.2f}!")
-
+        
         # Setup conditioning and noise vectors:
         self.lora_paths = lora_paths
-        self.prompt_conditionings, self.init_noises = [], []
+        self.prompt_embeds, self.init_noises = [], []
         self.phase_index = 0
         self.setup_next_creation_conditions(self.phase_index)
 
@@ -145,7 +138,7 @@ class Interpolator():
                 self.model.cond_stage_model.aesthetic_target = self.args.aesthetic_target[i]
             self.model.cond_stage_model.aesthetic_steps  = self.args.aesthetic_steps
     
-    def setup_next_creation_conditions(self, phase_index, interpolate_lora_conditioning = False):
+    def setup_next_creation_conditions(self, phase_index):
         """
         Setup the all conditioning signals for the next interpolation phase
         """
@@ -154,9 +147,8 @@ class Interpolator():
             self.args.lora_path = self.lora_paths[phase_index%len(self.lora_paths)]
             self.pipe = update_pipe_with_lora(self.pipe, self.args)
 
-        if phase_index > 0:
-            # remove the last entries (we might have changed lora_path)
-            self.prompt_conditionings.pop()
+        if phase_index > 0: # remove the last entries (we might have changed lora_paths)
+            self.prompt_embeds.pop()
             self.init_noises.pop()
 
         for i in range(2):
@@ -165,31 +157,23 @@ class Interpolator():
             seed   = self.seeds[index]
             self.update_aesthetic_target(index)
 
-            if interpolate_lora_conditioning and i == 1:
-                self.args.lora_path = self.lora_paths[(phase_index+1)%len(self.lora_paths)]
-                self.pipe = update_pipe_with_lora(self.pipe, self.args)
-
-            prompt_embeds = self.pipe._encode_prompt(
+            prompt_embeds = self.pipe.encode_prompt(
                 prompt,
                 self.device,
                 1,
                 self.args.guidance_scale > 1.0,
                 negative_prompt = self.args.uc_text
             )
+            #uc, c = prompt_embeds[0].unsqueeze(0), prompt_embeds[1].unsqueeze(0)
+            #self.args.uc = uc
+            #self.prompt_conditionings.append(c)
 
-            uc, c = prompt_embeds[0].unsqueeze(0), prompt_embeds[1].unsqueeze(0)
-            self.args.uc = uc
-            self.prompt_conditionings.append(c)
+            self.prompt_embeds.append(prompt_embeds)
             self.init_noises.append(create_seeded_noise(seed, self.args, self.device))
     
     def get_scale(self, t):
         ''' get the scale for the current frame '''
         scale = (1-t)*self.scales[self.prompt_index] + t*self.scales[self.prompt_index+1]
-        if self.scale_modulation_amplitude_multiplier > 0:
-            # slightly decrease the scale at the midpoint of the transition (t=0.5)
-            scale_multiplier = (1 + self.scale_modulation_amplitude_multiplier * abs(t-0.5) - self.scale_modulation_amplitude_multiplier*0.5)
-            scale *= scale_multiplier
-
         return scale
 
     def evaluate_new_t(self, new_t, distance_index, target_perceptual_distances, t_min_treshold, verbose = 1):
@@ -223,10 +207,9 @@ class Interpolator():
 
         # if we were to split in the middle, the new estimated distances would be:
         best_new_t = 0.5*new_t[0] + 0.5*new_t[1]
-        best_mse = np.inf
+        best_mse   = np.inf
         best_estimated_perceptual_density_curve = None
         best_predictions = (None, None, None)
-        tracking_data = None
 
         if len(self.latent_tracker.t_raws) < self.args.n_anchor_imgs:
             mixing_fs = np.linspace(0.33,0.66,5) # be more conservative about extreme splits early on
@@ -276,21 +259,8 @@ class Interpolator():
                 best_mse = mse
                 best_new_t = current_t_try
                 best_estimated_perceptual_density_curve = estimated_perceptual_density_curve
-
-                tracking_data = {
-                                "predicted_new_d": predicted_new_d,
-                                "predicted_d_left": predicted_d_left,
-                                "predicted_d_right": predicted_d_right, 
-                                "current_t_try": current_t_try,
-                                "mixing_f": mixing_f,
-                                "current_d": current_d,
-                                "current_d_left": current_d_left,
-                                "current_d_right": current_d_right,
-                                "current_delta_t": current_delta_t,
-                                "uid": self.args.uid
-                                }
         
-        return best_mse, (best_new_t, best_estimated_perceptual_density_curve, tracking_data)
+        return best_mse, (best_new_t, best_estimated_perceptual_density_curve)
 
 
     def find_next_t(self, max_density_diff = 7, verbose = 1):
@@ -349,9 +319,7 @@ class Interpolator():
             # Find the best t value to render the next frame at:
             best_fit_mse = np.min(mse_values)
             t_data = t_datas[np.argmin(mse_values)]
-            next_t, best_estimated_perceptual_density_curve, tracking_data = t_data
-            
-            self.data_tracker.add(tracking_data)
+            next_t, best_estimated_perceptual_density_curve = t_data
 
             # plot the current distances / target perceptual curves:
             if self.args.save_distance_data:
@@ -374,7 +342,6 @@ class Interpolator():
         print("Resetting buffers! (Clearing data from this interpolation phase)")
         self.latent_tracker.reset_buffer()
         self.clear_buffer_at_next_iteration = False
-        self.data_tracker.save()
         self.args.c = None
         self.phase_index += 1
         self.setup_next_creation_conditions(self.phase_index)
@@ -423,8 +390,17 @@ class Interpolator():
         # Get conditioning signals:
         scale      = self.get_scale(t)
         init_noise = slerp(t, self.init_noises[self.prompt_index], self.init_noises[(self.prompt_index + 1) % self.n], flatten = 1, normalize = 1)
-        c          = lerp(t, self.prompt_conditionings[self.prompt_index], self.prompt_conditionings[(self.prompt_index + 1) % self.n])
+        
+        i = self.prompt_index
+        p_c   = lerp(t, self.prompt_embeds[i][0], self.prompt_embeds[(i + 1) % self.n][0])
+        np_c  = lerp(t, self.prompt_embeds[i][1], self.prompt_embeds[(i + 1) % self.n][1])
+        pp_c  = lerp(t, self.prompt_embeds[i][2], self.prompt_embeds[(i + 1) % self.n][2])
+        npp_c = lerp(t, self.prompt_embeds[i][3], self.prompt_embeds[(i + 1) % self.n][3])
+        
+        #c          = lerp(t, self.prompt_conditionings[self.prompt_index], self.prompt_conditionings[(self.prompt_index + 1) % self.n])
         #c         = slerp(t, self.prompt_conditionings[self.prompt_index], self.prompt_conditionings[(self.prompt_index + 1) % self.n])
+        
+        prompt_embeds = [p_c, np_c, pp_c, npp_c]
 
         self.interpolation_step += 1
 
@@ -435,4 +411,4 @@ class Interpolator():
             self.clear_buffer_at_next_iteration = True
             self.prev_prompt_index = self.prompt_index
         
-        return t, t_raw, c, init_noise, scale, self.prompt_index, self.prompts[self.prompt_index], self.seeds[self.prompt_index]
+        return t, t_raw, prompt_embeds, init_noise, scale, self.prompt_index

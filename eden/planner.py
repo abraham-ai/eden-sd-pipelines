@@ -514,7 +514,6 @@ class LatentTracker():
         # add the last frame latents to the new buffer:
         self.latents[max_t_raw] = last_frame_latents
         self.t_raws.append(max_t_raw)
-        
         self.frame_buffer.clear_buffer()
 
     def create_new_denoising_trajectory(self, args):
@@ -568,6 +567,7 @@ class LatentTracker():
 
             for i, k_sigma in enumerate(active_sigmas[:n_latents_to_prepend]):
                 noised_latent = latent + self.noise * k_sigma
+                noised_latent = latent*0
                 self.latents[self.current_t_raw].append(noised_latent.clone().detach().cpu().numpy())
         
         # append the actual, current latent at this stage of the denoising trajectory:
@@ -575,7 +575,7 @@ class LatentTracker():
 
         if len(self.latents[self.current_t_raw]) == self.steps + 1:
             std_zero = self.latents[self.current_t_raw][0].std()
-            if std_zero > 15.1 or std_zero < 13.5:
+            if (std_zero > 15.1 or std_zero < 13.5) and 0:
                 print('#####################################')
                 print(f"WARNING: std_zero is {std_zero:.4f}!")
                 print("This shouldn't happen! Something is wrong with the latent blending.")
@@ -723,12 +723,6 @@ class FrameBuffer():
                 
                 old_distance = self.distances[insert_index-1]
                 current_reduction_f = ((before_distance + after_distance) / 2) / old_distance
-
-                tracking_data = {"actual_d_left": before_distance,
-                                "actual_d_right": after_distance,
-                                "old_distance": old_distance}
-
-                self.args.interpolator.data_tracker.add(tracking_data)
 
                 # moving average:
                 self.current_reduction_f = 0.5 * self.current_reduction_f + 0.5 * current_reduction_f

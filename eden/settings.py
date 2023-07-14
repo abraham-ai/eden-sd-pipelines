@@ -110,7 +110,6 @@ class StableDiffusionSettings:
     loop: bool = False
     smooth: bool = True  
     n_film: int = 0
-    scale_modulation: float = 0.0
     fps: int = 9
     
     # interpolations
@@ -153,7 +152,7 @@ class StableDiffusionSettings:
     # Latent Tracking:
     interpolator: str = None
     #anchor_img_fraction: float = 0.20  # fraction of inter-keyframe frames to generate regularly (without LatentBlending), higher --> larger visual path length
-    n_anchor_imgs: int = 5  # number of anchor images to render before starting latent blending
+    n_anchor_imgs: int = 3  # number of anchor images to render before starting latent blending
     latent_blending_skip_f: List = field(default_factory=lambda: [0.0, 0.6])  # What fraction of the denoising trajectory to skip ahead when using LatentBlending Trick (start and end values for each frame)
     
     # disk folder interaction:

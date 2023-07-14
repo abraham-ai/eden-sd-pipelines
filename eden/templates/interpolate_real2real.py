@@ -1,11 +1,12 @@
 import os, time, random, sys, shutil, subprocess
 sys.path.append('..')
 
-os.environ["TORCH_HOME"] = "/src/.torch"
-os.environ["TRANSFORMERS_CACHE"] = "/src/.huggingface/"
-os.environ["DIFFUSERS_CACHE"] = "/src/.huggingface/"
-os.environ["HF_HOME"] = "/src/.huggingface/"
-os.environ["LPIPS_HOME"] = "/src/models/lpips/"
+if 0:
+    os.environ["TORCH_HOME"] = "/src/.torch"
+    os.environ["TRANSFORMERS_CACHE"] = "/src/.huggingface/"
+    os.environ["DIFFUSERS_CACHE"] = "/src/.huggingface/"
+    os.environ["HF_HOME"] = "/src/.huggingface/"
+    os.environ["LPIPS_HOME"] = "/src/models/lpips/"
 
 from settings import StableDiffusionSettings
 from generation import *
@@ -43,7 +44,6 @@ def real2real(
             interpolation_init_images_max_strength = 0.95,
             latent_blending_skip_f = [0.15, 0.75],
             guidance_scale = 7,
-            scale_modulation = 0.0,
             n_frames = 16*n,
             loop = True,
             smooth = True,

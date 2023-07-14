@@ -27,19 +27,19 @@ sys.path.extend([
 ])
 
 
-def run_and_kill(command, pipe_output=True):
+def run_and_kill_cmd(command, pipe_output=True):
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    time.sleep(0.5)
+    time.sleep(0.25)
 
     # Get output from stdout and stderr
     stdout, stderr = p.communicate()    
     # Print the output to stdout in the main process
     if pipe_output:
         if stdout:
-            print("FILM, stdout:")
+            print("cmd, stdout:")
             print(stdout)
         if stderr:
-            print("FILM, stderr:")
+            print("cmd, stderr:")
             print(stderr)
 
     p.send_signal(signal.SIGTERM) # Sends termination signal
@@ -56,10 +56,10 @@ def run_and_kill(command, pipe_output=True):
     # Print the output to stdout in the main process
     if pipe_output:
         if stdout:
-            print("FILM done, stdout:")
+            print("cmd done, stdout:")
             print(stdout)
         if stderr:
-            print("FILM done, stderr:")
+            print("cmd done, stderr:")
             print(stderr)
 
 def download(url, folder, ext):
@@ -366,7 +366,7 @@ class Predictor(BasePredictor):
                 abs_out_dir_path = os.path.abspath(str(out_dir))
                 command = ["python", "/src/eden/film.py", "--frames_dir", abs_out_dir_path, "--times_to_interpolate", str(args.n_film), '--update_film_model_path', FILM_MODEL_PATH]
                 
-                run_and_kill(command)
+                run_and_kill_cmd(command)
                 print("predict.py: FILM done.")
                 out_dir = Path(os.path.join(abs_out_dir_path, "interpolated_frames"))
 

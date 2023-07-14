@@ -106,11 +106,9 @@ def generate(
         pil_images = maybe_apply_watermark(args, pil_images)
         return pt_images, pil_images
 
-    # Callback
     if do_callback:
         callback_ = make_callback(
             latent_tracker = args.interpolator.latent_tracker if args.interpolator is not None else None,
-            extra_callback = None,
         )
     else:
         callback_ = None
@@ -120,7 +118,6 @@ def generate(
     if args.c is not None:
         assert args.uc is not None, "Must provide negative prompt conditioning if providing positive prompt conditioning"
         prompt, negative_prompt = None, None
-        print("Using absolute conditioning inputs (c and uc) instead of prompt/negative_prompt")
     else:
         prompt, negative_prompt = args.text_input, args.uc_text
         args.c, args.uc = None, None
@@ -141,10 +138,12 @@ def generate(
             num_images_per_prompt = args.n_samples,
             prompt_embeds = args.c,
             negative_prompt_embeds = args.uc,
+            pooled_prompt_embeds = args.pc,
+            negative_pooled_prompt_embeds= args.puc,
             generator = generator,
             #latents = args.init_latent,
             #force_starting_latent = force_starting_latent,
-            #callback = callback_,
+            callback = callback_,
         )
     else:
         pipe_output = pipe(
@@ -157,10 +156,12 @@ def generate(
             num_images_per_prompt = args.n_samples,
             prompt_embeds = args.c,
             negative_prompt_embeds = args.uc,
+            pooled_prompt_embeds = args.pc,
+            negative_pooled_prompt_embeds= args.puc,
             generator = generator,
             #latents = args.init_latent,
             #force_starting_latent = force_starting_latent,
-            #callback = callback_,
+            callback = callback_,
         )
 
     pil_images = pipe_output.images
@@ -285,7 +286,6 @@ def make_interpolation(args, force_timepoints = None):
         smooth=args.smooth,
         seeds=args.interpolation_seeds,
         scales=[args.guidance_scale for _ in args.interpolation_texts],
-        scale_modulation_amplitude_multiplier=args.scale_modulation,
         lora_paths=args.lora_paths,
     )
 
@@ -305,16 +305,16 @@ def make_interpolation(args, force_timepoints = None):
         if force_timepoints is not None:
             force_t_raw = force_timepoints[f]
 
-        if True: # catch errors and try to complete the video
+        if 0: # catch errors and try to complete the video
             try:
-                t, t_raw, c, init_latent, scale, return_index, _, _ = args.interpolator.get_next_conditioning(verbose=0, save_distances_to_dir = args.save_distances_to_dir, t_raw = force_t_raw)
+                t, t_raw, prompt_embeds, init_latent, scale, return_index = args.interpolator.get_next_conditioning(verbose=0, save_distances_to_dir = args.save_distances_to_dir, t_raw = force_t_raw)
             except Exception as e:
                 print("Error in interpolator.get_next_conditioning(): ", str(e))
                 break
         else: # get full stack_trace, for debugging:
-            t, t_raw, c, init_latent, scale, return_index, _, _ = args.interpolator.get_next_conditioning(verbose=0, save_distances_to_dir = args.save_distances_to_dir, t_raw = force_t_raw)
+            t, t_raw, prompt_embeds, init_latent, scale, return_index = args.interpolator.get_next_conditioning(verbose=0, save_distances_to_dir = args.save_distances_to_dir, t_raw = force_t_raw)
         
-        args.c = c
+        args.c, args.uc, args.pc, args.puc   = prompt_embeds
         args.guidance_scale = scale
         args.t_raw = t_raw
 
@@ -324,7 +324,7 @@ def make_interpolation(args, force_timepoints = None):
                 print("Switching to lora path", active_lora_path)
                 args.lora_path = active_lora_path
 
-        if (args.interpolation_init_images and all(args.interpolation_init_images) or len(args.interpolator.latent_tracker.frame_buffer.ts) >= args.n_anchor_imgs):
+        if 1 and (args.interpolation_init_images and all(args.interpolation_init_images) or len(args.interpolator.latent_tracker.frame_buffer.ts) >= args.n_anchor_imgs):
 
             if interpolation_init_images is None: # lerping mode (no init imgs)
                 is_real2real = False
@@ -339,12 +339,11 @@ def make_interpolation(args, force_timepoints = None):
                 # apply linear blending of keyframe images in pixel space and then encode
                 args.init_image, args.init_image_strength = blend_inits(init_img1, init_img2, t, args, real2real = is_real2real)
                 args.init_latent = None
-            else:
-                # perform Latent-Blending initialization:
+            else: # perform Latent-Blending initialization:
                 args.init_latent, args.init_image, args.init_image_strength = create_init_latent(args, t, init_img1, init_img2, _device, pipe, real2real = is_real2real)
 
         else: #only use the raw init_latent noise from interpolator (using the input seeds)
-            print("Using raw init noise (strenght 0.0)...")
+            #print("Using raw init noise (strenght 0.0)...")
             args.init_latent = init_latent
             args.init_image = None
             args.init_image_strength = 0.0
@@ -401,18 +400,9 @@ def make_callback(
     latent_tracker=None,
     extra_callback=None,
 ):
-    # Callback for _call_ in diffusers repo, called thus:
-    #   callback(i, t, latents)
     def diffusers_callback(i, t, latents):
         if latent_tracker is not None:
             latent_tracker.add_latent(latents)
-        if extra_callback and False: # TODO fix this function for discord etc...
-            x = model.decode_first_stage(args_dict['x'])
-            x = torch.clamp((x + 1.0) / 2.0, min=0.0, max=1.0)
-            x = 255. * rearrange(x, 'b c h w -> b h w c')
-            x = x.cpu().numpy().astype(np.uint8)
-            x = [Image.fromarray(x_) for x_ in x]
-            extra_callback(x, args_dict['i'])
               
     return diffusers_callback
 
@@ -429,7 +419,6 @@ def run_upscaler(args_, imgs,
     if args.c is not None:
         assert args.uc is not None, "Must provide negative prompt conditioning if providing positive prompt conditioning"
         args.uc_text, args.text_input = None, None
-        print("Using absolute conditioning inputs (c and uc) instead of prompt/negative_prompt")
     else:
         args.c, args.uc = None, None
 

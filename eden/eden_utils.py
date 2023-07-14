@@ -13,7 +13,8 @@ from PIL import Image
 import torch
 from einops import rearrange, repeat
 import moviepy.editor as mpy
-
+import subprocess
+import signal
 
 def pick_best_gpu_id():
     # pick the GPU with the most free memory:
@@ -455,7 +456,11 @@ def preprocess(image):
 def pil_img_to_latent(img, args, device, pipe):
     img = preprocess(img)
     img = img.to(device=device, dtype=pipe.vae.dtype)
-    latent = pipe.vae.encode(img).latent_dist.sample(pipe.generator)
+    latent = pipe.vae.encode(img).latent_dist
+    try:
+        latent = latent.sample(pipe.generator)
+    except:
+        latent = latent.sample()
     latent = pipe.vae.config.scaling_factor * latent
     return latent
 
@@ -747,6 +752,41 @@ def add_audio_to_video(audio_path, input_video_path, output_video_path, remove_o
     if remove_orig_video:
         os.remove(input_video_path)
 
+
+def run_and_kill_cmd(command, pipe_output=True):
+    p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    time.sleep(0.25)
+
+    # Get output from stdout and stderr
+    stdout, stderr = p.communicate()    
+    # Print the output to stdout in the main process
+    if pipe_output:
+        if stdout:
+            print("cmd, stdout:")
+            print(stdout)
+        if stderr:
+            print("cmd, stderr:")
+            print(stderr)
+
+    p.send_signal(signal.SIGTERM) # Sends termination signal
+    p.wait()  # Waits for process to terminate
+
+    # Get output from stdout and stderr
+    stdout, stderr = p.communicate()
+
+    # If the process hasn't ended yet
+    if p.poll() is None:  
+        p.kill()  # Forcefully kill the process
+        p.wait()  # Wait for the process to terminate
+
+    # Print the output to stdout in the main process
+    if pipe_output:
+        if stdout:
+            print("cmd done, stdout:")
+            print(stdout)
+        if stderr:
+            print("cmd done, stderr:")
+            print(stderr)
 
 def save_settings(args, settings_filename):
     with open(settings_filename, 'w') as f:

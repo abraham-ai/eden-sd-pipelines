@@ -15,7 +15,7 @@ def lerp(
     name_str = "",
     save_phase_data = False,     # save condition vectors and scale for each frame (used for later upscaling)
     save_distance_data = False,  # save distance plots to disk
-    debug = False):
+    debug = 0):
 
     seed_everything(seed)
     n = len(interpolation_texts)
@@ -28,19 +28,18 @@ def lerp(
         text_input = interpolation_texts[0],
         interpolation_texts = interpolation_texts,
         interpolation_seeds = interpolation_seeds if interpolation_seeds else [random.randint(1, 1e8) for i in range(n)],
-        n_frames = 24*n,
+        n_frames = 64*n,
         guidance_scale = 7.5,
-        scale_modulation = 0.0,
         loop = True,
         smooth = True,
-        latent_blending_skip_f = [0.15, 0.75],
+        latent_blending_skip_f = [0.25, 0.75],
         n_film = 0,
         fps = 12,
-        steps = 35,
+        steps = 50,
         sampler = "euler",
         seed = seed,
-        W = 768,
-        H = 768,
+        W = 1024+512,
+        H = 1024,
     )
 
     # always make sure these args are properly set:
@@ -59,9 +58,18 @@ def lerp(
 
     # run FILM
     if args.n_film > 0:
-        from film import interpolate_FILM
-        interpolate_FILM(frames_dir, args.n_film)
-        frames_dir = os.path.join(frames_dir, "interpolated_frames")
+        # clear cuda cache:
+        torch.cuda.empty_cache()
+
+        print('predict.py: running FILM...')
+        FILM_MODEL_PATH = os.path.join(SD_PATH, 'models/film/film_net/Style/saved_model')
+        film_script_path = os.path.join(SD_PATH, 'eden/film.py')
+        abs_out_dir_path = os.path.abspath(str(frames_dir))
+        command = ["python", film_script_path, "--frames_dir", abs_out_dir_path, "--times_to_interpolate", str(args.n_film), '--update_film_model_path', FILM_MODEL_PATH]
+        
+        run_and_kill_cmd(command)
+        print("predict.py: FILM done.")
+        frames_dir = Path(os.path.join(abs_out_dir_path, "interpolated_frames"))
 
     # save video
     loop = (args.loop and len(args.interpolation_seeds) == 2)
