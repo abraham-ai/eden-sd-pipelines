@@ -60,6 +60,10 @@ def generate(
     args.W = round_to_nearest_multiple(args.W, 64)
     args.H = round_to_nearest_multiple(args.H, 64)
 
+    args.img2img = False
+    if (args.init_image is not None) and args.init_image_strength > 0:
+        args.img2img = True
+
     # Load init image
     if args.init_image_data:
         args.init_image = load_img(args.init_image_data, 'RGB')
@@ -80,7 +84,12 @@ def generate(
     n_steps = args.steps
 
     # Load model
-    pipe = eden_pipe.get_pipe(args)
+    if args.img2img:
+        if args.ckpt == "stabilityai/stable-diffusion-xl-base-0.9":
+            args.ckpt = "stabilityai/stable-diffusion-xl-refiner-0.9"
+        pipe = eden_pipe.get_upscaling_pipe(args)
+    else:
+        pipe = eden_pipe.get_pipe(args)
 
     # if init image strength == 1, just return the initial image
     if (args.init_image_strength == 1.0 or (int(n_steps*(1-args.init_image_strength)) < 1)) and args.init_image:
@@ -107,7 +116,6 @@ def generate(
         callback_ = None
 
     generator = torch.Generator(device=_device).manual_seed(args.seed)
-    #generator = None
     
     if args.c is not None:
         assert args.uc is not None, "Must provide negative prompt conditioning if providing positive prompt conditioning"
@@ -117,62 +125,44 @@ def generate(
         prompt, negative_prompt = args.text_input, args.uc_text
         args.c, args.uc = None, None
 
-    if args.n_samples > 1:
-        # Correctly handle batches:
+    if args.n_samples > 1: # Correctly handle batches:
         prompt = [prompt] * args.n_samples
         negative_prompt = [negative_prompt] * args.n_samples
         args.n_samples = 1
 
-    if args.mode == 'depth2img':
+    if args.img2img:
         pipe_output = pipe(
-            prompt = prompt, 
-            image = args.init_image,
-            strength = 1-args.init_image_strength,
-            #depth_map = None,
-            negative_prompt = negative_prompt,
+            prompt = prompt,
+            negative_prompt = negative_prompt, 
+            image=args.init_image, 
+            strength=1-args.init_image_strength, 
             num_inference_steps = n_steps,
             guidance_scale = args.guidance_scale,
             num_images_per_prompt = args.n_samples,
+            prompt_embeds = args.c,
+            negative_prompt_embeds = args.uc,
+            generator = generator,
+            #latents = args.init_latent,
+            #force_starting_latent = force_starting_latent,
+            #callback = callback_,
         )
     else:
-        if 0:
-            pipe_output = pipe(
-                prompt = prompt,
-                negative_prompt = negative_prompt, 
-                width = args.W, 
-                height = args.H,
-                image=args.init_image, 
-                strength=1-args.init_image_strength, 
-                num_inference_steps = n_steps,
-                guidance_scale = args.guidance_scale,
-                num_images_per_prompt = args.n_samples,
-                prompt_embeds = args.c,
-                negative_prompt_embeds = args.uc,
-                generator = generator,
-                latents = args.init_latent,
-                force_starting_latent = force_starting_latent,
-                callback = callback_,
-            )
+        pipe_output = pipe(
+            prompt = prompt,
+            negative_prompt = negative_prompt, 
+            width = args.W, 
+            height = args.H,
+            num_inference_steps = n_steps,
+            guidance_scale = args.guidance_scale,
+            num_images_per_prompt = args.n_samples,
+            prompt_embeds = args.c,
+            negative_prompt_embeds = args.uc,
+            generator = generator,
+            #latents = args.init_latent,
+            #force_starting_latent = force_starting_latent,
+            #callback = callback_,
+        )
 
-        else:
-            pipe_output = pipe(
-                prompt = prompt,
-                negative_prompt = negative_prompt, 
-                width = args.W, 
-                height = args.H,
-                #image=args.init_image, 
-                #strength=1-args.init_image_strength, 
-                num_inference_steps = n_steps,
-                guidance_scale = args.guidance_scale,
-                num_images_per_prompt = args.n_samples,
-                prompt_embeds = args.c,
-                negative_prompt_embeds = args.uc,
-                generator = generator,
-                #latents = args.init_latent,
-                #force_starting_latent = force_starting_latent,
-                #callback = callback_,
-            )
-        
     pil_images = pipe_output.images
 
     try:
@@ -433,6 +423,8 @@ def run_upscaler(args_, imgs,
         max_n_pixels           = 1536**2, # max number of pixels to avoid OOM
     ):
     args = copy(args_)
+    # always upscale with SDXL-refiner by default:
+    args.ckpt = "stabilityai/stable-diffusion-xl-refiner-0.9"
 
     if args.c is not None:
         assert args.uc is not None, "Must provide negative prompt conditioning if providing positive prompt conditioning"

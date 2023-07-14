@@ -16,7 +16,7 @@ sys.path.append(LORA_DIFFUSION_PATH)
 import time
 import torch
 from safetensors.torch import safe_open, save_file
-from diffusers import DiffusionPipeline
+from diffusers import DiffusionPipeline, StableDiffusionXLImg2ImgPipeline
 from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline, StableDiffusionDepth2ImgPipeline
 #from diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion_eden import StableDiffusionEdenPipeline
 from diffusers.models import AutoencoderKL
@@ -86,23 +86,14 @@ def load_pipe(args):
             torch_dtype=torch.float16 if args.half_precision else torch.float32
         )
     else:
-        print(f"Creating new StableDiffusionEdenPipeline using {args.ckpt}")
+        print(f"Creating new DiffusionPipeline using {args.ckpt}")
 
-        if 0:
-            pipe = StableDiffusionEdenPipeline.from_pretrained(
-                location, 
-                #safety_checker=None, 
-                local_files_only=_local_files_only, 
-                torch_dtype=torch.float16 if args.half_precision else torch.float32, 
-                vae=AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse").half()
-            )
-        else:  #SDXL
-            pipe = DiffusionPipeline.from_pretrained(
-                location, 
-                #safety_checker=None, 
-                #local_files_only=_local_files_only, 
-                torch_dtype=torch.float16, use_safetensors=True, variant="fp16"
-            )
+        pipe = DiffusionPipeline.from_pretrained(
+            location, 
+            #safety_checker=None, 
+            #local_files_only=_local_files_only, 
+            torch_dtype=torch.float16, use_safetensors=True, variant="fp16"
+        )
 
     pipe.safety_checker = None
     pipe = pipe.to(_device)
@@ -175,8 +166,6 @@ same as the above, but specifically for img2img pipes (upscaler)
 """
 
 def load_upscaling_pipe(args):
-    # use SDXL-refiner as default upscaling model:
-    args.ckpt = "stabilityai/stable-diffusion-xl-refiner-0.9"
     global upscaling_pipe
     start_time = time.time()
 
@@ -185,11 +174,18 @@ def load_upscaling_pipe(args):
     else:
         load_path = args.ckpt
 
-    upscaling_pipe = DiffusionPipeline.from_pretrained(
-        load_path, 
-        local_files_only = _local_files_only, 
-        torch_dtype=torch.float16 if args.half_precision else torch.float32
-    )
+    try:
+        upscaling_pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
+            load_path, 
+            local_files_only = _local_files_only, 
+            torch_dtype=torch.float16 if args.half_precision else torch.float32
+        )
+    except:
+        upscaling_pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
+            load_path, 
+            local_files_only = _local_files_only, 
+            torch_dtype=torch.float16 if args.half_precision else torch.float32
+        )
 
     upscaling_pipe.unet.set_attn_processor(AttnProcessor2_0())
     upscaling_pipe = upscaling_pipe.to(_device)
@@ -197,7 +193,7 @@ def load_upscaling_pipe(args):
     # Reduces max memory footprint:
     #upscaling_pipe.vae.enable_tiling()
 
-    print(f"Created new upscaling pipe in {(time.time() - start_time):.2f} seconds")
+    print(f"Created new img2img pipe from {load_path} in {(time.time() - start_time):.2f} seconds")
     return upscaling_pipe
 
 def get_upscaling_pipe(args, force_reload = False):
