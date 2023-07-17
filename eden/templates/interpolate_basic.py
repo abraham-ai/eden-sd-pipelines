@@ -28,14 +28,14 @@ def lerp(
         text_input = interpolation_texts[0],
         interpolation_texts = interpolation_texts,
         interpolation_seeds = interpolation_seeds if interpolation_seeds else [random.randint(1, 1e8) for i in range(n)],
-        n_frames = 64*n,
-        guidance_scale = 7.5,
+        n_frames = 56*n,
+        guidance_scale = 8.0,
         loop = True,
         smooth = True,
-        latent_blending_skip_f = [0.25, 0.75],
+        latent_blending_skip_f = [0.2, 0.8],
         n_film = 0,
         fps = 12,
-        steps = 50,
+        steps = 60,
         sampler = "euler",
         seed = seed,
         W = 1024+512,
@@ -48,9 +48,10 @@ def lerp(
     args.save_phase_data = save_phase_data
 
     if debug: # overwrite some args to make things go FAST
-        args.W, args.H = 512, 512
-        args.steps = 25
-        args.n_frames = 8*n
+        args.W, args.H = 640, 640
+        args.steps = 40
+        args.n_frames = 72*n
+
 
     # run the interpolation and save each frame
     for frame, t_raw in make_interpolation(args):
@@ -84,9 +85,16 @@ def lerp(
 if __name__ == "__main__":
 
     outdir = "results"
-    n = 4
-    seed = int(time.time())
+    n = 3
 
-    seed_everything(seed)
-    interpolation_texts = random.sample(text_inputs, n)
-    lerp(interpolation_texts, outdir, seed=seed, save_distance_data=True, interpolation_seeds=None)
+    for i in range(4):
+        seed = int(time.time())
+
+        seed_everything(seed)
+        interpolation_texts = random.sample(text_inputs, n)
+
+        for txt in interpolation_texts:
+            print(txt)
+            print("-----------------------")
+
+        lerp(interpolation_texts, outdir, seed=seed, save_distance_data=True, interpolation_seeds=None)

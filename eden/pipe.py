@@ -90,7 +90,7 @@ def load_pipe(args):
 
         pipe = DiffusionPipeline.from_pretrained(
             location, 
-            #safety_checker=None, 
+            safety_checker=None, 
             #local_files_only=_local_files_only, 
             torch_dtype=torch.float16, use_safetensors=True, variant="fp16"
         )

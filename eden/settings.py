@@ -85,10 +85,13 @@ class StableDiffusionSettings:
     #init_image_inpaint_mode: str = None # ["mean_fill", "edge_pad", "cv2_telea", "cv2_ns"]
     init_sample: str = None
     init_latent: str = None
+    start_timestep: str = None # used to start at a specific timestep in the denoising loop (LatentBlending)
     
     # conditioning vectors:
     c: str = None   # force a specific prompt conditioning vector
     uc: str = None  # force a specific negative prompt conditioning vector
+    pc: str = None  # force 
+    puc: str = None
     pooled_prompt_embeds: str = None  # force a specific pooled prompt conditioning vector
     negative_pooled_prompt_embeds: str = None  # force a specific pooled negative prompt conditioning vector
 

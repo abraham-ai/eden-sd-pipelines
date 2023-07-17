@@ -1,11 +1,7 @@
 
+
+
 text_inputs = [
-    "a huge indeterminate color alien cube with a strange texture from nanotechnology, forgotten and lost in the forest, detailed digital art by greg rutkowski.",
-    "daguerreotype / glitch art / Glass Pixiv / kintsugi / filmic / Opalescent / Ambrotype / Sketchfab / Pixel sorting / hyperrealism / VRay /Kodak Ektar / parallax / rendered in octane / oil and charcoal on canvas / bas-relief / paper crumpled texture",
-    "shaggy fluffy monsters autumn pumpkins, detailed, concept art, low angle, high detail, warm lighting, volumetric, godrays, vivid, beautiful, trending on artstation, by jordan grimmer, huge scene, grass, art greg rutkowski",
-    "magepunk book library interior by eugene von guerard, ivan shishkin, dramatic lighting, concept art, trending on artstation",
-    "great city at the end of time floating in space, a sci-fi digital painting by Greg Rutkowski and James Gurney, trending on Artstation, eerily beautiful, highly detailed",
-    "concept art by jan urschel, cinematic shot, trending on artstation, high quality",
     "japanese style shrine on top of a misty mountain overgrown, hyper realistic, lush gnarly plants, 8 k, denoised, by greg rutkowski, tom bagshaw, james gurney cinematic lighting",
     "deep in a velvet pine forest at dusk, foggy, ground view, matte painting, stunning detail, 4k, hd, clean, full of detail, sharp focus, rule of thirds by Makoto Shinkai, thomas kinkade, Karol Bak, trending on artstation",
     "Hogwarts train by Tyler Edlin and Jean Delville and John Aktinson Grimshaw and Robert Hubert, german romanticism style, oil on canvas, cinematic lighting, vibrant, hdr, concept art, water reflections",
@@ -177,7 +173,6 @@ text_inputs = [
     "pretty women dodging a moving car, photorealistic, in the style of greg rutkowski, detailed face, full body",
     "a nosegay of roses, marigolds and a pigeon, by Rachel Ruysch, 1695",
     "fine artwork of a still life arrangement of flowering nasturtiums soft light coming from a window in a dark room, moody, beautiful classical style",
-    "biomechanical ivy composition, beautiful lighting, sharp + forest fractal veins, vegetal light, rim light, silver gold 8 k post - production",
     "A highly detailed matte painting of huge climbing wall  by Studio Ghibli, Makoto Shinkai, by Artgerm, by WLOP, by Greg Rutkowski, volumetric lighting, octane render, 4K resolution, trending on artstation, masterpiece",
     "cubism by greg rutkowski",
     "design only! ( ( ( ( ( 2 0 5 0 s retro future art cubist designs borders lines decorations space machine. muted colors. ) ) ) ) ) by jean - baptiste monge!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",
@@ -200,6 +195,21 @@ text_inputs = [
     "a twisted trending on art shards of sharp 5, raytracing photorealistic, digital painting, irrational fear the existential dread f 3 black glass lenses floats through futuristic illustrated visionary",
     "beautiful mannequin big leaves and coil of glass, facial hair petite nature lush floating bed of clouds post apocalyptic river bridge",
     "biomechanical ivy composition, beautiful lighting, sharp + forest fractal veins, vegetal light, rim light, silver gold 8 k post - production",
+]
+
+text_inputs = [
+    "breathtakingly beautiful ultrawide angle colour masterpiece of a creepy family by roger dean and greg hildebrandt and kilian eng and jean giraud and beeple, forest clearing, lake, reflection, symmetry, secret overgrown temple, mysterious person looking over shoulder, incredible sense of depth and perspective and clarity, arch, weird abstract, 8 k",
+    'dreamlike photo of floating bed of clouds above floor in a giant red marble room with windows opening to eternity by andrzej sykut by lee madgewick, photorealistic, octane render, recursive flowing, cascading, multiverse labyrinthine, optical illusion, impossible angles',
+    "elegant minimalist metal wire art of symmetrical and expressive female facial features and silhouette ",
+    "friendly dryad tree creature, in a forest, golden hour, professional photography, mild depth of field, cinematic lighting, 8 k ",
+    "magic stone portal in the forest, cinematic lighting, dramatic, octane render, long lens, shallow depth of field, bokeh, anamorphic lens flare, 8k, hyper detailed",
+    'scary fairy tale mystical forest twisted creepy trees magical forest landscape artwork trees near the path amazing nature, surreal, dreamlike, lucid dream, very detailed, perfect lighting, perfect composition, 4 k, artgerm, derek zabrocki, greg rutkowski',
+    "the black lioness made of tar, bathing in the bathtub filled with tar, dripping tar, drooling goo, sticky black goo, photography, dslr, reflections, black goo, rim lighting, modern bathroom, hyper realistic, 8k resolution, unreal engine 5, raytracing",
+    "a great, twisted tree growing in an abandoned brutalist bunker, in the round, skylight with light shining down, snow falling through skylight, photorealistic",
+    "a huge woman head trapped in stone in an epic landscape, cinematic light, unreal engine, trending on artstation",
+    "a twisted trending on art shards of sharp 5, raytracing photorealistic, digital painting, irrational fear the existential dread f 3 black glass lenses floats through futuristic illustrated visionary",
+    "barlow, bao volumetric cinematic lighting, 8 k smooth puffy sculptural big leaves and pham, donato giancola, painting, aesthetic, smooth, bed above floor",
+    "beautiful mannequin sculpted out of black glass by billelis + lit with geometric neon dripping gold + forest in background facing a doorway opening with neon pink geometric fractal light + flowering bonsai trees, transcendent, clean linework, dramatic, finely detailed, award winning, 4 k, trending on artstation, photorealistic, volumetric lighting, octane render",
 ]
 
 

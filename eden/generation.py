@@ -72,30 +72,32 @@ def generate(
         #args.W, args.H = match_aspect_ratio(args.W * args.H, args.init_image)
         args.init_image = args.init_image.resize((args.W, args.H), Image.LANCZOS)
 
-    force_starting_latent = None
-    if args.interpolator is not None:
-        # Create a new trajectory for the latent tracker:
-        args.interpolator.latent_tracker.create_new_denoising_trajectory(args)
-        force_starting_latent = args.interpolator.latent_tracker.force_starting_latent
-    
-    # adjust min n_steps:
-    #n_steps = max(args.steps, int(args.min_steps/(1-args.init_image_strength)))
-    #print(f"Adjusted n_steps from {args.steps} to {n_steps} to match min_steps {args.min_steps} and init_image_strength {args.init_image_strength}")
-    n_steps = args.steps
-
     # Load model
-    if args.img2img:
+    if args.img2img and 0:
         if args.ckpt == "stabilityai/stable-diffusion-xl-base-0.9":
             args.ckpt = "stabilityai/stable-diffusion-xl-refiner-0.9"
         pipe = eden_pipe.get_upscaling_pipe(args)
     else:
         pipe = eden_pipe.get_pipe(args)
 
+    force_starting_latent = None
+    if args.interpolator is not None:
+        # Create a new trajectory for the latent tracker:
+        args.interpolator.latent_tracker.create_new_denoising_trajectory(args, pipe)
+        force_starting_latent = args.interpolator.latent_tracker.force_starting_latent
+    
+    # adjust min n_steps:
+    #n_steps = max(args.steps, int(args.min_steps/(1-args.init_image_strength)))
+    #print(f"Adjusted n_steps from {args.steps} to {n_steps} to match min_steps {args.min_steps} and init_image_strength {args.init_image_strength}")
+
+
+
     # if init image strength == 1, just return the initial image
-    if (args.init_image_strength == 1.0 or (int(n_steps*(1-args.init_image_strength)) < 1)) and args.init_image:
+    if (args.init_image_strength == 1.0 or (int(args.steps*(1-args.init_image_strength)) < 1)) and args.init_image:
         latent = pil_img_to_latent(args.init_image, args, _device, pipe)
         if args.interpolator is not None:
-            args.interpolator.latent_tracker.add_latent(latent, init_image_strength = 1.0)
+            i,t=0,1000
+            args.interpolator.latent_tracker.add_latent(i, t, latent, init_image_strength = 1.0)
 
         pt_images = T.ToTensor()(args.init_image).unsqueeze(0).to(_device)
         pil_images = [args.init_image] * args.n_samples
@@ -133,7 +135,7 @@ def generate(
             negative_prompt = negative_prompt, 
             image=args.init_image, 
             strength=1-args.init_image_strength, 
-            num_inference_steps = n_steps,
+            num_inference_steps = args.steps,
             guidance_scale = args.guidance_scale,
             num_images_per_prompt = args.n_samples,
             prompt_embeds = args.c,
@@ -142,16 +144,19 @@ def generate(
             negative_pooled_prompt_embeds= args.puc,
             generator = generator,
             #latents = args.init_latent,
-            #force_starting_latent = force_starting_latent,
             callback = callback_,
         )
     else:
+
+        if args.init_latent is not None:
+            args.init_latent = args.init_latent.half()
+
         pipe_output = pipe(
             prompt = prompt,
             negative_prompt = negative_prompt, 
             width = args.W, 
             height = args.H,
-            num_inference_steps = n_steps,
+            num_inference_steps = args.steps,
             guidance_scale = args.guidance_scale,
             num_images_per_prompt = args.n_samples,
             prompt_embeds = args.c,
@@ -159,22 +164,13 @@ def generate(
             pooled_prompt_embeds = args.pc,
             negative_pooled_prompt_embeds= args.puc,
             generator = generator,
-            #latents = args.init_latent,
-            #force_starting_latent = force_starting_latent,
+            start_timestep = args.start_timestep,
+            latents = args.init_latent,
             callback = callback_,
         )
 
     pil_images = pipe_output.images
-
-    try:
-        final_latents = pipe_output.final_latents
-    except:
-        final_latents = None
-        
     pt_images = [None]*len(pil_images)
-
-    if args.interpolator is not None and final_latents is not None:  # add the final denoised latent to the tracker:
-        args.interpolator.latent_tracker.add_latent(final_latents, init_image_strength = args.init_image_strength)
 
     if args.upscale_f != 1.0:
         print(f"Upscaling with f = {args.upscale_f:.3f}...")
@@ -243,8 +239,10 @@ def make_interpolation(args, force_timepoints = None):
         args.interpolation_seeds.append(args.interpolation_seeds[0])
         args.interpolation_init_images.append(args.interpolation_init_images[0])
 
+    # Load model
     global pipe
     pipe = eden_pipe.get_pipe(args)
+
     #model = update_aesthetic_gradient_settings(model, args)
 
     # if there are init images, change width/height to their average
@@ -340,13 +338,14 @@ def make_interpolation(args, force_timepoints = None):
                 args.init_image, args.init_image_strength = blend_inits(init_img1, init_img2, t, args, real2real = is_real2real)
                 args.init_latent = None
             else: # perform Latent-Blending initialization:
-                args.init_latent, args.init_image, args.init_image_strength = create_init_latent(args, t, init_img1, init_img2, _device, pipe, real2real = is_real2real)
+                print("Creating blended init latent...")
+                args.init_latent, args.init_image, args.init_image_strength, args.start_timestep = create_init_latent(args, t, init_img1, init_img2, _device, pipe, real2real = is_real2real)
 
         else: #only use the raw init_latent noise from interpolator (using the input seeds)
-            #print("Using raw init noise (strenght 0.0)...")
             args.init_latent = init_latent
             args.init_image = None
             args.init_image_strength = 0.0
+            args.start_timestep = None
 
         if args.planner is not None: # When audio modulation is active:
             args = args.planner.adjust_args(args, t_raw, force_timepoints=force_timepoints)
@@ -402,7 +401,7 @@ def make_callback(
 ):
     def diffusers_callback(i, t, latents):
         if latent_tracker is not None:
-            latent_tracker.add_latent(latents)
+            latent_tracker.add_latent(i, t, latents)
               
     return diffusers_callback
 

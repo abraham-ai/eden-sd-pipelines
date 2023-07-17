@@ -34,6 +34,7 @@ def real2real(
     if args is None:
         args = StableDiffusionSettings(
             #watermark_path = "../assets/eden_logo.png",
+            #ckpt = "stabilityai/stable-diffusion-xl-refiner-0.9",
             text_input = "real2real",  # text_input is also the title, but has no effect on interpolations
             interpolation_seeds = [random.randint(1, 1e8) for _ in range(n)],
             #interpolation_texts = None,
