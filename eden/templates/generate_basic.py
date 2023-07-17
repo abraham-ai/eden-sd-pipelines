@@ -41,13 +41,13 @@ def generate_basic(
         sampler = "euler",
         steps = 30,
         guidance_scale = 6,
-        upscale_f = 1.5,
+        upscale_f = 1.0,
         text_input = text_input,
         seed = seed,
         n_samples = 1,
         lora_path = None,
-        #init_image_data = init_image_data,
-        #init_image_strength = 0.25,
+        #init_image_data = "/home/xander/Projects/cog/eden-sd-pipelines/eden/assets/huemin_init.jpeg",
+        #init_image_strength = 0.15,
     )
     
     name = f'{prefix}{args.text_input[:40]}_{args.seed}_{int(time.time())}{suffix}'

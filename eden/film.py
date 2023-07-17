@@ -15,7 +15,7 @@ sys.path.append(FILM_PATH)
 import tensorflow as tf
 
 # avoid tf from allocating all gpu memory:
-tf_memory_limit = 1024 * 6 # 12GB
+tf_memory_limit = 1024 * 20
 gpus = tf.config.experimental.list_physical_devices('GPU')
 tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
 tf.config.experimental.set_memory_growth(gpus[0], True)  # Enable memory growth

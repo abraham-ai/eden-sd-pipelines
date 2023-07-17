@@ -263,7 +263,7 @@ class Interpolator():
         return best_mse, (best_new_t, best_estimated_perceptual_density_curve)
 
 
-    def find_next_t(self, max_density_diff = 7, verbose = 1):
+    def find_next_t(self, max_density_diff = 5, verbose = 1):
         """
         --> Use the frame buffer to find the next t value to use for interpolation.
         This implements an interative smoothing algorithm that tries to find the best t value to render the next frame,
@@ -275,7 +275,7 @@ class Interpolator():
         """
 
         # Determines how close the closest frame can be before trying another location to split
-        t_min_treshold = 0.1 / (max_density_diff * self.n_frames_between_two_prompts)
+        t_min_treshold = 0.2 / (max_density_diff * self.n_frames_between_two_prompts)
         
         if self.latent_tracker.get_n_frames() == 0: # Render start
             t_midpoint = 0

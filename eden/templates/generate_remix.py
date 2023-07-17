@@ -22,14 +22,14 @@ def remix(init_image_data, outdir,
     args = StableDiffusionSettings(
         mode = "remix",
         clip_interrogator_mode = "fast",
-        W = 1024,
-        H = 1024,
+        W = 768,
+        H = 768,
         sampler = "euler",
         steps = 30,
         guidance_scale = 7,
         seed = seed,
-        n_samples = 2,
-        upscale_f = 1.5,
+        n_samples = 1,
+        upscale_f = 1.0,
         init_image_strength = 0.175,
         init_image_data = init_image_data
     )

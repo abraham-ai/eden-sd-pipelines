@@ -452,15 +452,11 @@ def preprocess(image):
         image = torch.cat(image, dim=0)
     return image
 
-
-def pil_img_to_latent(img, args, device, pipe):
+def pil_img_to_latent(img, args, device, pipe, noise_seed = 0):
     img = preprocess(img)
     img = img.to(device=device, dtype=pipe.vae.dtype)
     latent = pipe.vae.encode(img).latent_dist
-    try:
-        latent = latent.sample(pipe.generator)
-    except:
-        latent = latent.sample()
+    latent = latent.sample(torch.Generator(device=device).manual_seed(noise_seed))
     latent = pipe.vae.config.scaling_factor * latent
     return latent
 

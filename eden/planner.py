@@ -399,6 +399,7 @@ def create_init_latent(args, t, init_img0, init_img1, device, pipe,
     init_image, init_latent, timestep  = None, None, None
     
     if len(args.interpolator.latent_tracker.t_raws) < args.n_anchor_imgs or (args.latent_blending_skip_f is None):
+        print("Simply alpha-blending the keyframe latents..")
         # simply alpha-blend the keyframe latents using t:
         init_latent, init_image_strength = blend_inits(key_latent0, key_latent1, t, args, real2real = real2real)
         args.interpolator.latent_tracker.current_init_image_strength = init_image_strength
@@ -407,6 +408,12 @@ def create_init_latent(args, t, init_img0, init_img1, device, pipe,
         if init_image_strength == 1: # first or last frame of the interpolation
             init_latent = None
             init_image = init_img0 if t < 0.5 else init_img1
+
+    elif (len(args.interpolator.latent_tracker.frame_buffer.ts) < args.n_anchor_imgs and real2real) and 0:
+        print("Pixel blending...")
+        # apply linear blending of keyframe images in pixel space and then encode
+        args.init_image, args.init_image_strength = blend_inits(init_img1, init_img2, t, args, real2real = real2real)
+        args.init_latent = None
 
     else: # Apply Latent-Blending trick:
         alpha_blended_init_latent, init_image_strength = blend_inits(key_latent0, key_latent1, t, args, real2real = real2real)
@@ -420,32 +427,25 @@ def create_init_latent(args, t, init_img0, init_img1, device, pipe,
         # We want a gradual increase of skip_f from min_v when current_lpips_distance >= max_d to max_v when current_lpips_distance < min_d
         min_skip_f, max_skip_f = args.latent_blending_skip_f[0], args.latent_blending_skip_f[1]
         # hardcoded lpips_perceptual distances corresponding to min_v and max_v latent_skip_f values:
-        if args.interpolator.n_frames_between_two_prompts > 64 and 0: # TODO make this autotuning
-            max_d, min_d = 0.4, 0.075 # long renders (loads of frames)
-        else:
-            max_d, min_d = 0.6, 0.1 # normal renders
+        max_d, min_d = 0.6, 0.1 # normal renders
         latent_tracker.latent_blending_skip_f = min_skip_f + (max_skip_f - min_skip_f) * (max_d - current_lpips_distance) / (max_d - min_d)
         latent_tracker.latent_blending_skip_f = np.clip(latent_tracker.latent_blending_skip_f, min_skip_f, max_skip_f)
-
         init_image_strength = init_image_strength * (1.0 - latent_tracker.latent_blending_skip_f) + latent_tracker.latent_blending_skip_f
         
-        # adjust the noise level of the alpha-blended init_latent:
-        # alpha_blended_init_latent = latent_tracker.adjust_denoised_latent_noise_level(alpha_blended_init_latent, init_image_strength)
-        
         # grab the nearest neighbouring latents, at the same timepoint in the diffusion process:
-        #print(f"Grabbing nearest neighbours (skip_f: {latent_tracker.latent_blending_skip_f:.3f}) at init_image_strength: {init_image_strength:.3f}")
         latent_left, latent_right, t_raw_left, t_raw_right, timestep = latent_tracker.get_neighbouring_latents(args, adjusted_init_image_strength = init_image_strength)
 
         # linearly interpolate between the neighbouring latents for create the new init_latent:
-        mixing_f = (t - t_raw_left%1) / (t_raw_right - t_raw_left)
+        mixing_f    = (t - t_raw_left%1) / (t_raw_right - t_raw_left)
         init_latent = (1-mixing_f) * latent_left + mixing_f * latent_right
 
         # Correct the std of the combined latent:
         target_std = (1-mixing_f) * latent_left.std() + mixing_f * latent_right.std()
-        init_latent = target_std * init_latent / init_latent.std()
+        if init_latent.std() > 0:
+            init_latent = target_std * init_latent / init_latent.std()
 
-        if init_latent is not None: # the diffusers pipe auto-scales input latents, so we have to adjust for that
-            init_latent = init_latent / pipe.scheduler.init_noise_sigma
+        #if init_latent is not None: # the diffusers pipe auto-scales input latents, so we have to adjust for that
+        #    init_latent = init_latent / pipe.scheduler.init_noise_sigma
 
     return init_latent, init_image, init_image_strength, timestep
 
@@ -461,8 +461,7 @@ class LatentTracker():
         self.t_raws = []
         self.pipe = pipe
         self.args = args
-        self.force_starting_latent = None
-        self.device = "cuda"
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.steps = args.steps
         self.latent_blending_skip_f = 0.0
         self.frame_buffer = FrameBuffer(smooth, args)
@@ -478,7 +477,6 @@ class LatentTracker():
             self.save_to_disk()
             self.phase_data = None
 
-        self.force_starting_latent = None
         max_t_raw = np.max(self.t_raws)
         last_frame_latents = self.latents[max_t_raw].copy()
         last_frame_timesteps = self.timesteps[max_t_raw].copy()
@@ -503,30 +501,12 @@ class LatentTracker():
         pipe.scheduler.set_timesteps(args.steps, device=self.device)
         self.all_timesteps = pipe.scheduler.timesteps
 
-    def print_latent_history(self, std_ids = None):
-        std_ids = [0,1,2,-2,-1]
-        stds = []
-        print('---------------------')
-        print("t_raws:")
-        print(np.round(np.array(self.t_raws), 3))
-        for t_raw in self.t_raws:
-            std = np.array([latent.std().item() for latent in self.latents[t_raw]])
-            if std_ids is not None:
-                std = std[std_ids]
-            if len(std) > 0:
-                stds.append(np.round(std,3))
-        if len(stds) > 0:
-            stds = np.stack(stds).T
-            print(stds.shape)
-            print(stds)
+    def t_to_index(self, t):
+        return (self.all_timesteps == t).nonzero(as_tuple=True)[0]
 
     def add_frame(self, args, img_t, t, t_raw):
         self.frame_buffer.add_frame(img_t, t)
         self.add_to_phase_data(args, t_raw)
-
-    def t_to_index(self, t):
-        return (self.all_timesteps == t).nonzero(as_tuple=True)[0]
-        #return np.where(self.all_timesteps == t)
 
     def add_latent(self, i, t, latent, init_image_strength = None, verbose = 0):
         # find index of t in self.all_timesteps:
@@ -551,17 +531,20 @@ class LatentTracker():
 
         t_raw_left, t_raw_right = self.get_neighbouring_ts(args.t_raw)
 
-        # Now, let's compute the correct latent index into the denoising trajectory:
+        # Compute the correct latent index into the denoising trajectory:
         current_trajectory_index = self.steps - int((1.0 - self.current_init_image_strength) * self.steps)
 
-        if 0:
-            for i, timestep in enumerate(self.all_timesteps):
-                sigma_index  = (self.pipe.scheduler.timesteps == timestep).nonzero().item()
-                sigma = self.pipe.scheduler.sigmas[sigma_index].item()
-                print(f"i:{i}, timestep:{timestep}, sigma:{sigma:.3f}")
+        if 0: # Make sure to always skip ahead to an existing latent:
+            # Compute the first index in self.latents[t_raw_left] that is not None:
+            t_raw_left_index = np.where(np.array(self.latents[t_raw_left]) != None)[0][0]
+            # Compute the first index in self.latents[t_raw_right] that is not None:
+            t_raw_right_index = np.where(np.array(self.latents[t_raw_right]) != None)[0][0]
+            min_index = max(t_raw_left_index, t_raw_right_index)
+            # Make sure we always blend from existing latents:
+            current_trajectory_index = max(current_trajectory_index, min_index)
 
         # The target timestep to get latents for from the buffer:
-        target_timestep = self.all_timesteps[current_trajectory_index]
+        target_timestep          = self.all_timesteps[current_trajectory_index]
         adjusted_target_timestep = self.all_timesteps[current_trajectory_index+1]
         
         # if available, get latents from the neighbouring frames denoising stack:
@@ -571,7 +554,7 @@ class LatentTracker():
         def construct_noised_latent(latents, adjusted_target_timestep, target_sigma = None):
             print("Constructing noised latent... (this shouldn't happen to often... otherwise ask Xander)")
             # given the current denoising stack of latents for this frame,
-            # construct a more noised version of it after timestep = adjusted_target_timestep
+            # construct a more noised version of it as it would be after timestep = adjusted_target_timestep
 
             most_noisy_index  = np.max([i for i, latent in enumerate(latents) if latent is not None])
             most_noisy_latent = latents[most_noisy_index]
@@ -586,8 +569,12 @@ class LatentTracker():
             # Take the most noisy latent and add noise to it:
             noised_latent = most_noisy_latent + self.fixed_latent_noise * np.sqrt(target_sigma**2 - most_noisy_latent.std()**2)
 
+            # This can probably be improved by using something like:
+            #noised_latent = self.pipe.scheduler.add_noise(most_noisy_latent, self.fixed_latent_noise, some_timestep)
+
             # Precisely tune the std:
-            noised_latent *= target_sigma / noised_latent.std()
+            if noised_latent.std() > 0:
+                noised_latent *= target_sigma / noised_latent.std()
 
             print(f"Target sigma: {target_sigma:.2f}, Actual sigma: {noised_latent.std():.2f}")
 

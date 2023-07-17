@@ -78,22 +78,22 @@ def load_pipe(args):
     else:
         location = args.ckpt
         
-    if args.mode == "depth2img":
-        print(f"Creating new StableDiffusionDepth2ImgPipeline..")
-        pipe = StableDiffusionDepth2ImgPipeline.from_pretrained(
-            "stabilityai/stable-diffusion-2-depth", 
-            safety_checker=None, 
-            torch_dtype=torch.float16 if args.half_precision else torch.float32
-        )
-    else:
-        print(f"Creating new DiffusionPipeline using {args.ckpt}")
-
-        pipe = DiffusionPipeline.from_pretrained(
-            location, 
-            safety_checker=None, 
-            #local_files_only=_local_files_only, 
-            torch_dtype=torch.float16, use_safetensors=True, variant="fp16"
-        )
+    print(f"Creating new StableDiffusionXLImg2ImgPipeline using {args.ckpt}")
+    
+    pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
+        location, 
+        safety_checker=None, 
+        #local_files_only=_local_files_only, 
+        torch_dtype=torch.float16, use_safetensors=True, variant="fp16"
+    )
+    
+    #print(f"Creating new DiffusionPipeline using {args.ckpt}")
+    #pipe = DiffusionPipeline.from_pretrained(
+    #    location, 
+    #    safety_checker=None, 
+    #    #local_files_only=_local_files_only, 
+    #    torch_dtype=torch.float16, use_safetensors=True, variant="fp16"
+    #)
 
     pipe.safety_checker = None
     pipe = pipe.to(_device)
@@ -189,9 +189,6 @@ def load_upscaling_pipe(args):
 
     upscaling_pipe.unet.set_attn_processor(AttnProcessor2_0())
     upscaling_pipe = upscaling_pipe.to(_device)
-
-    # Reduces max memory footprint:
-    #upscaling_pipe.vae.enable_tiling()
 
     print(f"Created new img2img pipe from {load_path} in {(time.time() - start_time):.2f} seconds")
     return upscaling_pipe

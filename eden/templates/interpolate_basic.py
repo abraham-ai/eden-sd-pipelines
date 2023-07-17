@@ -1,4 +1,4 @@
-import os, random, sys, time
+import os, random, sys, time, random
 sys.path.append('..')
 
 from settings import StableDiffusionSettings
@@ -15,12 +15,12 @@ def lerp(
     name_str = "",
     save_phase_data = False,     # save condition vectors and scale for each frame (used for later upscaling)
     save_distance_data = False,  # save distance plots to disk
-    debug = 0):
+    debug = 1):
 
     seed_everything(seed)
     n = len(interpolation_texts)
     
-    name = f"prompt2prompt_{int(time.time()*100)}_seed_{seed}_{name_str}"
+    name = f"prompt2prompt_{int(time.time())}_seed_{seed}_{name_str}"
     frames_dir = os.path.join(outdir, name)
     os.makedirs(frames_dir, exist_ok=True)
     
@@ -28,17 +28,18 @@ def lerp(
         text_input = interpolation_texts[0],
         interpolation_texts = interpolation_texts,
         interpolation_seeds = interpolation_seeds if interpolation_seeds else [random.randint(1, 1e8) for i in range(n)],
-        n_frames = 56*n,
-        guidance_scale = 8.0,
+        n_frames = 48*n,
+        guidance_scale = 7.5,
         loop = True,
         smooth = True,
         latent_blending_skip_f = [0.2, 0.8],
+        n_anchor_imgs = 3,
         n_film = 0,
         fps = 12,
-        steps = 60,
+        steps = 80,
         sampler = "euler",
         seed = seed,
-        W = 1024+512,
+        W = 1024+640,
         H = 1024,
     )
 
@@ -49,10 +50,9 @@ def lerp(
 
     if debug: # overwrite some args to make things go FAST
         args.W, args.H = 640, 640
-        args.steps = 40
+        args.steps = 30
         args.n_frames = 72*n
-
-
+    
     # run the interpolation and save each frame
     for frame, t_raw in make_interpolation(args):
         frame.save(os.path.join(frames_dir, "frame_%0.16f.jpg"%t_raw), quality=95)
@@ -85,10 +85,11 @@ def lerp(
 if __name__ == "__main__":
 
     outdir = "results"
-    n = 3
+    n = 4
 
-    for i in range(4):
+    for i in range(6):
         seed = int(time.time())
+        seed = 4
 
         seed_everything(seed)
         interpolation_texts = random.sample(text_inputs, n)

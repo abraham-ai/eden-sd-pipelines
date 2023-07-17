@@ -60,43 +60,30 @@ def generate(
     args.W = round_to_nearest_multiple(args.W, 64)
     args.H = round_to_nearest_multiple(args.H, 64)
 
-    args.img2img = False
-    if (args.init_image is not None) and args.init_image_strength > 0:
-        args.img2img = True
-
     # Load init image
     if args.init_image_data:
         args.init_image = load_img(args.init_image_data, 'RGB')
 
     if args.init_image is not None:
-        #args.W, args.H = match_aspect_ratio(args.W * args.H, args.init_image)
+        #args.W, args.H  = match_aspect_ratio(args.W * args.H, args.init_image)
         args.init_image = args.init_image.resize((args.W, args.H), Image.LANCZOS)
 
     # Load model
-    if args.img2img and 0:
-        if args.ckpt == "stabilityai/stable-diffusion-xl-base-0.9":
-            args.ckpt = "stabilityai/stable-diffusion-xl-refiner-0.9"
-        pipe = eden_pipe.get_upscaling_pipe(args)
-    else:
-        pipe = eden_pipe.get_pipe(args)
+    global pipe
+    pipe = eden_pipe.get_pipe(args)
 
-    force_starting_latent = None
     if args.interpolator is not None:
-        # Create a new trajectory for the latent tracker:
         args.interpolator.latent_tracker.create_new_denoising_trajectory(args, pipe)
-        force_starting_latent = args.interpolator.latent_tracker.force_starting_latent
     
     # adjust min n_steps:
     #n_steps = max(args.steps, int(args.min_steps/(1-args.init_image_strength)))
     #print(f"Adjusted n_steps from {args.steps} to {n_steps} to match min_steps {args.min_steps} and init_image_strength {args.init_image_strength}")
 
-
-
     # if init image strength == 1, just return the initial image
     if (args.init_image_strength == 1.0 or (int(args.steps*(1-args.init_image_strength)) < 1)) and args.init_image:
         latent = pil_img_to_latent(args.init_image, args, _device, pipe)
         if args.interpolator is not None:
-            i,t=0,1000
+            i,t=0,1
             args.interpolator.latent_tracker.add_latent(i, t, latent, init_image_strength = 1.0)
 
         pt_images = T.ToTensor()(args.init_image).unsqueeze(0).to(_device)
@@ -129,12 +116,39 @@ def generate(
         negative_prompt = [negative_prompt] * args.n_samples
         args.n_samples = 1
 
-    if args.img2img:
+    if args.init_latent is not None:
+        args.init_latent = args.init_latent.half()
+
+    if 1:  # run img2img pipeline
+
+        denoising_start = None
+        if (args.init_image is None) and (args.init_latent is not None):
+            #assert args.start_timestep is not None
+            print("Passing raw init_latent to img2img pipeline as image")
+            #args.init_image = args.init_latent * pipe.scheduler.init_noise_sigma
+            args.init_image = args.init_latent
+
+            if 1:
+                denoising_start = 0.0
+                args.init_image_strength = 0.0
+            else: # TODO, this should also work and requires no modification to diffusers img2img pipe
+                args.start_timestep = None
+                denoising_start = args.init_image_strength
+
+        elif (args.init_image is None) and (args.init_latent is None):
+            print("Generating image from scratch using pure, random noise")
+            shape = (1, pipe.unet.config.in_channels, args.H // pipe.vae_scale_factor, args.W // pipe.vae_scale_factor)
+            args.init_image = torch.randn(shape, generator=generator, device=_device)
+        elif (args.init_image is not None):
+            print("Passing init_image to img2img pipeline as image")
+
         pipe_output = pipe(
             prompt = prompt,
             negative_prompt = negative_prompt, 
-            image=args.init_image, 
+            image = args.init_image, 
             strength=1-args.init_image_strength, 
+            denoising_start = denoising_start,
+            start_timestep = args.start_timestep,
             num_inference_steps = args.steps,
             guidance_scale = args.guidance_scale,
             num_images_per_prompt = args.n_samples,
@@ -143,14 +157,10 @@ def generate(
             pooled_prompt_embeds = args.pc,
             negative_pooled_prompt_embeds= args.puc,
             generator = generator,
-            #latents = args.init_latent,
+            #latents = args.init_latent, # latents is implemented but not actually used in diffusers img2img pipe...
             callback = callback_,
         )
-    else:
-
-        if args.init_latent is not None:
-            args.init_latent = args.init_latent.half()
-
+    else: # run txt2img pipeline
         pipe_output = pipe(
             prompt = prompt,
             negative_prompt = negative_prompt, 
@@ -168,6 +178,7 @@ def generate(
             latents = args.init_latent,
             callback = callback_,
         )
+
 
     pil_images = pipe_output.images
     pt_images = [None]*len(pil_images)
@@ -239,12 +250,6 @@ def make_interpolation(args, force_timepoints = None):
         args.interpolation_seeds.append(args.interpolation_seeds[0])
         args.interpolation_init_images.append(args.interpolation_init_images[0])
 
-    # Load model
-    global pipe
-    pipe = eden_pipe.get_pipe(args)
-
-    #model = update_aesthetic_gradient_settings(model, args)
-
     # if there are init images, change width/height to their average
     interpolation_init_images = None
     if args.interpolation_init_images and all(args.interpolation_init_images):
@@ -265,12 +270,14 @@ def make_interpolation(args, force_timepoints = None):
                         print(f"Generated prompt for init_img_{jj}: {init_img_prompt}")
                         args.interpolation_texts[jj] = init_img_prompt
 
-            # We're in Real2Real mode here --> overwrite args.aesthetic_target with the interpolation_init_images
-            # This activates aesthetic gradient finetuning of the individual prompt conditioning vectors on each single init_image:
-            #args.aesthetic_target = [[img] for img in interpolation_init_images]
-
     else:
         args.use_init = False
+
+    real2real = False if interpolation_init_images is None else True
+
+    # Load model
+    global pipe
+    pipe = eden_pipe.get_pipe(args)
 
     # Release CLIP memory:
     del_clip_interrogator_models()
@@ -286,9 +293,6 @@ def make_interpolation(args, force_timepoints = None):
         scales=[args.guidance_scale for _ in args.interpolation_texts],
         lora_paths=args.lora_paths,
     )
-
-    #args.n_anchor_imgs = max(3, int(args.anchor_img_fraction * args.interpolator.n_frames_between_two_prompts))
-    print("Using", args.n_anchor_imgs, "anchor images per prompt pair")
 
     n_frames = len(args.interpolator.ts)
     if force_timepoints is not None:
@@ -322,27 +326,27 @@ def make_interpolation(args, force_timepoints = None):
                 print("Switching to lora path", active_lora_path)
                 args.lora_path = active_lora_path
 
-        if 1 and (args.interpolation_init_images and all(args.interpolation_init_images) or len(args.interpolator.latent_tracker.frame_buffer.ts) >= args.n_anchor_imgs):
 
-            if interpolation_init_images is None: # lerping mode (no init imgs)
-                is_real2real = False
+        #################################################################################################################################################################
+        #################################################################################################################################################################
+        #################################################################################################################################################################
+        #################################################################################################################################################################
+
+
+        if ((args.interpolation_init_images and all(args.interpolation_init_images) or len(args.interpolator.latent_tracker.frame_buffer.ts) >= args.n_anchor_imgs)):
+
+            if not real2real: # lerping mode (no real init imgs, so use the generated keyframes)
                 init_img1, init_img2 = args.interpolator.latent_tracker.frame_buffer.get_current_keyframe_imgs()
                 init_img1, init_img2 = sample_to_pil(init_img1), sample_to_pil(init_img2)
             else: # real2real mode
-                is_real2real = True
                 init_img1, init_img2 = interpolation_init_images[return_index], interpolation_init_images[return_index + 1]
             
-            if len(args.interpolator.latent_tracker.frame_buffer.ts) < args.n_anchor_imgs and is_real2real and 0:
-                print("Pixel blending...")
-                # apply linear blending of keyframe images in pixel space and then encode
-                args.init_image, args.init_image_strength = blend_inits(init_img1, init_img2, t, args, real2real = is_real2real)
-                args.init_latent = None
-            else: # perform Latent-Blending initialization:
-                print("Creating blended init latent...")
-                args.init_latent, args.init_image, args.init_image_strength, args.start_timestep = create_init_latent(args, t, init_img1, init_img2, _device, pipe, real2real = is_real2real)
+            args.init_latent, args.init_image, args.init_image_strength, args.start_timestep = create_init_latent(args, t, init_img1, init_img2, _device, pipe, real2real = real2real)
+            args.init_image_strength = 0.0
 
-        else: #only use the raw init_latent noise from interpolator (using the input seeds)
-            args.init_latent = init_latent
+        else: # anchor_frames for lerp: only use the raw init_latent noise from interpolator (using the input seeds)
+            pipe.scheduler.set_timesteps(args.steps, device=_device)
+            args.init_latent = init_latent * pipe.scheduler.init_noise_sigma
             args.init_image = None
             args.init_image_strength = 0.0
             args.start_timestep = None
@@ -368,10 +372,8 @@ def make_interpolation(args, force_timepoints = None):
     args.interpolator.latent_tracker.reset_buffer()
     #print_gpu_info(args, "end of make_interpolation()")
 
-def make_images(args):
-    #print_gpu_info(args, "start of make_images()")
+def make_images(args, enable_random_lr_flipping = True):
     if args.mode == "remix":
-        enable_random_lr_flipping = True  # randomly flip the init img for remixing?
 
         if args.init_image_data:
             args.init_image = load_img(args.init_image_data, 'RGB')
@@ -382,16 +384,13 @@ def make_images(args):
             args.init_image = args.init_image.transpose(Image.FLIP_LEFT_RIGHT)
 
         args.W, args.H = match_aspect_ratio(args.W * args.H, args.init_image)
-        args.aesthetic_target = [args.init_image]
         args.text_input = clip_interrogate(args.ckpt, args.init_image, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
 
         del_clip_interrogator_models()
 
     assert args.text_input is not None, "No text input provided!"
 
-    #pipe = update_aesthetic_gradient_settings(pipe, args)
     _, images_pil = generate(args)
-    #print_gpu_info(args, "end of make_images()")
     return images_pil
 
 
@@ -412,8 +411,6 @@ def run_upscaler(args_, imgs,
         max_n_pixels           = 1536**2, # max number of pixels to avoid OOM
     ):
     args = copy(args_)
-    # always upscale with SDXL-refiner by default:
-    args.ckpt = "stabilityai/stable-diffusion-xl-refiner-0.9"
 
     if args.c is not None:
         assert args.uc is not None, "Must provide negative prompt conditioning if providing positive prompt conditioning"
@@ -434,10 +431,13 @@ def run_upscaler(args_, imgs,
 
     x_samples_upscaled, x_images_upscaled = [], []
 
+    # TODO: maybe clear our the existing pipe to avoid OOM?
+
     # Load the upscaling model:
     global upscaling_pipe
+    # always upscale with SDXL-refiner by default:
+    args.ckpt = "stabilityai/stable-diffusion-xl-refiner-0.9"
     upscaling_pipe = eden_pipe.get_upscaling_pipe(args)
-    upscaling_pipe.safety_checker = None
 
     # Avoid doing too little steps when init_image_strength is very high:
     upscale_steps = int(max(args.steps * (1-init_image_strength), min_upscale_steps) / (1-init_image_strength))+1
