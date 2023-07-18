@@ -134,11 +134,6 @@ def generate(
                 args.start_timestep = None
                 denoising_start = args.init_image_strength
 
-            real2real = False
-            if real2real and (len(args.interpolator.latent_tracker.t_raws) <= args.n_anchor_imgs):
-                denoising_start     = None
-                args.start_timestep = None
-
 
         elif (args.init_image is None) and (args.init_latent is None): # generate, no init_img
             print("Generating image from scratch using pure, random noise")

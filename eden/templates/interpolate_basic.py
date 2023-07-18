@@ -15,7 +15,7 @@ def lerp(
     name_str = "",
     save_phase_data = False,     # save condition vectors and scale for each frame (used for later upscaling)
     save_distance_data = False,  # save distance plots to disk
-    debug = 1):
+    debug = 0):
 
     seed_everything(seed)
     n = len(interpolation_texts)
@@ -32,8 +32,8 @@ def lerp(
         guidance_scale = 7.5,
         loop = True,
         smooth = True,
-        latent_blending_skip_f = [0.2, 0.8],
-        n_anchor_imgs = 3,
+        latent_blending_skip_f = [0.15, 0.75],
+        n_anchor_imgs = 5,
         n_film = 0,
         fps = 12,
         steps = 80,
@@ -52,7 +52,7 @@ def lerp(
         args.W, args.H = 640, 640
         args.steps = 30
         args.n_frames = 72*n
-    
+
     # run the interpolation and save each frame
     for frame, t_raw in make_interpolation(args):
         frame.save(os.path.join(frames_dir, "frame_%0.16f.jpg"%t_raw), quality=95)
@@ -89,7 +89,6 @@ if __name__ == "__main__":
 
     for i in range(6):
         seed = int(time.time())
-        seed = 4
 
         seed_everything(seed)
         interpolation_texts = random.sample(text_inputs, n)

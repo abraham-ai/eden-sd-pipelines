@@ -199,7 +199,7 @@ text_inputs = [
 
 text_inputs = [
     "breathtakingly beautiful ultrawide angle colour masterpiece of a creepy family by roger dean and greg hildebrandt and kilian eng and jean giraud and beeple, forest clearing, lake, reflection, symmetry, secret overgrown temple, mysterious person looking over shoulder, incredible sense of depth and perspective and clarity, arch, weird abstract, 8 k",
-    'dreamlike photo of floating bed of clouds above floor in a giant red marble room with windows opening to eternity by andrzej sykut by lee madgewick, photorealistic, octane render, recursive flowing, cascading, multiverse labyrinthine, optical illusion, impossible angles',
+    'dreamlike photo of a majestic bed floating above the floor in a giant red marble room with windows opening to eternity, clouds, by andrzej sykut by lee madgewick, photorealistic, octane render, recursive flowing, cascading, multiverse labyrinthine, optical illusion, impossible angles',
     "elegant minimalist metal wire art of symmetrical and expressive female facial features and silhouette ",
     "friendly dryad tree creature, in a forest, golden hour, professional photography, mild depth of field, cinematic lighting, 8 k ",
     "magic stone portal in the forest, cinematic lighting, dramatic, octane render, long lens, shallow depth of field, bokeh, anamorphic lens flare, 8k, hyper detailed",
@@ -210,6 +210,9 @@ text_inputs = [
     "a twisted trending on art shards of sharp 5, raytracing photorealistic, digital painting, irrational fear the existential dread f 3 black glass lenses floats through futuristic illustrated visionary",
     "barlow, bao volumetric cinematic lighting, 8 k smooth puffy sculptural big leaves and pham, donato giancola, painting, aesthetic, smooth, bed above floor",
     "beautiful mannequin sculpted out of black glass by billelis + lit with geometric neon dripping gold + forest in background facing a doorway opening with neon pink geometric fractal light + flowering bonsai trees, transcendent, clean linework, dramatic, finely detailed, award winning, 4 k, trending on artstation, photorealistic, volumetric lighting, octane render",
+    "a closeup portrait of a woman wrapped in a translucent sphere, standing next to a giant huge levitating copper orb, in a foggy pond, golden hour, color photograph, by vincent desiderio, canon eos c 3 0 0, ƒ 1. 8, 3 5 mm, 8 k",
+    "style, volumetric and gold, cascading, multiverse a beautiful greg rutkowski, oil paint, art, lifelike, photorealistic, reclections, reflective, sharp details, 4k, trending on artstation",
+    
 ]
 
 
