@@ -157,16 +157,23 @@ class Interpolator():
             seed   = self.seeds[index]
             self.update_aesthetic_target(index)
 
-            prompt_embeds = self.pipe.encode_prompt(
-                prompt,
-                self.device,
-                1,
-                self.args.guidance_scale > 1.0,
-                negative_prompt = self.args.uc_text
-            )
-            #uc, c = prompt_embeds[0].unsqueeze(0), prompt_embeds[1].unsqueeze(0)
-            #self.args.uc = uc
-            #self.prompt_conditionings.append(c)
+            try:
+                prompt_embeds = self.pipe.encode_prompt(
+                    prompt,
+                    self.device,
+                    1,
+                    self.args.guidance_scale > 1.0,
+                    negative_prompt = self.args.uc_text
+                )
+            except:
+                prompt_embeds = self.pipe._encode_prompt(
+                    prompt,
+                    self.device,
+                    1,
+                    self.args.guidance_scale > 1.0,
+                    negative_prompt = self.args.uc_text
+                )
+
 
             self.prompt_embeds.append(prompt_embeds)
             self.init_noises.append(create_seeded_noise(seed, self.args, self.device))
@@ -393,16 +400,20 @@ class Interpolator():
         init_noise = slerp(t, self.init_noises[self.prompt_index], self.init_noises[(self.prompt_index + 1) % self.n], flatten = 1, normalize = 1)
         
         i = self.prompt_index
-        p_c   = lerp(t, self.prompt_embeds[i][0], self.prompt_embeds[(i + 1) % self.n][0])
-        np_c  = lerp(t, self.prompt_embeds[i][1], self.prompt_embeds[(i + 1) % self.n][1])
-        pp_c  = lerp(t, self.prompt_embeds[i][2], self.prompt_embeds[(i + 1) % self.n][2])
-        npp_c = lerp(t, self.prompt_embeds[i][3], self.prompt_embeds[(i + 1) % self.n][3])
-        
-        #c          = lerp(t, self.prompt_conditionings[self.prompt_index], self.prompt_conditionings[(self.prompt_index + 1) % self.n])
-        #c         = slerp(t, self.prompt_conditionings[self.prompt_index], self.prompt_conditionings[(self.prompt_index + 1) % self.n])
-        
-        prompt_embeds = [p_c, np_c, pp_c, npp_c]
 
+        try:
+            p_c   = lerp(t, self.prompt_embeds[i][0], self.prompt_embeds[(i + 1) % self.n][0])
+            np_c  = lerp(t, self.prompt_embeds[i][1], self.prompt_embeds[(i + 1) % self.n][1])
+            pp_c  = lerp(t, self.prompt_embeds[i][2], self.prompt_embeds[(i + 1) % self.n][2])
+            npp_c = lerp(t, self.prompt_embeds[i][3], self.prompt_embeds[(i + 1) % self.n][3])
+            #c          = lerp(t, self.prompt_conditionings[self.prompt_index], self.prompt_conditionings[(self.prompt_index + 1) % self.n])
+            #c         = slerp(t, self.prompt_conditionings[self.prompt_index], self.prompt_conditionings[(self.prompt_index + 1) % self.n])
+            prompt_embeds = [p_c, np_c, pp_c, npp_c]
+        except:
+            p_c   = lerp(t, self.prompt_embeds[i][0], self.prompt_embeds[(i + 1) % self.n][0])
+            np_c  = lerp(t, self.prompt_embeds[i][1], self.prompt_embeds[(i + 1) % self.n][1])
+            prompt_embeds = [p_c, np_c]
+        
         self.interpolation_step += 1
 
         if stop:

@@ -28,7 +28,7 @@ def lerp(
         text_input = interpolation_texts[0],
         interpolation_texts = interpolation_texts,
         interpolation_seeds = interpolation_seeds if interpolation_seeds else [random.randint(1, 1e8) for i in range(n)],
-        n_frames = 48*n,
+        n_frames = 36*n,
         guidance_scale = 7.5,
         loop = True,
         smooth = True,
@@ -36,11 +36,11 @@ def lerp(
         n_anchor_imgs = 5,
         n_film = 0,
         fps = 12,
-        steps = 80,
+        steps = 60,
         sampler = "euler",
         seed = seed,
-        W = 1024+640,
         H = 1024,
+        W = 1024+640,
     )
 
     # always make sure these args are properly set:
@@ -50,8 +50,8 @@ def lerp(
 
     if debug: # overwrite some args to make things go FAST
         args.W, args.H = 640, 640
-        args.steps = 30
-        args.n_frames = 72*n
+        args.steps = 35
+        args.n_frames = 36*n
 
     # run the interpolation and save each frame
     for frame, t_raw in make_interpolation(args):
@@ -85,9 +85,9 @@ def lerp(
 if __name__ == "__main__":
 
     outdir = "results"
-    n = 4
+    n = 2
 
-    for i in range(6):
+    for i in range(1):
         seed = int(time.time())
 
         seed_everything(seed)

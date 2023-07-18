@@ -144,7 +144,6 @@ def generate(
             args.start_time_step = None
             denoising_start = None
 
-
         pipe_output = pipe(
             prompt = prompt,
             negative_prompt = negative_prompt, 
@@ -163,24 +162,7 @@ def generate(
             #latents = args.init_latent, # latents is implemented but not actually used in diffusers img2img pipe...
             callback = callback_,
         )
-    else: # run txt2img pipeline
-        pipe_output = pipe(
-            prompt = prompt,
-            negative_prompt = negative_prompt, 
-            width = args.W, 
-            height = args.H,
-            num_inference_steps = args.steps,
-            guidance_scale = args.guidance_scale,
-            num_images_per_prompt = args.n_samples,
-            prompt_embeds = args.c,
-            negative_prompt_embeds = args.uc,
-            pooled_prompt_embeds = args.pc,
-            negative_pooled_prompt_embeds= args.puc,
-            generator = generator,
-            start_timestep = args.start_timestep,
-            latents = args.init_latent,
-            callback = callback_,
-        )
+
 
 
     pil_images = pipe_output.images
@@ -315,7 +297,12 @@ def make_interpolation(args, force_timepoints = None):
             t, t_raw, prompt_embeds, init_noise, scale, keyframe_index = args.interpolator.get_next_conditioning(verbose=0, save_distances_to_dir = args.save_distances_to_dir, t_raw = force_t_raw)
         
         # Update all the render args for this frame:
-        args.c, args.uc, args.pc, args.puc = prompt_embeds
+        try: # sdxl
+            args.c, args.uc, args.pc, args.puc = prompt_embeds
+        except: # sdv1.x and sdv2.x
+            args.c, args.uc = prompt_embeds
+            args.pc, args.puc = None, None
+
         args.guidance_scale = scale
         args.t_raw = t_raw
         args.init_latent, args.init_image, args.init_image_strength, args.start_timestep = create_init_latent(args, t, interpolation_init_images, keyframe_index, init_noise, _device, pipe)

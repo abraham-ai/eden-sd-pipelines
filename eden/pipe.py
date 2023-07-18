@@ -78,22 +78,23 @@ def load_pipe(args):
     else:
         location = args.ckpt
         
-    print(f"Creating new StableDiffusionXLImg2ImgPipeline using {args.ckpt}")
-    
-    pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
-        location, 
-        safety_checker=None, 
-        #local_files_only=_local_files_only, 
-        torch_dtype=torch.float16, use_safetensors=True, variant="fp16"
-    )
-    
-    #print(f"Creating new DiffusionPipeline using {args.ckpt}")
-    #pipe = DiffusionPipeline.from_pretrained(
-    #    location, 
-    #    safety_checker=None, 
-    #    #local_files_only=_local_files_only, 
-    #    torch_dtype=torch.float16, use_safetensors=True, variant="fp16"
-    #)
+    try:
+        print(f"Creating new StableDiffusionXLImg2ImgPipeline using {args.ckpt}")
+        
+        pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
+            location, 
+            safety_checker=None, 
+            #local_files_only=_local_files_only, 
+            torch_dtype=torch.float16, use_safetensors=True, variant="fp16"
+        )
+    except:
+        print(f"Creating new DiffusionPipeline using {args.ckpt}")
+        pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
+            location, 
+            safety_checker=None, 
+            #local_files_only=_local_files_only, 
+            torch_dtype=torch.float16, use_safetensors=True, variant="fp16"
+        )
 
     pipe.safety_checker = None
     pipe = pipe.to(_device)

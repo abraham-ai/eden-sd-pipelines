@@ -19,11 +19,16 @@ v1_model_names = [
 def load_ci(sd_model_name, force_reload=False, clip_model_path=None):
     global ci
     if ci is None or force_reload:
-        if sd_model_name in v1_model_names:
-            print(f"Loading ViT-L-14/openai for clip_interpolator (v1 models)...")
+        if 'xl' in sd_model_name:
+            print("Loading ViT-L-14/openai for clip_interpolator (sdxl models)...")
+            ci = Interrogator(Config(clip_model_path=clip_model_path, clip_model_name="ViT-L-14/openai")) # SD XL
+            #print("Loading ViT-bigG-14/laion2b_s39b_b160k for clip_interpolator (xl models)...")
+            #ci = Interrogator(Config(clip_model_path=clip_model_path, clip_model_name="ViT-bigG-14/laion2b_s39b_b160k")) # SD XL
+        elif sd_model_name in v1_model_names:
+            print(f"Loading ViT-L-14/openai for clip_interpolator (SDv1.x models)...")
             ci = Interrogator(Config(clip_model_path=clip_model_path, clip_model_name="ViT-L-14/openai")) # SD 1.x
         else:
-            print(f"Loading ViT-H-14/laion2b_s32b_b79k for clip_interpolator (v2 models)...")
+            print(f"Loading ViT-H-14/laion2b_s32b_b79k for clip_interpolator (SDv2.x models)...")
             ci = Interrogator(Config(clip_model_path=clip_model_path, clip_model_name="ViT-H-14/laion2b_s32b_b79k"))  # SD 2.x
     return ci
 

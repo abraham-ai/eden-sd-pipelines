@@ -332,7 +332,7 @@ def respace_timepoints(timepoints, density, n_to_sample, resolution_f = 1000):
 
 
 
-def blend_inits(init1, init2, t, args, real2real = True, anti_shinethrough_power = 1.5):
+def blend_inits(init1, init2, t, args, real2real = True, anti_shinethrough_power = 1.5, only_need_init_strength = False):
     '''
     Create a linear blend between the two inits using t
     These inits can be either pil images or pytorch latent vectors
@@ -364,6 +364,9 @@ def blend_inits(init1, init2, t, args, real2real = True, anti_shinethrough_power
     else: # normal prompt2prompt lerping
         mixing_t = t
         init_image_strength = 0.0
+
+    if only_need_init_strength:
+        return None, init_image_strength
     
     if isinstance(init1, Image.Image):
         blended_init = (left_strength * np.array(init1) + right_strength * np.array(init2)) / (left_strength + right_strength)
@@ -395,7 +398,7 @@ def create_init_latent(args, t, interpolation_init_images, keyframe_index, init_
         timestep = None
 
         return init_latent, init_image, init_image_strength, timestep
-    
+
     latent_tracker = args.interpolator.latent_tracker
     real2real = False if interpolation_init_images is None else True
 
@@ -411,21 +414,34 @@ def create_init_latent(args, t, interpolation_init_images, keyframe_index, init_
 
     init_image, init_latent, timestep  = None, None, None
     
-    if (len(latent_tracker.t_raws) < args.n_anchor_imgs or (args.latent_blending_skip_f is None)) and 1:
+    if (len(latent_tracker.t_raws) < args.n_anchor_imgs or (args.latent_blending_skip_f is None)) and 0:
         print("Simply alpha-blending the keyframe latents..")
         # simply alpha-blend the keyframe latents using t:
         init_latent, init_image_strength = blend_inits(key_latent0, key_latent1, t, args, real2real = real2real)
+
+        if init_image_strength == 1: # first or last frame of the interpolation, just return raw image
+            init_latent = None
+            init_image = init_img0 if t < 0.5 else init_img1
+        else:
+
+            if latent_tracker.fixed_latent_noise is None:
+                np.random.seed(seed=args.seed)
+                latent_tracker.fixed_latent_noise = np.random.randn(*init_latent.shape)
+
+            # Now we have to scale this init_latent to the correct timestep sigma:
+            # Compute the correct latent index into the denoising trajectory:
+            current_trajectory_index = args.steps - int((1.0 - init_image_strength) * args.steps)
+
+            # The target timestep to get latents for from the buffer:
+            timestep = latent_tracker.all_timesteps[current_trajectory_index].unsqueeze(0)
+            fixed_latent_noise = torch.from_numpy(latent_tracker.fixed_latent_noise).to(init_latent.device).type(init_latent.dtype)
+            init_latent = pipe.scheduler.add_noise(init_latent, fixed_latent_noise, timestep)
+
+
         latent_tracker.current_init_image_strength = init_image_strength
         latent_tracker.latent_blending_skip_f = 0.0
 
-        #pipe.scheduler.set_timesteps(args.steps, device=device)
-        #init_latent = init_latent * pipe.scheduler.init_noise_sigma
-
-        if init_image_strength == 1: # first or last frame of the interpolation
-            init_latent = None
-            init_image = init_img0 if t < 0.5 else init_img1
-
-    elif (len(latent_tracker.frame_buffer.ts) < args.n_anchor_imgs and real2real) and 0:
+    elif (len(latent_tracker.t_raws) < args.n_anchor_imgs or (args.latent_blending_skip_f is None)) and 1:
         print("Pixel blending...")
         # apply linear blending of keyframe images in pixel space and then encode
         init_image, init_image_strength = blend_inits(init_img0, init_img1, t, args, real2real = real2real)
@@ -433,7 +449,7 @@ def create_init_latent(args, t, interpolation_init_images, keyframe_index, init_
 
     else: # Apply Latent-Blending trick:
         print("Latent Blending...")
-        alpha_blended_init_latent, init_image_strength = blend_inits(key_latent0, key_latent1, t, args, real2real = real2real)
+        _, init_image_strength = blend_inits(key_latent0, key_latent1, t, args, real2real = real2real, only_need_init_strength = True)
         
         # apply latent_blending_skip_f to the init_image_strength:
         # this essentially skips-ahead in the denoising process
@@ -449,7 +465,7 @@ def create_init_latent(args, t, interpolation_init_images, keyframe_index, init_
         latent_tracker.latent_blending_skip_f = np.clip(latent_tracker.latent_blending_skip_f, min_skip_f, max_skip_f)
         init_image_strength = init_image_strength * (1.0 - latent_tracker.latent_blending_skip_f) + latent_tracker.latent_blending_skip_f
         
-        # grab the nearest neighbouring latents, at the same timepoint in the diffusion process:
+        # grab the nearest neighbouring latents, at the corresponding timepoint in the diffusion process:
         latent_left, latent_right, t_raw_left, t_raw_right, timestep = latent_tracker.get_neighbouring_latents(args, adjusted_init_image_strength = init_image_strength)
 
         # linearly interpolate between the neighbouring latents for create the new init_latent:
@@ -476,11 +492,12 @@ class LatentTracker():
         self.pipe = pipe
         self.args = args
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.steps = args.steps
         self.latent_blending_skip_f = 0.0
         self.frame_buffer = FrameBuffer(smooth, args)
         self.phase_data = None
-        self.fixed_latent_noise = None
+        self.fixed_latent_noise = None        
+        pipe.scheduler.set_timesteps(args.steps, device=self.device)
+        self.all_timesteps = pipe.scheduler.timesteps
 
     def get_n_frames(self):
         return len(self.frame_buffer.frames)
@@ -512,9 +529,6 @@ class LatentTracker():
         self.latents[self.current_t_raw]   = [None]*args.steps
         self.timesteps[self.current_t_raw] = [None]*args.steps
 
-        pipe.scheduler.set_timesteps(args.steps, device=self.device)
-        self.all_timesteps = pipe.scheduler.timesteps
-
     def t_to_index(self, t):
         return (self.all_timesteps == t).nonzero(as_tuple=True)[0]
 
@@ -529,6 +543,7 @@ class LatentTracker():
         self.timesteps[self.current_t_raw][self.t_to_index(t)] = t
 
         if self.fixed_latent_noise is None:
+            np.random.seed(seed=self.args.seed)
             self.fixed_latent_noise = np.random.randn(*latent.shape)
 
     def get_neighbouring_ts(self, t_raw):
@@ -546,7 +561,7 @@ class LatentTracker():
         t_raw_left, t_raw_right = self.get_neighbouring_ts(args.t_raw)
 
         # Compute the correct latent index into the denoising trajectory:
-        current_trajectory_index = self.steps - int((1.0 - self.current_init_image_strength) * self.steps)
+        current_trajectory_index = args.steps - int((1.0 - self.current_init_image_strength) * args.steps)
 
         if 0: # Make sure to always skip ahead to an existing latent:
             # Compute the first index in self.latents[t_raw_left] that is not None:
@@ -559,7 +574,7 @@ class LatentTracker():
 
         # The target timestep to get latents for from the buffer:
         target_timestep          = self.all_timesteps[current_trajectory_index]
-        adjusted_target_timestep = self.all_timesteps[current_trajectory_index+1]
+        adjusted_target_timestep = self.all_timesteps[current_trajectory_index]
         
         # if available, get latents from the neighbouring frames denoising stack:
         latents_left = self.latents[t_raw_left][current_trajectory_index]
@@ -594,16 +609,19 @@ class LatentTracker():
 
             return noised_latent
 
+        print_info = False
 
         if latents_left is None:
             target_std = latents_right.std() if latents_right is not None else None
             latents_left = construct_noised_latent(self.latents[t_raw_left], adjusted_target_timestep, target_sigma = target_std)
+            print_info = True
 
         if latents_right is None:
             target_std = latents_left.std() if latents_left is not None else None
             latents_right = construct_noised_latent(self.latents[t_raw_right], adjusted_target_timestep, target_sigma = target_std)
+            print_info = True
 
-        if 0:
+        if print_info:
             print(f"Using neighbors: {t_raw_left:.3f} and {t_raw_right:.3f} with trajectory_index: {current_trajectory_index}, target_timestep: {target_timestep}")
 
             try:

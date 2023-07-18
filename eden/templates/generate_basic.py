@@ -46,8 +46,8 @@ def generate_basic(
         seed = seed,
         n_samples = 1,
         lora_path = None,
-        #init_image_data = "/home/xander/Projects/cog/eden-sd-pipelines/eden/assets/huemin_init.jpeg",
-        #init_image_strength = 0.15,
+        init_image_data = "https://minio.aws.abraham.fun/creations-stg/7f5971f24bc5c122aed6c1298484785b4d8c90bce41cc6bfc97ad29cc179c53f.jpg",
+        init_image_strength = 0.9,
     )
     
     name = f'{prefix}{args.text_input[:40]}_{args.seed}_{int(time.time())}{suffix}'

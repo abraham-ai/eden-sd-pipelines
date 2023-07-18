@@ -22,7 +22,7 @@ def real2real(
     remove_frames_dir = 0,
     save_phase_data = False,  # save condition vectors and scale for each frame (used for later upscaling)
     save_distance_data = 1,  # save distance plots to disk
-    debug = False):
+    debug = 0):
 
     random.seed(seed)
     n = len(input_images)
@@ -37,27 +37,30 @@ def real2real(
             #ckpt = "stabilityai/stable-diffusion-xl-refiner-0.9",
             text_input = "real2real",  # text_input is also the title, but has no effect on interpolations
             interpolation_seeds = [random.randint(1, 1e8) for _ in range(n)],
-            interpolation_texts = [
-                "a group of people watching a volcano eruptting from the ground, amazing volcanic eruption, volcano eruption, erupting volcano, volcano exploding, volcanic eruption, active volcano, erupting volcano in distance, at a volcano, volcano background, in a volcano, volcano landscape, horizon of an erupting volcano, volcano in background, in volcano, volcano",
-                "a woman with a pair of sunglasses and a snake head, cyberpunk medusa, snake woman hybrid, tristan eaton, jen bartel, beautiful octopus woman, hyperrealistic art nouveau, art nouveau! cyberpunk! style, art nouveau cyberpunk! style, cyberpunk art nouveau, medusa, portrait of teenage medusa, intricate artwork. neon eyes, beeple and jeremiah ketner"],
+            #interpolation_texts = [
+            #"breathtakingly beautiful ultrawide angle colour masterpiece of a creepy family by roger dean and greg hildebrandt and kilian eng and jean giraud and beeple, forest clearing, lake, reflection, symmetry, secret overgrown temple, mysterious person looking over shoulder, incredible sense of depth and perspective and clarity, arch, weird abstract, 8 k",
+            #"beautiful mannequin sculpted out of black glass by billelis + lit with geometric neon dripping gold + forest in background facing a doorway opening with neon pink geometric fractal light + flowering bonsai trees, transcendent, clean linework, dramatic, finely detailed, award winning, 4 k, trending on artstation, photorealistic, volumetric lighting, octane render"],  
+            #"photo of a group of people watching a volcano eruptting from the ground, amazing volcanic eruption, volcano eruption, active volcano, erupting volcano in distance, photorealistic",
+            #"a woman with a pair of sunglasses and a snake head, cyberpunk medusa, snake woman hybrid, tristan eaton, jen bartel, beautiful octopus woman, hyperrealistic art nouveau, art nouveau! cyberpunk! style, art nouveau cyberpunk! style, cyberpunk art nouveau, medusa, portrait of teenage medusa, intricate artwork. neon eyes, beeple and jeremiah ketner"],
             #interpolation_texts = None,
             interpolation_init_images = input_images,
             interpolation_init_images_use_img2txt = True,
             interpolation_init_images_power = 3.0,
-            interpolation_init_images_min_strength = 0.3,  # a higher value will make the video smoother, but allows less visual change / journey
-            interpolation_init_images_max_strength = 0.9,
+            interpolation_init_images_min_strength = 0.2,  # a higher value will make the video smoother, but allows less visual change / journey
+            interpolation_init_images_max_strength = 0.95,
             latent_blending_skip_f = [0.15, 0.75],
-            guidance_scale = 8.0,
-            n_frames = 16*n,
+            guidance_scale = 7.5,
+            n_anchor_imgs = 5,
+            n_frames = 36*n,
             loop = True,
             smooth = True,
             n_film = 0,
             fps = 9,
-            steps = 30,
+            steps =  60,
             sampler = "euler",
             seed = seed,
-            H = 640,
-            W = 640,
+            H = 1024,
+            W = 1024+640,
             upscale_f = 1.0,
             clip_interrogator_mode = "fast",
             lora_path = None,
@@ -69,8 +72,8 @@ def real2real(
     args.save_phase_data = save_phase_data
 
     if debug: # overwrite some args to make things go FAST
-        args.W, args.H = 512, 512
-        args.steps = 25
+        args.W, args.H = 640, 640
+        args.steps = 30
         args.n_frames = 8*n
 
     # Only needed when visualising the smoothing algorithm (debugging mode)
@@ -129,19 +132,37 @@ def real2real(
 if __name__ == "__main__":
 
     outdir = "results"
-    n = 2
+    n = 3
+
+    init_imgs = [
+        "https://minio.aws.abraham.fun/creations-stg/7f5971f24bc5c122aed6c1298484785b4d8c90bce41cc6bfc97ad29cc179c53f.jpg",
+        "https://minio.aws.abraham.fun/creations-stg/445eebc944a2d44bb5e0337ed4198ebf54217c7c17729b245663cf5c4fea182c.jpg",
+        "https://minio.aws.abraham.fun/creations-stg/049848c63707293cddc766b2cbd230d9cde71f5075e48e9e02c6da03566ddae7.jpg",
+        ]
 
     init_imgs = [
         "https://generations.krea.ai/images/3cd0b8a8-34e5-4647-9217-1dc03a886b6a.webp",
         "https://generations.krea.ai/images/928271c8-5a8e-4861-bd57-d1398e8d9e7a.webp",
         "https://generations.krea.ai/images/865142e2-8963-47fb-bbe9-fbe260271e00.webp"
     ]
-    
-    seed = int(time.time())
-    seed = 2
-    seed = 3
 
-    random.seed(seed)
-    input_images = random.sample(init_imgs, n)
 
-    real2real(input_images, outdir, seed = seed)
+    init_imgs = [
+        "../assets/01.jpg",
+        "../assets/02.jpg",
+    ]
+
+    input_dir = "/home/xander/Projects/cog/stable-diffusion-dev/eden/xander/init_imgs/test"
+    init_imgs = [os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.endswith(".jpg")]
+
+    for i in range(20):
+        seed = int(time.time())
+
+        random.seed(seed)
+        input_images = random.sample(init_imgs, n)
+
+        try:
+            real2real(input_images, outdir, seed = seed)
+        except Exception as e:
+            print(e)
+            print("failed to render, trying again with different seed")
