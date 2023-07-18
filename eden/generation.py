@@ -122,31 +122,31 @@ def generate(
     if 1:  # run img2img pipeline
 
         denoising_start = None
-        if (args.init_image is None) and (args.init_latent is not None):
-            #assert args.start_timestep is not None
+        if (args.init_image is None) and (args.init_latent is not None): # lerp
             print("Passing raw init_latent to img2img pipeline as image")
-            #args.init_image = args.init_latent * pipe.scheduler.init_noise_sigma
             args.init_image = args.init_latent
 
             if 1:
-                denoising_start = 0.0
-                args.init_image_strength = 0.0
-            else: # TODO, this should also work and requires no modification to diffusers img2img pipe
+                denoising_start = 0.0  # ensures that args.init_image_strength is ignored and the full timestep trajectory is used (which is then clipped by start_timestep)
+                # ---> add_noise = False
+
+            else: # TODO, this should also work and maybe requires less/no modification to diffusers img2img pipe
                 args.start_timestep = None
                 denoising_start = args.init_image_strength
 
-        elif (args.init_image is None) and (args.init_latent is None):
+
+        elif (args.init_image is None) and (args.init_latent is None): # generate, no init_img
             print("Generating image from scratch using pure, random noise")
             shape = (1, pipe.unet.config.in_channels, args.H // pipe.vae_scale_factor, args.W // pipe.vae_scale_factor)
             args.init_image = torch.randn(shape, generator=generator, device=_device)
-        elif (args.init_image is not None):
+        elif (args.init_image is not None): # remix
             print("Passing init_image to img2img pipeline as image")
 
         pipe_output = pipe(
             prompt = prompt,
             negative_prompt = negative_prompt, 
             image = args.init_image, 
-            strength=1-args.init_image_strength, 
+            strength = 1-args.init_image_strength, 
             denoising_start = denoising_start,
             start_timestep = args.start_timestep,
             num_inference_steps = args.steps,
@@ -342,7 +342,6 @@ def make_interpolation(args, force_timepoints = None):
                 init_img1, init_img2 = interpolation_init_images[return_index], interpolation_init_images[return_index + 1]
             
             args.init_latent, args.init_image, args.init_image_strength, args.start_timestep = create_init_latent(args, t, init_img1, init_img2, _device, pipe, real2real = real2real)
-            args.init_image_strength = 0.0
 
         else: # anchor_frames for lerp: only use the raw init_latent noise from interpolator (using the input seeds)
             pipe.scheduler.set_timesteps(args.steps, device=_device)

@@ -45,7 +45,7 @@ def real2real(
             interpolation_init_images_use_img2txt = True,
             interpolation_init_images_power = 3.0,
             interpolation_init_images_min_strength = 0.3,  # a higher value will make the video smoother, but allows less visual change / journey
-            interpolation_init_images_max_strength = 0.95,
+            interpolation_init_images_max_strength = 0.9,
             latent_blending_skip_f = [0.15, 0.75],
             guidance_scale = 7.5,
             n_frames = 16*n,

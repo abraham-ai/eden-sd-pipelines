@@ -333,6 +333,7 @@ class Interpolator():
                 plt.title(f"Current distances / target density (interpolation step {self.interpolation_step}, fit_MSE = {best_fit_mse:.3f})")
                 plt.ylim([0,4])
                 plt.savefig(os.path.join(os.path.join(self.args.frames_dir, "distances"), "distance_targets_%04d.png" %self.interpolation_step))
+                plt.savefig(os.path.join(os.path.join(self.args.frames_dir), "distance_targets_last.png"))
                 plt.clf()
                 plt.close()
 
