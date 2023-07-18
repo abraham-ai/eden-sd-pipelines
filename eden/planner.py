@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 plt.rcParams['font.size'] = 15
 
 from audio import create_audio_features
-from eden_utils import pil_img_to_latent, slerp, create_seeded_noise, save_settings
+from eden_utils import pil_img_to_latent, slerp, create_seeded_noise, save_settings, sample_to_pil
 
 
 def subtract_dc_value(signal):
@@ -374,10 +374,7 @@ def blend_inits(init1, init2, t, args, real2real = True, anti_shinethrough_power
     return blended_init, init_image_strength
 
 
-def create_init_latent(args, t, init_img0, init_img1, device, pipe, 
-    key_latent0 = None,
-    key_latent1 = None,
-    real2real = True):
+def create_init_latent(args, t, interpolation_init_images, keyframe_index, init_noise, device, pipe):
 
     """
     This function is derived from the latent-blending idea:
@@ -388,34 +385,54 @@ def create_init_latent(args, t, init_img0, init_img1, device, pipe,
     higher skip_f values will lead to smoother video transitions and lower render time, but also have less interesting transitions
 
     """
+
+    if not ((args.interpolation_init_images and all(args.interpolation_init_images) or len(args.interpolator.latent_tracker.frame_buffer.ts) >= args.n_anchor_imgs)):
+        # anchor_frames for lerp: only use the raw init_latent noise from interpolator (using the input seeds)
+        pipe.scheduler.set_timesteps(args.steps, device=device)
+        init_latent = init_noise * pipe.scheduler.init_noise_sigma
+        init_image = None
+        init_image_strength = 0.0
+        timestep = None
+
+        return init_latent, init_image, init_image_strength, timestep
+    
     latent_tracker = args.interpolator.latent_tracker
+    real2real = False if interpolation_init_images is None else True
+
+    if real2real:
+        init_img0, init_img1 = interpolation_init_images[keyframe_index], interpolation_init_images[keyframe_index + 1]
+    else: # lerping mode (no real init imgs, so use the generated keyframes)
+        init_img0, init_img1 = latent_tracker.frame_buffer.get_current_keyframe_imgs()
+        init_img0, init_img1 = sample_to_pil(init_img0), sample_to_pil(init_img1)
 
     # Project init images into latent space:
-    if key_latent0 is None:
-        key_latent0 = pil_img_to_latent(init_img0, args, device, pipe)
-    if key_latent1 is None:
-        key_latent1 = pil_img_to_latent(init_img1, args, device, pipe)
+    key_latent0 = pil_img_to_latent(init_img0, args, device, pipe)
+    key_latent1 = pil_img_to_latent(init_img1, args, device, pipe)
 
     init_image, init_latent, timestep  = None, None, None
     
-    if len(args.interpolator.latent_tracker.t_raws) < args.n_anchor_imgs or (args.latent_blending_skip_f is None):
+    if (len(latent_tracker.t_raws) < args.n_anchor_imgs or (args.latent_blending_skip_f is None)) and 1:
         print("Simply alpha-blending the keyframe latents..")
         # simply alpha-blend the keyframe latents using t:
         init_latent, init_image_strength = blend_inits(key_latent0, key_latent1, t, args, real2real = real2real)
-        args.interpolator.latent_tracker.current_init_image_strength = init_image_strength
+        latent_tracker.current_init_image_strength = init_image_strength
         latent_tracker.latent_blending_skip_f = 0.0
+
+        #pipe.scheduler.set_timesteps(args.steps, device=device)
+        #init_latent = init_latent * pipe.scheduler.init_noise_sigma
 
         if init_image_strength == 1: # first or last frame of the interpolation
             init_latent = None
             init_image = init_img0 if t < 0.5 else init_img1
 
-    elif (len(args.interpolator.latent_tracker.frame_buffer.ts) < args.n_anchor_imgs and real2real) and 0:
+    elif (len(latent_tracker.frame_buffer.ts) < args.n_anchor_imgs and real2real) and 0:
         print("Pixel blending...")
         # apply linear blending of keyframe images in pixel space and then encode
-        args.init_image, args.init_image_strength = blend_inits(init_img1, init_img2, t, args, real2real = real2real)
-        args.init_latent = None
+        init_image, init_image_strength = blend_inits(init_img0, init_img1, t, args, real2real = real2real)
+        init_latent = None
 
     else: # Apply Latent-Blending trick:
+        print("Latent Blending...")
         alpha_blended_init_latent, init_image_strength = blend_inits(key_latent0, key_latent1, t, args, real2real = real2real)
         
         # apply latent_blending_skip_f to the init_image_strength:
@@ -443,9 +460,6 @@ def create_init_latent(args, t, init_img0, init_img1, device, pipe,
         target_std = (1-mixing_f) * latent_left.std() + mixing_f * latent_right.std()
         if init_latent.std() > 0:
             init_latent = target_std * init_latent / init_latent.std()
-
-        #if init_latent is not None: # the diffusers pipe auto-scales input latents, so we have to adjust for that
-        #    init_latent = init_latent / pipe.scheduler.init_noise_sigma
 
     return init_latent, init_image, init_image_strength, timestep
 

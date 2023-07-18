@@ -134,13 +134,21 @@ def generate(
                 args.start_timestep = None
                 denoising_start = args.init_image_strength
 
+            real2real = False
+            if real2real and (len(args.interpolator.latent_tracker.t_raws) <= args.n_anchor_imgs):
+                denoising_start     = None
+                args.start_timestep = None
+
 
         elif (args.init_image is None) and (args.init_latent is None): # generate, no init_img
             print("Generating image from scratch using pure, random noise")
             shape = (1, pipe.unet.config.in_channels, args.H // pipe.vae_scale_factor, args.W // pipe.vae_scale_factor)
             args.init_image = torch.randn(shape, generator=generator, device=_device)
         elif (args.init_image is not None): # remix
-            print("Passing init_image to img2img pipeline as image")
+            print(f"Passing init_image to img2img pipeline as image with args.init_image_strength {args.init_image_strength:.3f}")
+            args.start_time_step = None
+            denoising_start = None
+
 
         pipe_output = pipe(
             prompt = prompt,
@@ -273,8 +281,6 @@ def make_interpolation(args, force_timepoints = None):
     else:
         args.use_init = False
 
-    real2real = False if interpolation_init_images is None else True
-
     # Load model
     global pipe
     pipe = eden_pipe.get_pipe(args)
@@ -294,10 +300,7 @@ def make_interpolation(args, force_timepoints = None):
         lora_paths=args.lora_paths,
     )
 
-    n_frames = len(args.interpolator.ts)
-    if force_timepoints is not None:
-        n_frames = len(force_timepoints)
-
+    n_frames  = len(args.interpolator.ts) if force_timepoints is None else len(force_timepoints)
     active_lora_path = args.lora_paths[0] if args.lora_paths is not None else None
 
     ######################################
@@ -309,46 +312,24 @@ def make_interpolation(args, force_timepoints = None):
 
         if 0: # catch errors and try to complete the video
             try:
-                t, t_raw, prompt_embeds, init_latent, scale, return_index = args.interpolator.get_next_conditioning(verbose=0, save_distances_to_dir = args.save_distances_to_dir, t_raw = force_t_raw)
+                t, t_raw, prompt_embeds, init_noise, scale, keyframe_index = args.interpolator.get_next_conditioning(verbose=0, save_distances_to_dir = args.save_distances_to_dir, t_raw = force_t_raw)
             except Exception as e:
                 print("Error in interpolator.get_next_conditioning(): ", str(e))
                 break
         else: # get full stack_trace, for debugging:
-            t, t_raw, prompt_embeds, init_latent, scale, return_index = args.interpolator.get_next_conditioning(verbose=0, save_distances_to_dir = args.save_distances_to_dir, t_raw = force_t_raw)
+            t, t_raw, prompt_embeds, init_noise, scale, keyframe_index = args.interpolator.get_next_conditioning(verbose=0, save_distances_to_dir = args.save_distances_to_dir, t_raw = force_t_raw)
         
-        args.c, args.uc, args.pc, args.puc   = prompt_embeds
+        # Update all the render args for this frame:
+        args.c, args.uc, args.pc, args.puc = prompt_embeds
         args.guidance_scale = scale
         args.t_raw = t_raw
+        args.init_latent, args.init_image, args.init_image_strength, args.start_timestep = create_init_latent(args, t, interpolation_init_images, keyframe_index, init_noise, _device, pipe)
 
         if args.lora_paths is not None: # Maybe update the lora:
-            if args.lora_paths[return_index] != active_lora_path:
-                active_lora_path = args.lora_paths[return_index]
+            if args.lora_paths[keyframe_index] != active_lora_path:
+                active_lora_path = args.lora_paths[keyframe_index]
                 print("Switching to lora path", active_lora_path)
                 args.lora_path = active_lora_path
-
-
-        #################################################################################################################################################################
-        #################################################################################################################################################################
-        #################################################################################################################################################################
-        #################################################################################################################################################################
-
-
-        if ((args.interpolation_init_images and all(args.interpolation_init_images) or len(args.interpolator.latent_tracker.frame_buffer.ts) >= args.n_anchor_imgs)):
-
-            if not real2real: # lerping mode (no real init imgs, so use the generated keyframes)
-                init_img1, init_img2 = args.interpolator.latent_tracker.frame_buffer.get_current_keyframe_imgs()
-                init_img1, init_img2 = sample_to_pil(init_img1), sample_to_pil(init_img2)
-            else: # real2real mode
-                init_img1, init_img2 = interpolation_init_images[return_index], interpolation_init_images[return_index + 1]
-            
-            args.init_latent, args.init_image, args.init_image_strength, args.start_timestep = create_init_latent(args, t, init_img1, init_img2, _device, pipe, real2real = real2real)
-
-        else: # anchor_frames for lerp: only use the raw init_latent noise from interpolator (using the input seeds)
-            pipe.scheduler.set_timesteps(args.steps, device=_device)
-            args.init_latent = init_latent * pipe.scheduler.init_noise_sigma
-            args.init_image = None
-            args.init_image_strength = 0.0
-            args.start_timestep = None
 
         if args.planner is not None: # When audio modulation is active:
             args = args.planner.adjust_args(args, t_raw, force_timepoints=force_timepoints)
@@ -357,10 +338,10 @@ def make_interpolation(args, force_timepoints = None):
                 init_strength: {args.init_image_strength:.2f},\
                 latent skip_f: {args.interpolator.latent_tracker.latent_blending_skip_f:.2f},\
                 splitting lpips_d: {args.interpolator.latent_tracker.frame_buffer.get_perceptual_distance_at_t(args.t_raw):.2f}),\
-                keyframe {return_index+1}/{len(args.interpolation_texts) - 1}...")
+                keyframe {keyframe_index+1}/{len(args.interpolation_texts) - 1}...")
 
-        args.lora_path = active_lora_path
         _, pil_images = generate(args, do_callback = True)
+
         img_pil = pil_images[0]
         img_t = T.ToTensor()(img_pil).unsqueeze_(0).to(_device)
         args.interpolator.latent_tracker.add_frame(args, img_t, t, t_raw)
@@ -369,7 +350,6 @@ def make_interpolation(args, force_timepoints = None):
 
     # Flush the final metadata to disk if needed:
     args.interpolator.latent_tracker.reset_buffer()
-    #print_gpu_info(args, "end of make_interpolation()")
 
 def make_images(args, enable_random_lr_flipping = True):
     if args.mode == "remix":

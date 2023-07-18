@@ -453,11 +453,22 @@ def preprocess(image):
     return image
 
 def pil_img_to_latent(img, args, device, pipe, noise_seed = 0):
+
+    dtype = pipe.vae.dtype
     img = preprocess(img)
-    img = img.to(device=device, dtype=pipe.vae.dtype)
-    latent = pipe.vae.encode(img).latent_dist
-    latent = latent.sample(torch.Generator(device=device).manual_seed(noise_seed))
+    img = img.to(device=device, dtype=dtype)
+
+    if pipe.vae.config.force_upcast:
+        img = img.float()
+        pipe.vae.to(dtype=torch.float32)
+
+    latent_dist = pipe.vae.encode(img).latent_dist
+    latent = latent_dist.sample(torch.Generator(device=device).manual_seed(noise_seed))
     latent = pipe.vae.config.scaling_factor * latent
+
+    if pipe.vae.config.force_upcast:
+        pipe.vae.to(dtype=torch.float16)
+
     return latent
 
 

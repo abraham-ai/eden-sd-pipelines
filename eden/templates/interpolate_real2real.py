@@ -47,13 +47,13 @@ def real2real(
             interpolation_init_images_min_strength = 0.3,  # a higher value will make the video smoother, but allows less visual change / journey
             interpolation_init_images_max_strength = 0.9,
             latent_blending_skip_f = [0.15, 0.75],
-            guidance_scale = 7.5,
+            guidance_scale = 8.0,
             n_frames = 16*n,
             loop = True,
             smooth = True,
             n_film = 0,
             fps = 9,
-            steps = 25,
+            steps = 30,
             sampler = "euler",
             seed = seed,
             H = 640,
@@ -139,6 +139,7 @@ if __name__ == "__main__":
     
     seed = int(time.time())
     seed = 2
+    seed = 3
 
     random.seed(seed)
     input_images = random.sample(init_imgs, n)
