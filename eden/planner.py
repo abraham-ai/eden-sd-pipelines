@@ -560,69 +560,56 @@ class LatentTracker():
 
         t_raw_left, t_raw_right = self.get_neighbouring_ts(args.t_raw)
 
+        # We need to grab a latent in the denoising trajectory that corresponds to the 
+        # init_strength level we're currently at.
         # Compute the correct latent index into the denoising trajectory:
-        current_trajectory_index = args.steps - int((1.0 - self.current_init_image_strength) * args.steps)
+        current_trajectory_index = int(round(self.current_init_image_strength * args.steps))
+        current_trajectory_index = np.clip(current_trajectory_index, 0, args.steps-1)
 
-        if 0: # Make sure to always skip ahead to an existing latent:
-            # Compute the first index in self.latents[t_raw_left] that is not None:
-            t_raw_left_index = np.where(np.array(self.latents[t_raw_left]) != None)[0][0]
-            # Compute the first index in self.latents[t_raw_right] that is not None:
-            t_raw_right_index = np.where(np.array(self.latents[t_raw_right]) != None)[0][0]
-            min_index = max(t_raw_left_index, t_raw_right_index)
-            # Make sure we always blend from existing latents:
-            current_trajectory_index = max(current_trajectory_index, min_index)
-
-        # The target timestep to get latents for from the buffer:
-        target_timestep          = self.all_timesteps[current_trajectory_index]
-        adjusted_target_timestep = self.all_timesteps[current_trajectory_index]
-        
-        # if available, get latents from the neighbouring frames denoising stack:
+        # if available, get latents from the neighbouring frames denoising stack at the index
         latents_left = self.latents[t_raw_left][current_trajectory_index]
         latents_right = self.latents[t_raw_right][current_trajectory_index]
 
-        def construct_noised_latent(latents, adjusted_target_timestep, target_sigma = None):
-            print("Constructing noised latent... (this shouldn't happen to often... otherwise ask Xander)")
+        # The active timestep when these latent were produced (which will be used to cutoff timesteps in the generation process)
+        timestep = self.all_timesteps[current_trajectory_index]
+
+        # The target timestep used to add the correct amount of noise to the latents
+        noise_timestep  = self.all_timesteps[current_trajectory_index]
+
+
+        def construct_noised_latent(latents, timestep):
+            print("Constructing noised latent... ")
             # given the current denoising stack of latents for this frame,
-            # construct a more noised version of it as it would be after timestep = adjusted_target_timestep
+            # construct a more noised version of it as it would be after timestep
 
             most_noisy_index  = np.max([i for i, latent in enumerate(latents) if latent is not None])
             most_noisy_latent = latents[most_noisy_index]
+            most_noisy_latent = torch.from_numpy(most_noisy_latent).to(self.device).float()
 
-            if target_sigma is None: # estimate target sigma using the scheduler:
-                sigma_index  = (self.pipe.scheduler.timesteps == adjusted_target_timestep).nonzero().item()
-                target_sigma = self.pipe.scheduler.sigmas[sigma_index].item()
-                #print(f"Using scheduler target_sigma {target_sigma:.3f}")
-            #else:
-                #print(f"Using existing latent target_sigma {target_sigma:.3f}")
-            
-            # Take the most noisy latent and add noise to it:
-            noised_latent = most_noisy_latent + self.fixed_latent_noise * np.sqrt(target_sigma**2 - most_noisy_latent.std()**2)
+            #generator_fixed = torch.Generator(device=self.device).manual_seed(args.seed)
+            #most_noisy_latent = torch.randn(most_noisy_latent.shape, generator=generator_fixed, device=self.device, dtype=most_noisy_latent.dtype)
 
-            # This can probably be improved by using something like:
-            #noised_latent = self.pipe.scheduler.add_noise(most_noisy_latent, self.fixed_latent_noise, some_timestep)
+            generator = torch.Generator(device=self.device).manual_seed(int(time.time()))
+            noise = torch.randn(most_noisy_latent.shape, generator=generator, device=self.device, dtype=most_noisy_latent.dtype)
+            noised_latent = self.pipe.scheduler.add_noise(most_noisy_latent, noise, timestep.unsqueeze(0))
 
-            # Precisely tune the std:
-            if noised_latent.std() > 0:
-                noised_latent *= target_sigma / noised_latent.std()
-
-            print(f"Target sigma: {target_sigma:.2f}, Actual sigma: {noised_latent.std():.2f}")
-
-            return noised_latent
+            return noised_latent.cpu().numpy()
 
         print_info = False
 
-        if latents_left is None:
-            target_std = latents_right.std() if latents_right is not None else None
-            latents_left = construct_noised_latent(self.latents[t_raw_left], adjusted_target_timestep, target_sigma = target_std)
+        if (latents_left is None) and (latents_right is None):
+            print("------------ WARNING -----------")
+            print("LatentBlending problem: Adding noise to latents in diffusion stack left and right of current frame, this shouldn't ever happen...")
             print_info = True
+
+        if latents_left is None:
+            latents_left = construct_noised_latent(self.latents[t_raw_left], noise_timestep)
 
         if latents_right is None:
-            target_std = latents_left.std() if latents_left is not None else None
-            latents_right = construct_noised_latent(self.latents[t_raw_right], adjusted_target_timestep, target_sigma = target_std)
-            print_info = True
+            latents_right = construct_noised_latent(self.latents[t_raw_right], noise_timestep)
 
         if print_info:
-            print(f"Using neighbors: {t_raw_left:.3f} and {t_raw_right:.3f} with trajectory_index: {current_trajectory_index}, target_timestep: {target_timestep}")
+            print(f"Using neighbors: {t_raw_left:.3f} and {t_raw_right:.3f} with trajectory_index: {current_trajectory_index}, timestep: {timestep}")
 
             try:
                 print(f"std-left: {latents_left.std():.3f}")
@@ -660,7 +647,7 @@ class LatentTracker():
         latents_left = torch.from_numpy(latents_left).to(self.device)
         latents_right = torch.from_numpy(latents_right).to(self.device)
         
-        return latents_left, latents_right, t_raw_left, t_raw_right, target_timestep
+        return latents_left, latents_right, t_raw_left, t_raw_right, timestep
 
     def add_to_phase_data(self, args, t_raw):
         if self.phase_data is None:
