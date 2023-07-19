@@ -584,16 +584,21 @@ class LatentTracker():
 
             most_noisy_index  = np.max([i for i, latent in enumerate(latents) if latent is not None])
             most_noisy_latent = latents[most_noisy_index]
-            most_noisy_latent = torch.from_numpy(most_noisy_latent).to(self.device).float()
 
-            #generator_fixed = torch.Generator(device=self.device).manual_seed(args.seed)
-            #most_noisy_latent = torch.randn(most_noisy_latent.shape, generator=generator_fixed, device=self.device, dtype=most_noisy_latent.dtype)
+            if 0:
+                most_noisy_latent = torch.from_numpy(most_noisy_latent).to(self.device).float()
+                generator = torch.Generator(device=self.device).manual_seed(int(time.time()))
+                noise = torch.randn(most_noisy_latent.shape, generator=generator, device=self.device, dtype=most_noisy_latent.dtype)
+                noised_latent = self.pipe.scheduler.add_noise(most_noisy_latent, noise, timestep.unsqueeze(0)).cpu().numpy()
+            else:
 
-            generator = torch.Generator(device=self.device).manual_seed(int(time.time()))
-            noise = torch.randn(most_noisy_latent.shape, generator=generator, device=self.device, dtype=most_noisy_latent.dtype)
-            noised_latent = self.pipe.scheduler.add_noise(most_noisy_latent, noise, timestep.unsqueeze(0))
+                sigma = self.all_timesteps[0] - timestep
 
-            return noised_latent.cpu().numpy()
+                print(f"sigma: {sigma:.3f}")
+                noised_latent = most_noisy_latent + sigma.cpu().item() * self.fixed_latent_noise
+
+            
+            return noised_latent
 
         print_info = False
 
