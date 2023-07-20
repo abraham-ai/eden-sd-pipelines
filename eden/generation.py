@@ -75,16 +75,11 @@ def generate(
     if args.interpolator is not None:
         args.interpolator.latent_tracker.create_new_denoising_trajectory(args, pipe)
     
-    # adjust min n_steps:
-    #n_steps = max(args.steps, int(args.min_steps/(1-args.init_image_strength)))
-    #print(f"Adjusted n_steps from {args.steps} to {n_steps} to match min_steps {args.min_steps} and init_image_strength {args.init_image_strength}")
-
     # if init image strength == 1, just return the initial image
     if (args.init_image_strength == 1.0 or (int(args.steps*(1-args.init_image_strength)) < 1)) and args.init_image:
         latent = pil_img_to_latent(args.init_image, args, _device, pipe)
         if args.interpolator is not None:
-            i,t=0,1
-            args.interpolator.latent_tracker.add_latent(i, t, latent, init_image_strength = 1.0)
+            args.interpolator.latent_tracker.add_latent(0, pipe.scheduler.timesteps[-1], latent)
 
         pt_images = T.ToTensor()(args.init_image).unsqueeze(0).to(_device)
         pil_images = [args.init_image] * args.n_samples
@@ -119,49 +114,42 @@ def generate(
     if args.init_latent is not None:
         args.init_latent = args.init_latent.half()
 
-    if 1:  # run img2img pipeline
+    denoising_start = None
+    if (args.init_image is None) and (args.init_latent is not None): # lerp
+        args.init_image = args.init_latent
 
+        if 1:
+            denoising_start = 0.0  # ensures that args.init_image_strength is ignored and the full timestep trajectory is used (which is then clipped by start_timestep)
+            # ---> add_noise = False
+        else: # TODO, this should also work and maybe requires less/no modification to diffusers img2img pipe
+            args.start_timestep = None
+            denoising_start = args.init_image_strength
+
+    elif (args.init_image is None) and (args.init_latent is None): # generate, no init_img
+        shape = (1, pipe.unet.config.in_channels, args.H // pipe.vae_scale_factor, args.W // pipe.vae_scale_factor)
+        args.init_image = torch.randn(shape, generator=generator, device=_device)
+    elif (args.init_image is not None): # remix
+        args.start_time_step = None
         denoising_start = None
-        if (args.init_image is None) and (args.init_latent is not None): # lerp
-            print("Passing raw init_latent to img2img pipeline as image")
-            args.init_image = args.init_latent
 
-            if 1:
-                denoising_start = 0.0  # ensures that args.init_image_strength is ignored and the full timestep trajectory is used (which is then clipped by start_timestep)
-                # ---> add_noise = False
-
-            else: # TODO, this should also work and maybe requires less/no modification to diffusers img2img pipe
-                args.start_timestep = None
-                denoising_start = args.init_image_strength
-
-
-        elif (args.init_image is None) and (args.init_latent is None): # generate, no init_img
-            print("Generating image from scratch using pure, random noise")
-            shape = (1, pipe.unet.config.in_channels, args.H // pipe.vae_scale_factor, args.W // pipe.vae_scale_factor)
-            args.init_image = torch.randn(shape, generator=generator, device=_device)
-        elif (args.init_image is not None): # remix
-            print(f"Passing init_image to img2img pipeline as image with args.init_image_strength {args.init_image_strength:.3f}")
-            args.start_time_step = None
-            denoising_start = None
-
-        pipe_output = pipe(
-            prompt = prompt,
-            negative_prompt = negative_prompt, 
-            image = args.init_image, 
-            strength = 1-args.init_image_strength, 
-            denoising_start = denoising_start,
-            start_timestep = args.start_timestep,
-            num_inference_steps = args.steps,
-            guidance_scale = args.guidance_scale,
-            num_images_per_prompt = args.n_samples,
-            prompt_embeds = args.c,
-            negative_prompt_embeds = args.uc,
-            pooled_prompt_embeds = args.pc,
-            negative_pooled_prompt_embeds= args.puc,
-            generator = generator,
-            #latents = args.init_latent, # latents is implemented but not actually used in diffusers img2img pipe...
-            callback = callback_,
-        )
+    pipe_output = pipe(
+        prompt = prompt,
+        negative_prompt = negative_prompt, 
+        image = args.init_image, 
+        strength = 1-args.init_image_strength, 
+        denoising_start = denoising_start,
+        start_timestep = args.start_timestep,
+        num_inference_steps = args.steps,
+        guidance_scale = args.guidance_scale,
+        num_images_per_prompt = args.n_samples,
+        prompt_embeds = args.c,
+        negative_prompt_embeds = args.uc,
+        pooled_prompt_embeds = args.pc,
+        negative_pooled_prompt_embeds= args.puc,
+        generator = generator,
+        #latents = args.init_latent, # latents is implemented but not actually used in diffusers img2img pipe...
+        callback = callback_,
+    )
 
 
 
@@ -307,6 +295,11 @@ def make_interpolation(args, force_timepoints = None):
         args.t_raw = t_raw
         args.init_latent, args.init_image, args.init_image_strength, args.start_timestep = create_init_latent(args, t, interpolation_init_images, keyframe_index, init_noise, _device, pipe)
 
+        # TODO, auto adjust min n_steps (needs to happend before latent blending stuff and reset after each frame render):
+        #args.steps = max(args.steps, int(args.min_steps/(1-args.init_image_strength)))
+        #pipe.scheduler.set_timesteps(args.steps, device=device)
+        #print(f"Adjusted n_steps from {args.steps} to {n_steps} to match min_steps {args.min_steps} and init_image_strength {args.init_image_strength}")
+
         if args.lora_paths is not None: # Maybe update the lora:
             if args.lora_paths[keyframe_index] != active_lora_path:
                 active_lora_path = args.lora_paths[keyframe_index]
@@ -316,7 +309,7 @@ def make_interpolation(args, force_timepoints = None):
         if args.planner is not None: # When audio modulation is active:
             args = args.planner.adjust_args(args, t_raw, force_timepoints=force_timepoints)
 
-        print(f"Interpolating frame {f+1}/{len(args.interpolator.ts)} (t_raw = {t_raw:.5f},\
+        print(f"Interpolating frame {f+1}/{len(args.interpolator.ts)} (t_raw = {t_raw:.4f},\
                 init_strength: {args.init_image_strength:.2f},\
                 latent skip_f: {args.interpolator.latent_tracker.latent_blending_skip_f:.2f},\
                 splitting lpips_d: {args.interpolator.latent_tracker.frame_buffer.get_perceptual_distance_at_t(args.t_raw):.2f}),\

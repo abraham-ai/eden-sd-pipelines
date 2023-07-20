@@ -121,9 +121,10 @@ class StableDiffusionSettings:
     interpolation_init_images: List = field(default_factory=lambda: [])
     interpolation_init_images_use_img2txt: bool = False
     #interpolation_init_images_top_k: int = 1
-    interpolation_init_images_power: float = 3.0
+    interpolation_init_images_power: float = 2.0
     interpolation_init_images_min_strength: float = 0.25
     interpolation_init_images_max_strength: float = 0.97
+    easy_way: bool = True
     save_distances_to_dir: str = None
 
     # # video feedback (not compatible with interpolations)

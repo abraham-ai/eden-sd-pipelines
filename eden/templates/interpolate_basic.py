@@ -53,6 +53,8 @@ def lerp(
         args.steps = 35
         args.n_frames = 36*n
 
+    start_time = time.time()
+
     # run the interpolation and save each frame
     for frame, t_raw in make_interpolation(args):
         frame.save(os.path.join(frames_dir, "frame_%0.16f.jpg"%t_raw), quality=95)
@@ -79,6 +81,7 @@ def lerp(
 
     # save settings
     settings_filename = f'{outdir}/{name}.json'
+    args.total_render_time = "%.1f seconds" %(time.time() - start_time)
     save_settings(args, settings_filename)
 
 
