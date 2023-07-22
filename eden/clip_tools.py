@@ -44,8 +44,6 @@ def clip_interrogate(sd_ckpt_name, init_img, clip_interrogator_mode, clip_model_
 def del_clip_interrogator_models():
     global ci
     try:
-        del ci.blip_model
-        del ci.clip_model
         del ci
     except:
         pass

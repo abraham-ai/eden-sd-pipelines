@@ -280,6 +280,7 @@ class Interpolator():
 
         returns the target t for the next frame and a boolean indicating if the current interpolation phase should be ended
         """
+        stop = False
 
         # Determines how close the closest frame can be before trying another location to split
         t_min_treshold = 0.2 / (max_density_diff * self.n_frames_between_two_prompts)
@@ -344,7 +345,10 @@ class Interpolator():
                 plt.clf()
                 plt.close()
 
-            return next_t, False
+                if best_fit_mse > 0.3:
+                    stop = True
+
+            return next_t, stop
 
     def reset_buffers(self):
         print("Resetting buffers! (Clearing data from this interpolation phase)")
@@ -368,7 +372,7 @@ class Interpolator():
         TODO: if, during interpolation, we created a frame that increased the perceptual distance at that point,
         remove that frame from the buffer and recompute the interpolation point
         ''' 
-        stop = False
+        abort = False
 
         if self.smooth:
             #self.frame_buffer.maybe_reset()
@@ -382,7 +386,7 @@ class Interpolator():
                 self.prev_prompt_index = self.prompt_index
                 self.prompt_index -= 1
             
-            t, stop = self.find_next_t()
+            t, abort = self.find_next_t()
             t_raw = t + self.prompt_index
 
             if self.args.save_distance_data is not None and 0: #deprecated
@@ -416,11 +420,11 @@ class Interpolator():
         
         self.interpolation_step += 1
 
-        if stop:
+        if abort:
             # correctly update the step counter before exiting:
             while int(self.ts[self.interpolation_step]) == self.prev_prompt_index:
                 self.interpolation_step += 1
             self.clear_buffer_at_next_iteration = True
             self.prev_prompt_index = self.prompt_index
         
-        return t, t_raw, prompt_embeds, init_noise, scale, self.prompt_index
+        return t, t_raw, prompt_embeds, init_noise, scale, self.prompt_index, abort

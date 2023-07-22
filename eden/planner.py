@@ -558,7 +558,7 @@ class LatentTracker():
         if self.fixed_latent_noise is None:
             generator = torch.Generator(device=self.device).manual_seed(self.args.seed)
             self.fixed_latent_noise = torch.randn(*(fully_denoised_latent.shape), generator=generator, device=self.device).float()
-
+        
         if self.args.easy_way: #easy way
             torch_fully_denoised_latent = torch.from_numpy(fully_denoised_latent).to(self.device).float()
 

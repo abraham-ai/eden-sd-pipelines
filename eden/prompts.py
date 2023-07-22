@@ -209,9 +209,13 @@ text_inputs = [
     "a huge woman head trapped in stone in an epic landscape, cinematic light, unreal engine, trending on artstation",
     "a twisted trending on art shards of sharp 5, raytracing photorealistic, digital painting, irrational fear the existential dread f 3 black glass lenses floats through futuristic illustrated visionary",
     "barlow, bao volumetric cinematic lighting, 8 k smooth puffy sculptural big leaves and pham, donato giancola, painting, aesthetic, smooth, bed above floor",
-    "beautiful mannequin sculpted out of black glass by billelis + lit with geometric neon dripping gold + forest in background facing a doorway opening with neon pink geometric fractal light + flowering bonsai trees, transcendent, clean linework, dramatic, finely detailed, award winning, 4 k, trending on artstation, photorealistic, volumetric lighting, octane render",
+    #"beautiful mannequin sculpted out of black glass by billelis + lit with geometric neon dripping gold + forest in background facing a doorway opening with neon pink geometric fractal light + flowering bonsai trees, transcendent, clean linework, dramatic, finely detailed, award winning, 4 k, trending on artstation, photorealistic, volumetric lighting, octane render",
     "a closeup portrait of a woman wrapped in a translucent sphere, standing next to a giant huge levitating copper orb, in a foggy pond, golden hour, color photograph, by vincent desiderio, canon eos c 3 0 0, ƒ 1. 8, 3 5 mm, 8 k",
     "style, volumetric and gold, cascading, multiverse a beautiful greg rutkowski, oil paint, art, lifelike, photorealistic, reclections, reflective, sharp details, 4k, trending on artstation",
+    "a woman with her face painted like the wings of a butterfly. butterfly wings face painting. beautiful highly detailed face. painting by artgerm and greg rutkowski and alphonse mucha.",
+    "fine artwork of a still life arrangement of flowering nasturtiums and time crystals, soft light coming from a window in a dark room, moody, beautiful classical style",
+    "incredible photograph of retro interier of glass museum, full of hundreds of massive glass television screens from different places of the universe, incredible sharp details, back light contrast, dramatic dark atmosphere, bright vivid colours, reclections, reflective ground, speculars, refractions, light disperions, sharp details, 4k, by Gustave Dore, George Inness",
+    "surreal baroque portrait of ribbed white alien god covered with spinal antlers, on white exoplanet, iredescent soft glow bloom effect, dream - like, baroque portrait painting, perfect composition, beautiful detailed intricate detailed octane render, artstation, 8 k, photorealistic, volumetric cinematic light, chiaroscuro, masterpiece, raphael, caravaggio, beksinski, giger",
     
 ]
 

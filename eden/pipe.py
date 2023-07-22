@@ -20,7 +20,6 @@ from diffusers import DiffusionPipeline, StableDiffusionXLImg2ImgPipeline
 from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline, StableDiffusionDepth2ImgPipeline
 #from diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion_eden import StableDiffusionEdenPipeline
 from diffusers.models import AutoencoderKL
-from diffusers.models.cross_attention import AttnProcessor2_0
 
 from diffusers import (
     LMSDiscreteScheduler, 
@@ -51,6 +50,8 @@ upscaling_last_lora_path = None
 
 _local_files_only = False
 
+# Disable gradients everywhere:
+torch.set_grad_enabled(False)
 
 def set_sampler(sampler_name, pipe):
     schedulers = {
@@ -98,7 +99,10 @@ def load_pipe(args):
 
     pipe.safety_checker = None
     pipe = pipe.to(_device)
-    pipe.unet.set_attn_processor(AttnProcessor2_0())
+
+    if args.compile_unet:
+        pipe.unet = torch.compile(pipe.unet, mode="reduce-overhead", fullgraph=True)
+    
     print(f"Created new pipe in {(time.time() - start_time):.2f} seconds")
     print_model_info(pipe)
     return pipe
@@ -188,7 +192,6 @@ def load_upscaling_pipe(args):
             torch_dtype=torch.float16 if args.half_precision else torch.float32
         )
 
-    upscaling_pipe.unet.set_attn_processor(AttnProcessor2_0())
     upscaling_pipe = upscaling_pipe.to(_device)
 
     print(f"Created new img2img pipe from {load_path} in {(time.time() - start_time):.2f} seconds")

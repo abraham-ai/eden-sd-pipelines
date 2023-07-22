@@ -150,9 +150,7 @@ def generate(
         #latents = args.init_latent, # latents is implemented but not actually used in diffusers img2img pipe...
         callback = callback_,
     )
-
-
-
+    
     pil_images = pipe_output.images
     pt_images = [None]*len(pil_images)
 
@@ -277,13 +275,16 @@ def make_interpolation(args, force_timepoints = None):
 
         if 0: # catch errors and try to complete the video
             try:
-                t, t_raw, prompt_embeds, init_noise, scale, keyframe_index = args.interpolator.get_next_conditioning(verbose=0, save_distances_to_dir = args.save_distances_to_dir, t_raw = force_t_raw)
+                t, t_raw, prompt_embeds, init_noise, scale, keyframe_index, abort_render = args.interpolator.get_next_conditioning(verbose=0, save_distances_to_dir = args.save_distances_to_dir, t_raw = force_t_raw)
             except Exception as e:
                 print("Error in interpolator.get_next_conditioning(): ", str(e))
                 break
         else: # get full stack_trace, for debugging:
-            t, t_raw, prompt_embeds, init_noise, scale, keyframe_index = args.interpolator.get_next_conditioning(verbose=0, save_distances_to_dir = args.save_distances_to_dir, t_raw = force_t_raw)
+            t, t_raw, prompt_embeds, init_noise, scale, keyframe_index, abort_render = args.interpolator.get_next_conditioning(verbose=0, save_distances_to_dir = args.save_distances_to_dir, t_raw = force_t_raw)
         
+        if abort_render:
+            return
+            
         # Update all the render args for this frame:
         try: # sdxl
             args.c, args.uc, args.pc, args.puc = prompt_embeds
