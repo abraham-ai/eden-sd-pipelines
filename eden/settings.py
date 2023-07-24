@@ -125,7 +125,7 @@ class StableDiffusionSettings:
     interpolation_init_images_power: float = 2.0
     interpolation_init_images_min_strength: float = 0.25
     interpolation_init_images_max_strength: float = 0.97
-    easy_way: bool = True
+    easy_way: bool = False   # True causes errors in lerp
     save_distances_to_dir: str = None
 
     # # video feedback (not compatible with interpolations)

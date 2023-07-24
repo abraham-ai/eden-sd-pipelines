@@ -115,7 +115,7 @@ def generate(
         args.init_latent = args.init_latent.half()
 
     denoising_start = None
-    if (args.init_image is None) and (args.init_latent is not None): # lerp
+    if (args.init_image is None) and (args.init_latent is not None): # lerp/real2real
         args.init_image = args.init_latent
 
         if 1:

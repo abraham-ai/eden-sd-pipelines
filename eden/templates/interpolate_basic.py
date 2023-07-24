@@ -36,11 +36,11 @@ def lerp(
         n_anchor_imgs = 5,
         n_film = 0,
         fps = 12,
-        steps = 80,
+        steps = 40,
         sampler = "euler",
         seed = seed,
-        H = 1024,
-        W = 1024+640,
+        H = 960,
+        W = 640,
     )
 
     # always make sure these args are properly set:
