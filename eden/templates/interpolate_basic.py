@@ -28,15 +28,15 @@ def lerp(
         text_input = interpolation_texts[0],
         interpolation_texts = interpolation_texts,
         interpolation_seeds = interpolation_seeds if interpolation_seeds else [random.randint(1, 1e8) for i in range(n)],
-        n_frames = 36*n,
+        n_frames = 56*n,
         guidance_scale = 7.5,
         loop = True,
         smooth = True,
-        latent_blending_skip_f = [0.15, 0.75],
+        latent_blending_skip_f = [0.15, 0.8],
         n_anchor_imgs = 5,
         n_film = 0,
         fps = 12,
-        steps = 60,
+        steps = 80,
         sampler = "euler",
         seed = seed,
         H = 1024,
@@ -88,10 +88,10 @@ def lerp(
 if __name__ == "__main__":
 
     outdir = "results"
-    n = 2
+    n = 3
 
-    for i in range(1):
-        seed = int(time.time())
+    for i in range(12):
+        seed = np.random.randint(0, 1000)
 
         seed_everything(seed)
         interpolation_texts = random.sample(text_inputs, n)
@@ -100,4 +100,11 @@ if __name__ == "__main__":
             print(txt)
             print("-----------------------")
 
-        lerp(interpolation_texts, outdir, seed=seed, save_distance_data=True, interpolation_seeds=None)
+        try:
+            lerp(interpolation_texts, outdir, seed=seed, save_distance_data=True, interpolation_seeds=None)
+        except KeyboardInterrupt:
+            print("Interrupted by user")
+            exit()  # or sys.exit()
+        except Exception as e:
+            print(f"Error: {e}")  # Optionally print the error
+            continue

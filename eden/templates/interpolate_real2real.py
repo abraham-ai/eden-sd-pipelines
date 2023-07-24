@@ -43,10 +43,11 @@ def real2real(
             interpolation_init_images_use_img2txt = True,
             interpolation_init_images_power = 2.0,
             interpolation_init_images_min_strength = 0.25,  # a higher value will make the video smoother, but allows less visual change / journey
-            interpolation_init_images_max_strength = random.choice([0.80, 0.9, 0.95, 1.0]),
-            #interpolation_init_images_max_strength = random.choice([1.0]),
-            latent_blending_skip_f = random.choice([[0.2, 0.7], [0.0, 0.7]]),
+            #interpolation_init_images_max_strength = random.choice([0.75, 0.9, 0.95, 1.0]),
+            interpolation_init_images_max_strength = random.choice([0.85]),
+            latent_blending_skip_f = random.choice([[0.2, 0.7], [0.0, 0.6]]),
             easy_way = random.choice([True, False]),
+            compile_unet = False,
             guidance_scale = 7.5,
             n_anchor_imgs = 5,
             n_frames = 42*n,
@@ -54,7 +55,7 @@ def real2real(
             smooth = True,
             n_film = 0,
             fps = 9,
-            steps =  70,
+            steps =  80,
             sampler = "euler",
             seed = seed,
             H = 1024,
@@ -71,7 +72,7 @@ def real2real(
 
     if debug: # overwrite some args to make things go FAST
         args.W, args.H = 1024, 1024
-        args.steps = 30
+        args.steps = 35
         args.n_frames = 42*n
         args.n_anchor_imgs = 3
 
@@ -130,7 +131,7 @@ def real2real(
 
 if __name__ == "__main__":
 
-    outdir = "results"
+    outdir = "results_real2real"
 
     init_imgs = [
         "https://minio.aws.abraham.fun/creations-stg/7f5971f24bc5c122aed6c1298484785b4d8c90bce41cc6bfc97ad29cc179c53f.jpg",
@@ -143,24 +144,28 @@ if __name__ == "__main__":
         "../assets/02.jpg",
     ]
 
+
+
     init_imgs = [
         "https://generations.krea.ai/images/3cd0b8a8-34e5-4647-9217-1dc03a886b6a.webp",
         "https://generations.krea.ai/images/928271c8-5a8e-4861-bd57-d1398e8d9e7a.webp",
         "https://generations.krea.ai/images/865142e2-8963-47fb-bbe9-fbe260271e00.webp"
     ]
-
-    input_dir = "/home/xander/Projects/cog/stable-diffusion-dev/eden/xander/init_imgs/test"
+    n = 3
+    input_dir = "/home/xander/Projects/cog/stable-diffusion-dev/eden/xander/img2img_inits/random"
     init_imgs = [os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.endswith(".jpg")]
 
-    n = 3
-
     for i in range(20):
-        seed = int(time.time())
+        seed = np.random.randint(0, 1000)
 
         random.seed(seed)
         input_images = random.sample(init_imgs, n)
+
         try:
             real2real(input_images, outdir, seed = seed)
-        except:
-            print("failed to render", input_images)
-            raise
+        except KeyboardInterrupt:
+            print("Interrupted by user")
+            exit()  # or sys.exit()
+        except Exception as e:
+            print(f"Error: {e}")  # Optionally print the error
+            continue

@@ -51,7 +51,7 @@ class StableDiffusionSettings:
     lora_paths: str = None # optional list of lora paths for each img seed for real2real
 
     #precision: str = 'autocast'
-    compile_unet: bool = True,  # use toch.compile() to speed things up
+    compile_unet: bool = False  # use toch.compile() to speed things up
     half_precision: bool = True
     activate_tileable_textures: bool = False
     gpu_info_verbose: bool = True  # if True, print GPU info to console
