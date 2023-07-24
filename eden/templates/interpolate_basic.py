@@ -36,11 +36,11 @@ def lerp(
         latent_blending_skip_f = [0.15, 0.75],
         n_film = 0,
         fps = 12,
-        steps = 80,
+        steps = 30,
         sampler = "euler",
         seed = seed,
-        W = 1024,
-        H = 1024+640,
+        W = 768,
+        H = 768,
     )
 
     # always make sure these args are properly set:
