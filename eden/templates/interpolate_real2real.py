@@ -37,29 +37,30 @@ def real2real(
             #ckpt = "stabilityai/stable-diffusion-xl-refiner-0.9",
             text_input = "real2real",  # text_input is also the title, but has no effect on interpolations
             interpolation_seeds = [random.randint(1, 1e8) for _ in range(n)],
-            #interpolation_texts = ["photo of a group of people watching a volcano eruptting from the ground, amazing volcanic eruption, volcano eruption, active volcano, erupting volcano in distance, photorealistic",
-            #                        "a woman with a pair of sunglasses and a snake head, cyberpunk medusa, snake woman hybrid, tristan eaton, jen bartel, beautiful octopus woman, hyperrealistic art nouveau, art nouveau! cyberpunk! style, art nouveau cyberpunk! style, cyberpunk art nouveau, medusa, portrait of teenage medusa, intricate artwork. neon eyes, beeple and jeremiah ketner"],
+            interpolation_texts = ["photo of a group of people watching a volcano eruptting from the ground, amazing volcanic eruption, volcano eruption, active volcano, erupting volcano in distance, photorealistic",
+                                    "a woman with a pair of sunglasses and a snake head, cyberpunk medusa, snake woman hybrid, tristan eaton, jen bartel, beautiful octopus woman, hyperrealistic art nouveau, art nouveau! cyberpunk! style, art nouveau cyberpunk! style, cyberpunk art nouveau, medusa, portrait of teenage medusa, intricate artwork. neon eyes, beeple and jeremiah ketner"],
             interpolation_init_images = input_images,
             interpolation_init_images_use_img2txt = True,
             interpolation_init_images_power = 2.0,
             interpolation_init_images_min_strength = 0.25,  # a higher value will make the video smoother, but allows less visual change / journey
-            #interpolation_init_images_max_strength = random.choice([0.75, 0.9, 0.95, 1.0]),
             interpolation_init_images_max_strength = random.choice([0.85]),
-            latent_blending_skip_f = random.choice([[0.2, 0.7], [0.0, 0.6]]),
-            easy_way = random.choice([True, False]),
+            #interpolation_init_images_min_strength = 0.0,  # a higher value will make the video smoother, but allows less visual change / journey
+            #interpolation_init_images_max_strength = random.choice([0.0]),
+            latent_blending_skip_f = random.choice([[0.1, 0.85]]),
+            easy_way = random.choice([False]),
             compile_unet = False,
             guidance_scale = 7.5,
             n_anchor_imgs = 5,
-            n_frames = 42*n,
+            n_frames = 48*n,
             loop = True,
             smooth = True,
             n_film = 0,
             fps = 9,
-            steps =  80,
+            steps =  60,
             sampler = "euler",
             seed = seed,
             H = 1024,
-            W = 1024+640,
+            W = 1024,
             upscale_f = 1.0,
             clip_interrogator_mode = "fast",
             lora_path = None,
@@ -145,18 +146,18 @@ if __name__ == "__main__":
     ]
 
 
-
+    n = 2
+    input_dir = "/home/xander/Projects/cog/stable-diffusion-dev/eden/xander/img2img_inits/random"
+    init_imgs = [os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.endswith(".jpg")]
     init_imgs = [
         "https://generations.krea.ai/images/3cd0b8a8-34e5-4647-9217-1dc03a886b6a.webp",
         "https://generations.krea.ai/images/928271c8-5a8e-4861-bd57-d1398e8d9e7a.webp",
         "https://generations.krea.ai/images/865142e2-8963-47fb-bbe9-fbe260271e00.webp"
     ]
-    n = 3
-    input_dir = "/home/xander/Projects/cog/stable-diffusion-dev/eden/xander/img2img_inits/random"
-    init_imgs = [os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.endswith(".jpg")]
 
-    for i in range(20):
+    for i in range(2):
         seed = np.random.randint(0, 1000)
+        seed = i+2
 
         random.seed(seed)
         input_images = random.sample(init_imgs, n)

@@ -28,7 +28,7 @@ def lerp(
         text_input = interpolation_texts[0],
         interpolation_texts = interpolation_texts,
         interpolation_seeds = interpolation_seeds if interpolation_seeds else [random.randint(1, 1e8) for i in range(n)],
-        n_frames = 56*n,
+        n_frames = 64*n,
         guidance_scale = 7.5,
         loop = True,
         smooth = True,
@@ -36,11 +36,11 @@ def lerp(
         n_anchor_imgs = 5,
         n_film = 0,
         fps = 12,
-        steps = 40,
+        steps = 80,
         sampler = "euler",
         seed = seed,
-        H = 960,
-        W = 640,
+        H = 1024,
+        W = 1024+640,
     )
 
     # always make sure these args are properly set:
@@ -90,8 +90,9 @@ if __name__ == "__main__":
     outdir = "results"
     n = 3
 
-    for i in range(12):
+    for i in range(6):
         seed = np.random.randint(0, 1000)
+        seed = i+3
 
         seed_everything(seed)
         interpolation_texts = random.sample(text_inputs, n)
@@ -99,7 +100,9 @@ if __name__ == "__main__":
         for txt in interpolation_texts:
             print(txt)
             print("-----------------------")
-
+        
+        lerp(interpolation_texts, outdir, seed=seed, save_distance_data=True, interpolation_seeds=None)
+        
         try:
             lerp(interpolation_texts, outdir, seed=seed, save_distance_data=True, interpolation_seeds=None)
         except KeyboardInterrupt:
