@@ -36,5 +36,6 @@ lora
 tuning.png
 training_batch_preview/
 results
+results_real2real
 data
 loras
