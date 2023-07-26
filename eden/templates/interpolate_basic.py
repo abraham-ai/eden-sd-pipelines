@@ -15,7 +15,7 @@ def lerp(
     name_str = "",
     save_phase_data = False,     # save condition vectors and scale for each frame (used for later upscaling)
     save_distance_data = False,  # save distance plots to disk
-    debug = 0):
+    debug = 1):
 
     seed_everything(seed)
     n = len(interpolation_texts)
@@ -92,7 +92,6 @@ if __name__ == "__main__":
 
     for i in range(6):
         seed = np.random.randint(0, 1000)
-        seed = i+3
 
         seed_everything(seed)
         interpolation_texts = random.sample(text_inputs, n)

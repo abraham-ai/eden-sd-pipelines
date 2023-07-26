@@ -101,13 +101,14 @@ def generate(
     
     if args.c is not None:
         assert args.uc is not None, "Must provide negative prompt conditioning if providing positive prompt conditioning"
-        prompt, negative_prompt = None, None
+        prompt, prompt_2, negative_prompt = None, None, None
     else:
-        prompt, negative_prompt = args.text_input, args.uc_text
+        prompt, prompt_2, negative_prompt = args.text_input, args.text_input_2, args.uc_text
         args.c, args.uc = None, None
 
     if args.n_samples > 1: # Correctly handle batches:
         prompt = [prompt] * args.n_samples
+        prompt_2 = [prompt_2] * args.n_samples
         negative_prompt = [negative_prompt] * args.n_samples
         args.n_samples = 1
 
@@ -134,6 +135,7 @@ def generate(
 
     pipe_output = pipe(
         prompt = prompt,
+        prompt_2 = prompt_2,
         negative_prompt = negative_prompt, 
         image = args.init_image, 
         strength = 1-args.init_image_strength, 
@@ -161,26 +163,26 @@ def generate(
     pil_images = maybe_apply_watermark(args, pil_images)
 
     if args.c is None or args.uc is None:
-        try:
+        try: # SD v1/v2
             prompt_embeds = pipe._encode_prompt(
-                    prompt,
-                    _device,
-                    args.n_samples,
-                    args.guidance_scale > 1.0,
-                    negative_prompt,
+                    prompt = prompt,
+                    device = _device,
+                    num_images_per_prompt = args.n_samples,
+                    do_classifier_free_guidance = args.guidance_scale > 1.0,
+                    negative_prompt = negative_prompt,
                 )
-        except:
+        except: # SDXL
             (
                 prompt_embeds,
                 negative_prompt_embeds,
                 pooled_prompt_embeds,
                 negative_pooled_prompt_embeds,
             ) = pipe.encode_prompt(
-                prompt,
-                _device,
-                args.n_samples,
-                args.guidance_scale > 1.0,
-                negative_prompt)
+                prompt = prompt,
+                device = _device,
+                num_images_per_prompt = args.n_samples,
+                do_classifier_free_guidance = args.guidance_scale > 1.0,
+                negative_prompt = negative_prompt)
             
             prompt_embeds_dict = {}
             prompt_embeds_dict['prompt_embeds'] = torch.cat([negative_prompt_embeds, prompt_embeds], dim=0)
@@ -400,14 +402,14 @@ def run_upscaler(args_, imgs,
     for i in range(len(imgs)): # upscale in a loop:
         args.init_image = imgs[i]
         image = upscaling_pipe(
-            args.text_input,
+            prompt = args.text_input,
             image=args.init_image.resize((args.W, args.H)),
             guidance_scale=upscale_guidance_scale,
             strength=1-init_image_strength,
             num_inference_steps=upscale_steps,
             negative_prompt=args.uc_text,
-            prompt_embeds = args.c,
-            negative_prompt_embeds = args.uc,
+            #prompt_embeds = args.c,
+            #negative_prompt_embeds = args.uc,
 
         ).images[0]
         x_samples_upscaled.extend([])

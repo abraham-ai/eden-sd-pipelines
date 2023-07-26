@@ -159,18 +159,18 @@ class Interpolator():
 
             try:
                 prompt_embeds = self.pipe.encode_prompt(
-                    prompt,
-                    self.device,
-                    1,
-                    self.args.guidance_scale > 1.0,
+                    prompt = prompt,
+                    device = self.device,
+                    num_images_per_prompt = 1,
+                    do_classifier_free_guidance = self.args.guidance_scale > 1.0,
                     negative_prompt = self.args.uc_text
                 )
             except:
                 prompt_embeds = self.pipe._encode_prompt(
-                    prompt,
-                    self.device,
-                    1,
-                    self.args.guidance_scale > 1.0,
+                    prompt = prompt,
+                    device = self.device,
+                    num_images_per_prompt = 1,
+                    do_classifier_free_guidance = self.args.guidance_scale > 1.0,
                     negative_prompt = self.args.uc_text
                 )
 
