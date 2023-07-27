@@ -1,6 +1,6 @@
 build:
   gpu: true
-  cuda: "11.8.0"
+  cuda: "11.8.0"  # udpated from 11.7.1
   python_version: "3.10"
 
   system_packages:
@@ -8,39 +8,39 @@ build:
     - "libglib2.0-0"
 
   python_packages:
-    - "git+https://www.github.com/abraham-ai/diffusers"
-    - "torch==2.0.1"
-    - "ftfy==6.1.1"
-    - "scipy==1.9.2"
-    - "transformers==4.26.1"
-    - "accelerate==0.16.0"
-    - "lpips==0.1.4"
-    - "moviepy==1.0.3"
-    - "opencv-python==4.7.0.68"
-    - "einops==0.6.0"
-    - "fire==0.5.0"
-    - "safetensors==0.2.8"
-    - "mediapipe==0.9.1.0"
-    - "scikit-image==0.19.3"
-    - "open_clip_torch==2.7.0"
-    - "xformers==0.0.20"
-    - "tokenizers==0.13.2"
-    - "triton==2.0.0"
-    - "apache-beam==2.45.0"
-    - "natsort==8.2.0"
-    - "mediapy==1.1.4"
-    - "wandb==0.13.10"
-    - "pandas==1.5.3"
+    - "torch==2.0.0"         # No change
+    - "ftfy==6.1.1"          # No change
+    - "scipy==1.11.1"        # Updated from 1.9.2 to 1.11.1
+    - "transformers==4.30.2" # Updated from 4.26.1 to 4.30.2
+    - "accelerate==0.20.3"   # Updated from 0.16.0 to 0.20.3
+    - "lpips==0.1.4"         # No change
+    - "moviepy==1.0.3"       # No change
+    - "opencv-python==4.8.0.74" # Updated from 4.7.0.68 to 4.8.0.74
+    - "einops==0.6.1"        # Updated from 0.6.0 to 0.6.1
+    - "fire==0.5.0"          # No change
+    - "safetensors==0.3.1"   # Updated from 0.2.8 to 0.3.1
+    - "mediapipe==0.9.1.0"   # Not found in the pip freeze output, so no change
+    - "scikit-image==0.19.3" # Not found in the pip freeze output, so no change
+    - "open_clip_torch==2.20.0" # Updated from 2.7.0 to 2.20.0
+    - "tokenizers==0.13.3"   # Updated from 0.13.2 to 0.13.3
+    - "triton==2.0.0"        # No change
+    - "apache-beam==2.45.0"  # Not found in the pip freeze output, so no change
+    - "natsort==8.2.0"       # Not found in the pip freeze output, so no change
+    - "mediapy==1.1.4"       # Not found in the pip freeze output, so no change
+    - "wandb==0.13.10"       # Not found in the pip freeze output, so no change
+    - "pandas==2.0.3"        # Updated from 1.5.3 to 2.0.3
+    - "invisible-watermark>=0.2.0"
 
   pre_install:
+   - git clone -b sdxl https://www.github.com/abraham-ai/diffusers
+   - pip install -e ./diffusers
    - git clone https://github.com/pharmapsychotic/BLIP
    - pip install -e ./BLIP
    - git clone https://github.com/pharmapsychotic/clip-interrogator
    - pip install -e ./clip-interrogator --no-deps
    - pip install tensorflow==2.11.0
    - git clone https://github.com/abraham-ai/frame-interpolation
-   - pip install --upgrade transformers
 
 predict: "predict.py:Predictor"
 
-image: "r8.im/abraham-ai/eden-sd-pipelines"
+image: "r8.im/abraham-ai/eden-sd-pipelines-sdxl" # sdxl img

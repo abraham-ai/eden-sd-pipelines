@@ -75,7 +75,6 @@ if __name__ == "__main__":
 
     args = StableDiffusionSettings(
         steps = n_steps,
-        ckpt = "dreamlike-art/dreamlike-photoreal-2.0",
         H = H,
         W = W,
         n_frames = inter_frames*(n-1) + n,

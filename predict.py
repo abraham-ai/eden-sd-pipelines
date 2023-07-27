@@ -79,14 +79,10 @@ import eden_utils
 from cog import BasePredictor, BaseModel, File, Input, Path
 
 checkpoint_options = [
-#    "runwayml:stable-diffusion-v1-5",
-#    "dreamlike-art:dreamlike-photoreal-2.0",
-#    "huemin:fxhash_009",
-    "eden:eden-v1",
-    "gordon-berger:gordon-berger-figurative",
+    "stabilityai/stable-diffusion-xl-base-1.0",
 ]
-checkpoint_default = "eden:eden-v1"
-#checkpoint_default = "gordon-berger:gordon-berger-figurative"
+checkpoint_default = "stabilityai/stable-diffusion-xl-base-1.0"
+
 
 class CogOutput(BaseModel):
     files: list[Path]

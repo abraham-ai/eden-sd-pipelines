@@ -4,21 +4,27 @@ from pathlib import Path
 
 SD_PATH = Path(os.path.dirname(os.path.realpath(__file__))).parents[0]
 ROOT_PATH = SD_PATH.parents[0]
+print("SD_PATH: ", SD_PATH)
+print("ROOT_PATH: ", ROOT_PATH)
+
 DIFFUSERS_PATH = os.path.join(ROOT_PATH, 'diffusers')
 CHECKPOINTS_PATH = os.path.join(SD_PATH, 'models/checkpoints')
 LORA_PATH = os.path.join(SD_PATH, 'lora')
 LORA_DIFFUSION_PATH = os.path.join(LORA_PATH, 'lora_diffusion')
 
-sys.path.insert(0,DIFFUSERS_PATH)
+#print("DIFFUSERS PATH: ", DIFFUSERS_PATH)
+#sys.path.insert(0,DIFFUSERS_PATH)
 sys.path.append(LORA_PATH)
 sys.path.append(LORA_DIFFUSION_PATH)
 
 import time
 import torch
 from safetensors.torch import safe_open, save_file
+import diffusers
+print("Importing diffusers from:")
+print(diffusers.__file__)
 from diffusers import DiffusionPipeline, StableDiffusionXLImg2ImgPipeline
 from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline, StableDiffusionDepth2ImgPipeline
-#from diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion_eden import StableDiffusionEdenPipeline
 from diffusers.models import AutoencoderKL
 
 from diffusers import (
@@ -102,6 +108,7 @@ def load_pipe(args):
 
     if args.compile_unet:
         pipe.unet = torch.compile(pipe.unet, mode="reduce-overhead", fullgraph=True)
+
     
     print(f"Created new pipe in {(time.time() - start_time):.2f} seconds")
     print_model_info(pipe)
@@ -193,7 +200,6 @@ def load_upscaling_pipe(args):
         )
 
     upscaling_pipe = upscaling_pipe.to(_device)
-
     print(f"Created new img2img pipe from {load_path} in {(time.time() - start_time):.2f} seconds")
     return upscaling_pipe
 

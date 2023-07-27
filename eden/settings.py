@@ -43,7 +43,7 @@ class StableDiffusionSettings:
     
     # model settings
     #ckpt: str = "eden:eden-v1"
-    ckpt: str = "stabilityai/stable-diffusion-xl-base-0.9"
+    ckpt: str = "sdxl-v1.0"
 
     # Lora / finetuning:
     lora_path: str = None

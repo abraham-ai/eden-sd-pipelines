@@ -143,7 +143,6 @@ def get_txts_and_loras(json_paths, lora_root_dir, always_use_lora = True):
         if json_path is None:
             lora_paths.append(None)
             interpolation_texts.append(None)
-            ckpts.append('dreamlike-art/dreamlike-photoreal-2.0')
         else:
             with open(json_path) as f:
                 data = json.load(f)

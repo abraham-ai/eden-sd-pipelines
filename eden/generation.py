@@ -106,7 +106,7 @@ def generate(
         prompt, prompt_2, negative_prompt = args.text_input, args.text_input_2, args.uc_text
         args.c, args.uc = None, None
 
-    if args.n_samples > 1: # Correctly handle batches:
+    if args.n_samples > 1 and 0: # Correctly handle batches:
         prompt = [prompt] * args.n_samples
         prompt_2 = [prompt_2] * args.n_samples
         negative_prompt = [negative_prompt] * args.n_samples
@@ -393,7 +393,9 @@ def run_upscaler(args_, imgs,
     # Load the upscaling model:
     global upscaling_pipe
     # always upscale with SDXL-refiner by default:
-    args.ckpt = "stabilityai/stable-diffusion-xl-refiner-0.9"
+    args.ckpt = "stabilityai/stable-diffusion-xl-refiner-1.0"
+    args.ckpt = "sdxl-v1.0"
+    
     upscaling_pipe = eden_pipe.get_upscaling_pipe(args)
 
     # Avoid doing too little steps when init_image_strength is very high:

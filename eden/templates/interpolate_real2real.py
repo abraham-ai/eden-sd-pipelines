@@ -34,11 +34,10 @@ def real2real(
     if args is None:
         args = StableDiffusionSettings(
             #watermark_path = "../assets/eden_logo.png",
-            #ckpt = "stabilityai/stable-diffusion-xl-refiner-0.9",
             text_input = "real2real",  # text_input is also the title, but has no effect on interpolations
             interpolation_seeds = [random.randint(1, 1e8) for _ in range(n)],
-            interpolation_texts = ["photo of a group of people watching a volcano eruptting from the ground, amazing volcanic eruption, volcano eruption, active volcano, erupting volcano in distance, photorealistic",
-                                    "a woman with a pair of sunglasses and a snake head, cyberpunk medusa, snake woman hybrid, tristan eaton, jen bartel, beautiful octopus woman, hyperrealistic art nouveau, art nouveau! cyberpunk! style, art nouveau cyberpunk! style, cyberpunk art nouveau, medusa, portrait of teenage medusa, intricate artwork. neon eyes, beeple and jeremiah ketner"],
+            #interpolation_texts = ["photo of a group of people watching a volcano eruptting from the ground, amazing volcanic eruption, volcano eruption, active volcano, erupting volcano in distance, photorealistic",
+            #                        "a woman with a pair of sunglasses and a snake head, cyberpunk medusa, snake woman hybrid, tristan eaton, jen bartel, beautiful octopus woman, hyperrealistic art nouveau, art nouveau! cyberpunk! style, art nouveau cyberpunk! style, cyberpunk art nouveau, medusa, portrait of teenage medusa, intricate artwork. neon eyes, beeple and jeremiah ketner"],
             interpolation_init_images = input_images,
             interpolation_init_images_use_img2txt = True,
             interpolation_init_images_power = 2.0,

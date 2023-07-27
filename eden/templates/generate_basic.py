@@ -21,7 +21,7 @@ checkpoint_options = [
 
 # checkpoint_options = ["runwayml:stable-diffusion-v1-5"]
 #checkpoint_options = ["eden:eden-v1"]
-checkpoint_options = ["stabilityai/stable-diffusion-xl-base-0.9"]
+checkpoint_options = ["stabilityai/stable-diffusion-xl-base-1.0"]
 
 def generate_basic(
     text_input, 
@@ -35,18 +35,18 @@ def generate_basic(
     suffix = ""):
 
     args = StableDiffusionSettings(
-        ckpt = random.choice(checkpoint_options),
+        #ckpt = random.choice(checkpoint_options),
         mode = "generate",
         W = 1024,
         H = 1024,
         sampler = "euler",
-        steps = 50,
+        steps = 40,
         guidance_scale = 6,
         upscale_f = 1.0,
         text_input = text_input,
         text_input_2 = text_input_2,
         seed = seed,
-        n_samples = 1,
+        n_samples = 2,
         lora_path = None,
         #init_image_data = "https://minio.aws.abraham.fun/creations-stg/7f5971f24bc5c122aed6c1298484785b4d8c90bce41cc6bfc97ad29cc179c53f.jpg",
         #init_image_strength = 0.2,
