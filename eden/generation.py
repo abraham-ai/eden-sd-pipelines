@@ -412,8 +412,8 @@ def run_upscaler(args_, imgs,
             negative_prompt=args.uc_text,
             #prompt_embeds = args.c,
             #negative_prompt_embeds = args.uc,
-
         ).images[0]
+
         x_samples_upscaled.extend([])
         x_images_upscaled.extend([image])
 

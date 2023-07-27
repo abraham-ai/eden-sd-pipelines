@@ -73,15 +73,14 @@ def download(url, folder, ext):
         f.write(raw_file.read())
     return filepath
 
-
 from settings import StableDiffusionSettings
 import eden_utils
 from cog import BasePredictor, BaseModel, File, Input, Path
 
 checkpoint_options = [
-    "stabilityai/stable-diffusion-xl-base-1.0",
+    "sdxl-v1.0",
 ]
-checkpoint_default = "stabilityai/stable-diffusion-xl-base-1.0"
+checkpoint_default = "sdxl-v1.0"
 
 
 class CogOutput(BaseModel):
