@@ -87,7 +87,7 @@ def load_pipe(args):
         pipe = StableDiffusionEdenPipeline.from_pretrained(
             location, 
             safety_checker=None, 
-            local_files_only=True, 
+            local_files_only=False, 
             torch_dtype=torch.float16 if args.half_precision else torch.float32, 
             vae=AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse").half()
         )
