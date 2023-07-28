@@ -215,10 +215,6 @@ class Predictor(BasePredictor):
             description="Maximum init image strength for interpolation_init_images prompts (mode==interpolate)",
             ge=0.5, le=1.0, default=0.95
         ),
-        scale_modulation: float = Input(
-            description="Scale modulation amplitude for interpolation (mode==interpolate)",
-            ge=0.0, le=0.25, default=0.0
-        ),
         loop: bool = Input(
             description="Loops (mode==interpolate)",
             default=True
@@ -282,7 +278,6 @@ class Predictor(BasePredictor):
             interpolation_init_images_max_strength = interpolation_init_images_max_strength,
 
             n_frames = n_frames,
-            scale_modulation = scale_modulation,
             loop = loop,
             smooth = smooth,
             n_film = n_film,
