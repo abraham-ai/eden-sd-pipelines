@@ -49,13 +49,13 @@ def real2real(
             easy_way = random.choice([False]),
             compile_unet = False,
             guidance_scale = 7.5,
-            n_anchor_imgs = 5,
+            n_anchor_imgs = 3,
             n_frames = 48*n,
             loop = True,
             smooth = True,
             n_film = 0,
             fps = 9,
-            steps =  60,
+            steps =  45,
             sampler = "euler",
             seed = seed,
             H = 1024,
@@ -156,7 +156,7 @@ if __name__ == "__main__":
 
     for i in range(2):
         seed = np.random.randint(0, 1000)
-        seed = i+2
+        seed = i
 
         random.seed(seed)
         input_images = random.sample(init_imgs, n)

@@ -32,15 +32,15 @@ def lerp(
         guidance_scale = 7.5,
         loop = True,
         smooth = True,
-        latent_blending_skip_f = [0.15, 0.7],
-        n_anchor_imgs = 5,
+        latent_blending_skip_f = [0.1, 0.6],
+        n_anchor_imgs = 3,
         n_film = 0,
         fps = 12,
-        steps = 80,
+        steps = 40,
         sampler = "euler",
         seed = seed,
         H = 1024,
-        W = 1024+640,
+        W = 1024,
     )
 
     # always make sure these args are properly set:
@@ -92,6 +92,7 @@ if __name__ == "__main__":
 
     for i in range(6):
         seed = np.random.randint(0, 1000)
+        seed = i
 
         seed_everything(seed)
         interpolation_texts = random.sample(text_inputs, n)

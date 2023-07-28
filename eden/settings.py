@@ -159,7 +159,7 @@ class StableDiffusionSettings:
     interpolator: str = None
     #anchor_img_fraction: float = 0.20  # fraction of inter-keyframe frames to generate regularly (without LatentBlending), higher --> larger visual path length
     n_anchor_imgs: int = 3  # number of anchor images to render before starting latent blending
-    latent_blending_skip_f: List = field(default_factory=lambda: [0.0, 0.6])  # What fraction of the denoising trajectory to skip ahead when using LatentBlending Trick (start and end values for each frame)
+    latent_blending_skip_f: List = field(default_factory=lambda: [0.15, 0.7])  # What fraction of the denoising trajectory to skip ahead when using LatentBlending Trick (start and end values for each frame)
     
     # disk folder interaction:
     frames_dir: str = "."  # root folder of all the data for this generation
