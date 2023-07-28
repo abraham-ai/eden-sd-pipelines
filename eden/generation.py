@@ -392,11 +392,13 @@ def run_upscaler(args_, imgs,
 
     # Load the upscaling model:
     global upscaling_pipe
-    # always upscale with SDXL-refiner by default:
-    args.ckpt = "stabilityai/stable-diffusion-xl-refiner-1.0"
-    args.ckpt = "sdxl-v1.0"
-    
-    upscaling_pipe = eden_pipe.get_upscaling_pipe(args)
+
+    if 0:
+        # always upscale with SDXL-refiner by default:
+        args.ckpt = "stabilityai/stable-diffusion-xl-refiner-1.0"
+        upscaling_pipe = eden_pipe.get_upscaling_pipe(args)
+    else:
+        upscaling_pipe = eden_pipe.get_pipe(args)
 
     # Avoid doing too little steps when init_image_strength is very high:
     upscale_steps = int(max(args.steps * (1-init_image_strength), min_upscale_steps) / (1-init_image_strength))+1

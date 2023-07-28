@@ -65,7 +65,7 @@ class StableDiffusionSettings:
 
     # sampler params
     sampler: str = "euler"
-    steps: int = 60
+    steps: int = 45
     min_steps: int = 7  # low_n steps often give artifacts, so adopt a min-n-steps
     guidance_scale: float = 7.5
     
@@ -125,7 +125,7 @@ class StableDiffusionSettings:
     #interpolation_init_images_top_k: int = 1
     interpolation_init_images_power: float = 2.0
     interpolation_init_images_min_strength: float = 0.25
-    interpolation_init_images_max_strength: float = 0.97
+    interpolation_init_images_max_strength: float = 0.90
     easy_way: bool = False   # True causes errors in lerp
     save_distances_to_dir: str = None
 

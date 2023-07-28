@@ -119,11 +119,11 @@ class Predictor(BasePredictor):
         ),
         width: int = Input(
             description="Width", 
-            ge=256, le=2048, default=768
+            ge=512, le=2048, default=1024
         ),
         height: int = Input(
             description="Height", 
-            ge=256, le=2048, default=768
+            ge=512, le=2048, default=1024
         ),
         checkpoint: str = Input(
             description="Which Stable Diffusion checkpoint to use",
@@ -146,11 +146,11 @@ class Predictor(BasePredictor):
         ),
         steps: int = Input(
             description="Diffusion steps", 
-            ge=10, le=100, default=60
+            ge=10, le=100, default=45
         ),
         guidance_scale: float = Input(
             description="Strength of text conditioning guidance", 
-            ge=0, le=30, default=7.5
+            ge=1, le=20, default=7.5
         ),
         upscale_f: float = Input(
             description="Upscaling resolution",
@@ -169,7 +169,7 @@ class Predictor(BasePredictor):
 
         # Generate mode
         text_input: str = Input(
-            description="Text input (mode==generate)",
+            description="Text input (mode==generate)", default=None
         ),
         uc_text: str = Input(
             description="Negative text input (mode==all)",
@@ -187,7 +187,7 @@ class Predictor(BasePredictor):
         # Interpolate mode
         n_frames: int = Input(
             description="Total number of frames (mode==interpolate)",
-            ge=3, le=1000, default=60
+            ge=3, le=1000, default=40
         ),
 
         # Interpolate mode
@@ -213,7 +213,7 @@ class Predictor(BasePredictor):
         ),
         interpolation_init_images_max_strength: float = Input(
             description="Maximum init image strength for interpolation_init_images prompts (mode==interpolate)",
-            ge=0.5, le=1.0, default=0.95
+            ge=0.3, le=1.0, default=0.95
         ),
         loop: bool = Input(
             description="Loops (mode==interpolate)",
@@ -229,7 +229,7 @@ class Predictor(BasePredictor):
         ),
         fps: int = Input(
             description="Frames per second (mode==interpolate)",
-            default=12, ge=1, le=60
+            default=12, ge=1, le=24
         ),
 
     ) -> Iterator[GENERATOR_OUTPUT_TYPE]:
