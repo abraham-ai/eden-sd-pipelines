@@ -43,6 +43,9 @@ def lerp(
         W = 1024,
     )
 
+    args.offset_1 = 0
+    args.offset_2 = 0
+
     # always make sure these args are properly set:
     args.frames_dir = frames_dir
     args.save_distance_data = save_distance_data

@@ -118,25 +118,16 @@ def generate(
     denoising_start = None
     if (args.init_image is None) and (args.init_latent is not None): # lerp/real2real
         args.init_image = args.init_latent
-
-        if 0:
-            denoising_start = 0.0  # ensures that args.init_image_strength is ignored and the full timestep trajectory is used (which is then clipped by start_timestep)
-            # ---> add_noise = False
-        else: # TODO, this should also work and maybe requires less/no modification to diffusers img2img pipe
-            #args.start_timestep = None
-            denoising_start = float(args.init_image_strength)
-            print("time_step latents were produced at:", args.start_timestep)
-            print("(starting timestep should be this + 1)")
-            print("denoising_start:", denoising_start)
-
+        denoising_start = float(args.init_image_strength)
     elif (args.init_image is None) and (args.init_latent is None): # generate, no init_img
         shape = (1, pipe.unet.config.in_channels, args.H // pipe.vae_scale_factor, args.W // pipe.vae_scale_factor)
         args.init_image = torch.randn(shape, generator=generator, device=_device)
     elif (args.init_image is not None): # remix
         args.start_time_step = None
 
-    # If we're starting with a latent, and the latent_trajectory is empty, add it to the stack:
-    args.interpolator.latent_tracker
+    #if denoising_start is not None and args.init_image is not None args.init_image.shape[1] == 4:
+    #    print("Prepending first latent!!")
+
 
     pipe_output = pipe(
         prompt = prompt,
@@ -323,11 +314,37 @@ def make_interpolation(args, force_timepoints = None):
                 latent skip_f: {args.interpolator.latent_tracker.latent_blending_skip_f:.2f},\
                 splitting lpips_d: {args.interpolator.latent_tracker.frame_buffer.get_perceptual_distance_at_t(args.t_raw):.2f}),\
                 keyframe {keyframe_index+1}/{len(args.interpolation_texts) - 1}...")
-
+        
         _, pil_images = generate(args, do_callback = True)
 
         # print the current stack of latents:
+        args.interpolator.latent_tracker.construct_noised_latents(args.t_raw)
         args.interpolator.latent_tracker.print_stack()
+        print("sigmas:", pipe.scheduler.sigmas)
+
+        if 0: # reset the full latent stack:
+            ######################################################################
+            ######################################################################
+
+            # Try to reconstruct the first noise stack:
+            t_zero = t_raw
+            tracker = args.interpolator.latent_tracker
+            current_noise_stack = tracker.latents[t_zero].copy()
+
+            # Remove the contents of the buffer:
+            for i in range(len(tracker.latents[t_zero])-1):
+                tracker.latents[t_zero][i] = None
+
+            # Now reconstruct:
+            tracker.construct_noised_latents(t_zero)
+
+            for i in range(len(tracker.latents[t_zero])):
+                try:
+                    print(f"i: {i}, std orig: {np.std(current_noise_stack[i]):4f}, std new: {np.std(tracker.latents[t_zero][i]):.4f}")
+                except:
+                    print("i: {i}, None")
+            ######################################################################
+            ######################################################################
 
         img_pil = pil_images[0]
         img_t = T.ToTensor()(img_pil).unsqueeze_(0).to(_device)

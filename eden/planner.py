@@ -553,27 +553,31 @@ class LatentTracker():
         print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         # given the current denoising stack of latents for this frame,
         # construct the full stack all the way up to pure noise
-
+        
         fully_denoised_latent = self.latents[t_raw][-1]
-        noise_sigmas = self.pipe.scheduler.sigmas[1:]
 
         if fully_denoised_latent is None:
             print("---------- WARNING ----------")
             print("The last (denoised) latent in the stack is None, this should never happen!")
 
         if self.args.easy_way: #easy way
+
+            noise_sigmas = self.pipe.scheduler.sigmas[1:]
             torch_fully_denoised_latent = torch.from_numpy(fully_denoised_latent).to(self.device).float()
             # Loop over all the timesteps and add the corresponding noise to the fully_denoised_latent:
             for i in range(len(self.latents[t_raw])-1):
                 timestep = self.pipe.scheduler.timesteps[i+1]
-                latents = self.add_noise_to_latent(torch_fully_denoised_latent, timestep, noise = self.init_noises[t_raw])
+                #latents = self.add_noise_to_latent(torch_fully_denoised_latent, timestep, noise = self.init_noises[t_raw])
                 
+                latents = self.pipe.scheduler.add_noise(torch_fully_denoised_latent, self.init_noises[t_raw], timestep.unsqueeze(0)).cpu().numpy()
+
                 # Slight hack to make sure we're at the right noise level:
-                latents = latents / np.std(latents)
-                latents = latents * noise_sigmas[i].cpu().item()
+                #latents = latents / np.std(latents)
+                #latents = latents * (noise_sigmas[i].cpu().item() + np.std(fully_denoised_latent))
                 self.latents[t_raw][i] = latents
 
         else: # harder way, but might be smoother:
+            print("HARD")
             # start at the most noisy latent in the stack, grab the corresponding noise level at that index
             # loop over all the missing indices and add the corresponding amount of fixed_noise
             most_noisy_index  = np.min([i for i, latent in enumerate(self.latents[t_raw]) if latent is not None])
@@ -582,11 +586,29 @@ class LatentTracker():
             # Grab the expected sigma levels of noise at each level in the stack:
             # we get rid of the first one since the stack starts saving latents after the first denoising step
 
+            noise_sigmas = self.pipe.scheduler.sigmas
+            #noise_sigmas = self.pipe.scheduler.sigmas[1:]
+            
             for i in range(len(self.latents[t_raw])):
                 if self.latents[t_raw][i] is not None: # we've reached the existing latents in the stack, stop constructing
                     break
 
-                sigma_to_add = noise_sigmas[i].cpu().item() - noise_sigmas[most_noisy_index].cpu().item()
+                # works for lerp, not for real2real:
+                offset1 = 0
+                offset2 = 0
+
+                # works for real2real, not for lerp:
+                #offset1 = 0
+                #offset2 = -1
+
+                target_sigma     = noise_sigmas[i + offset1].cpu().item()
+                most_noisy_sigma = noise_sigmas[most_noisy_index + offset2].cpu().item()
+
+                sigma_to_add     = target_sigma - most_noisy_sigma
+
+                if i == 0:
+                    print(f"Target sigma: {target_sigma:.3f}")
+                    print(f"Most noisy sigma: {most_noisy_sigma:.3f}")
 
                 noise = self.init_noises[t_raw].cpu().numpy()
                 #noise = np.random.normal(size=noise.shape) # create fully random noise
@@ -594,11 +616,12 @@ class LatentTracker():
                 latents = most_noisy_latent + sigma_to_add * noise
 
                 # Slight hack to make sure we're at the right noise level:
-                latents = latents / np.std(latents)
-                latents = latents * noise_sigmas[i].cpu().item()
+                #latents = latents / np.std(latents)
+                #latents = latents * (noise_sigmas[i].cpu().item() + np.std(fully_denoised_latent))
                 self.latents[t_raw][i] = latents
                 
     def get_neighbouring_latents(self, args, adjusted_init_image_strength = None):
+        
         if adjusted_init_image_strength is not None:
             self.current_init_image_strength = adjusted_init_image_strength
 
@@ -617,6 +640,8 @@ class LatentTracker():
                 break
 
         target_trajectory_index = np.clip(target_trajectory_index, 0, args.steps-1)
+
+        
 
         # Find the closest t's left and right of the target t_raw:
         t_raw_left, t_raw_right = self.get_neighbouring_ts(args.t_raw)

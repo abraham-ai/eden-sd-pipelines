@@ -45,17 +45,16 @@ def real2real(
             interpolation_init_images_max_strength = random.choice([0.85]),
             #interpolation_init_images_min_strength = 0.0,  # a higher value will make the video smoother, but allows less visual change / journey
             #interpolation_init_images_max_strength = random.choice([0.0]),
-            latent_blending_skip_f = random.choice([[0.1, 0.85]]),
-            easy_way = random.choice([False]),
+            latent_blending_skip_f = random.choice([[0.1, 0.7]]),
             compile_unet = False,
             guidance_scale = 7.5,
             n_anchor_imgs = 3,
-            n_frames = 48*n,
+            n_frames = 32*n,
             loop = True,
             smooth = True,
             n_film = 0,
             fps = 9,
-            steps =  45,
+            steps =  40,
             sampler = "euler",
             seed = seed,
             H = 1024,
@@ -64,6 +63,14 @@ def real2real(
             clip_interrogator_mode = "fast",
             lora_path = None,
         )
+
+    random.seed(int(time.time()))
+    args.offset_1 = random.choice([-1, 0, 1])
+    args.offset_2 = random.choice([-1, 0, 1])
+
+    #args.offset_1 = -1
+    #args.offset_2 = 0
+    print("Offsets:", args.offset_1, args.offset_2)
 
     # always make sure these args are properly set:
     args.frames_dir = frames_dir
@@ -154,18 +161,21 @@ if __name__ == "__main__":
         "https://generations.krea.ai/images/865142e2-8963-47fb-bbe9-fbe260271e00.webp"
     ]
 
-    for i in range(2):
+    for i in range(20):
         seed = np.random.randint(0, 1000)
-        seed = i
+        seed = 0
 
         random.seed(seed)
         input_images = random.sample(init_imgs, n)
 
-        try:
+        if 0:
             real2real(input_images, outdir, seed = seed)
-        except KeyboardInterrupt:
-            print("Interrupted by user")
-            exit()  # or sys.exit()
-        except Exception as e:
-            print(f"Error: {e}")  # Optionally print the error
-            continue
+        else:
+            try:
+                real2real(input_images, outdir, seed = seed)
+            except KeyboardInterrupt:
+                print("Interrupted by user")
+                exit()  # or sys.exit()
+            except Exception as e:
+                print(f"Error: {e}")  # Optionally print the error
+                continue
