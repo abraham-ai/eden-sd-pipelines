@@ -419,7 +419,7 @@ class Interpolator():
             prompt_embeds = [p_c, np_c]
         
         self.interpolation_step += 1
-
+        
         if abort:
             # correctly update the step counter before exiting:
             while int(self.ts[self.interpolation_step]) == self.prev_prompt_index:

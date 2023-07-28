@@ -119,19 +119,24 @@ def generate(
     if (args.init_image is None) and (args.init_latent is not None): # lerp/real2real
         args.init_image = args.init_latent
 
-        if 1:
+        if 0:
             denoising_start = 0.0  # ensures that args.init_image_strength is ignored and the full timestep trajectory is used (which is then clipped by start_timestep)
             # ---> add_noise = False
         else: # TODO, this should also work and maybe requires less/no modification to diffusers img2img pipe
-            args.start_timestep = None
-            denoising_start = args.init_image_strength
+            #args.start_timestep = None
+            denoising_start = float(args.init_image_strength)
+            print("time_step latents were produced at:", args.start_timestep)
+            print("(starting timestep should be this + 1)")
+            print("denoising_start:", denoising_start)
 
     elif (args.init_image is None) and (args.init_latent is None): # generate, no init_img
         shape = (1, pipe.unet.config.in_channels, args.H // pipe.vae_scale_factor, args.W // pipe.vae_scale_factor)
         args.init_image = torch.randn(shape, generator=generator, device=_device)
     elif (args.init_image is not None): # remix
         args.start_time_step = None
-        denoising_start = None
+
+    # If we're starting with a latent, and the latent_trajectory is empty, add it to the stack:
+    args.interpolator.latent_tracker
 
     pipe_output = pipe(
         prompt = prompt,
@@ -294,6 +299,7 @@ def make_interpolation(args, force_timepoints = None):
             args.c, args.uc = prompt_embeds
             args.pc, args.puc = None, None
 
+        args.interpolator.latent_tracker.init_noises[t_raw] = init_noise
         args.guidance_scale = scale
         args.t_raw = t_raw
         args.init_latent, args.init_image, args.init_image_strength, args.start_timestep = create_init_latent(args, t, interpolation_init_images, keyframe_index, init_noise, _device, pipe)
@@ -319,6 +325,9 @@ def make_interpolation(args, force_timepoints = None):
                 keyframe {keyframe_index+1}/{len(args.interpolation_texts) - 1}...")
 
         _, pil_images = generate(args, do_callback = True)
+
+        # print the current stack of latents:
+        args.interpolator.latent_tracker.print_stack()
 
         img_pil = pil_images[0]
         img_t = T.ToTensor()(img_pil).unsqueeze_(0).to(_device)

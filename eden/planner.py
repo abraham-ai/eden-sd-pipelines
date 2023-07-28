@@ -444,7 +444,7 @@ def create_init_latent(args, t, interpolation_init_images, keyframe_index, init_
         # We want a gradual increase of skip_f from min_v when current_lpips_distance >= max_d to max_v when current_lpips_distance < min_d
         min_skip_f, max_skip_f = args.latent_blending_skip_f[0], args.latent_blending_skip_f[1]
         # hardcoded lpips_perceptual distances corresponding to min_v and max_v latent_skip_f values:
-        max_d, min_d = 0.6, 0.1 # normal renders
+        max_d, min_d = 0.6, 0.15 # normal renders
         latent_tracker.latent_blending_skip_f = min_skip_f + (max_skip_f - min_skip_f) * (max_d - current_lpips_distance) / (max_d - min_d)
         latent_tracker.latent_blending_skip_f = np.clip(latent_tracker.latent_blending_skip_f, min_skip_f, max_skip_f)
         init_image_strength = init_image_strength * (1.0 - latent_tracker.latent_blending_skip_f) + latent_tracker.latent_blending_skip_f
@@ -456,7 +456,7 @@ def create_init_latent(args, t, interpolation_init_images, keyframe_index, init_
         mixing_f    = (t - t_raw_left%1) / (t_raw_right - t_raw_left)
         init_latent = (1-mixing_f) * latent_left + mixing_f * latent_right
 
-        # Correct the std of the combined latent:
+        # Correct the std of the combined latent (summing uncorrelated gaussians decreases the std)
         target_std = (1-mixing_f) * latent_left.std() + mixing_f * latent_right.std()
         if init_latent.std() > 0:
             init_latent = target_std * init_latent / init_latent.std()
@@ -472,14 +472,14 @@ class LatentTracker():
     """
     def __init__(self, args, pipe, smooth):
         self.latents = {}
+        self.init_noises = {}
         self.t_raws = []
         self.pipe = pipe
         self.args = args
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.latent_blending_skip_f = 0.0
         self.frame_buffer = FrameBuffer(smooth, args)
-        self.phase_data = None
-        self.fixed_latent_noise = None        
+        self.phase_data = None      
         self.pipe.scheduler.set_timesteps(args.steps, device=self.device)
 
     def get_n_frames(self):
@@ -494,6 +494,7 @@ class LatentTracker():
         max_t_raw = np.max(self.t_raws)
         last_frame_latents = self.latents[max_t_raw].copy()
         self.latents = {}
+        self.init_noises = {}
         self.t_raws = []
 
         # add the last frame latents to the new buffer:
@@ -536,7 +537,6 @@ class LatentTracker():
         return
 
     def add_noise_to_latent(self, torch_fully_denoised_latent, timestep, noise = None):
-
         if noise is None: # create fully random noise
             generator = torch.Generator(device=self.device).manual_seed(int(time.time()))
             noise = torch.randn(*torch_fully_denoised_latent.shape, generator=generator, device=self.device, dtype=torch_fully_denoised_latent.dtype)
@@ -546,49 +546,58 @@ class LatentTracker():
         return noised_latent
 
     def construct_noised_latents(self, t_raw):
+        print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         print(f"Constructing noisy stack of latents at t={t_raw:.3f}...")
+        print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         # given the current denoising stack of latents for this frame,
-        # construct all the more-noisy versions of it as it would be after target timestep
+        # construct the full stack all the way up to pure noise
 
         fully_denoised_latent = self.latents[t_raw][-1]
+        noise_sigmas = self.pipe.scheduler.sigmas[1:]
+
         if fully_denoised_latent is None:
             print("---------- WARNING ----------")
             print("The last (denoised) latent in the stack is None, this should never happen!")
 
-        if self.fixed_latent_noise is None:
-            generator = torch.Generator(device=self.device).manual_seed(self.args.seed)
-            self.fixed_latent_noise = torch.randn(*(fully_denoised_latent.shape), generator=generator, device=self.device).float()
-        
         if self.args.easy_way: #easy way
             torch_fully_denoised_latent = torch.from_numpy(fully_denoised_latent).to(self.device).float()
-
             # Loop over all the timesteps and add the corresponding noise to the fully_denoised_latent:
-            for i in range(len(self.latents[t_raw])):
-                timestep = self.pipe.scheduler.timesteps[i]
-                self.latents[t_raw][i] = self.add_noise_to_latent(torch_fully_denoised_latent, timestep, noise = self.fixed_latent_noise)
-                #print(f"index:{i}, Added noise, latent-std: {self.latents[t_raw][i].std().item():.3f}")
+            for i in range(len(self.latents[t_raw])-1):
+                timestep = self.pipe.scheduler.timesteps[i+1]
+                latents = self.add_noise_to_latent(torch_fully_denoised_latent, timestep, noise = self.init_noises[t_raw])
+                
+                # Slight hack to make sure we're at the right noise level:
+                latents = latents / np.std(latents)
+                latents = latents * noise_sigmas[i].cpu().item()
+                self.latents[t_raw][i] = latents
 
         else: # harder way, but might be smoother:
             # start at the most noisy latent in the stack, grab the corresponding noise level at that index
             # loop over all the missing indices and add the corresponding amount of fixed_noise
-
             most_noisy_index  = np.min([i for i, latent in enumerate(self.latents[t_raw]) if latent is not None])
             most_noisy_latent = self.latents[t_raw][most_noisy_index]
 
-            # Grab the expected sigma levels of noise at each timestep:
-            target_sigmas = self.pipe.scheduler.sigmas
+            # Grab the expected sigma levels of noise at each level in the stack:
+            # we get rid of the first one since the stack starts saving latents after the first denoising step
 
             for i in range(len(self.latents[t_raw])):
                 if self.latents[t_raw][i] is not None: # we've reached the existing latents in the stack, stop constructing
                     break
 
-                sigma_to_add = target_sigmas[i] - target_sigmas[most_noisy_index]
-                sigma_to_add = sigma_to_add.cpu().numpy()
+                sigma_to_add = noise_sigmas[i].cpu().item() - noise_sigmas[most_noisy_index].cpu().item()
+
+                noise = self.init_noises[t_raw].cpu().numpy()
+                #noise = np.random.normal(size=noise.shape) # create fully random noise
+
+                latents = most_noisy_latent + sigma_to_add * noise
+
+                # Slight hack to make sure we're at the right noise level:
+                latents = latents / np.std(latents)
+                latents = latents * noise_sigmas[i].cpu().item()
+                self.latents[t_raw][i] = latents
                 
-                self.latents[t_raw][i] = most_noisy_latent + sigma_to_add * self.fixed_latent_noise.cpu().numpy()
-                #print(f"index:{i}, Added noise, latent-std: {self.latents[t_raw][i].std().item():.3f}")
-
-
     def get_neighbouring_latents(self, args, adjusted_init_image_strength = None):
         if adjusted_init_image_strength is not None:
             self.current_init_image_strength = adjusted_init_image_strength
@@ -596,7 +605,17 @@ class LatentTracker():
         # We need to grab a latent in the denoising trajectory that corresponds to the 
         # init_strength level we're currently targetting.
         # Compute the corresponding latent index into the denoising trajectory:
-        target_trajectory_index = int(round(self.current_init_image_strength * args.steps))
+
+        # This is the cutoff value that will be used in the sampler:
+        total_n_steps   = self.pipe.scheduler.config.num_train_timesteps
+        timestep_cutoff = int(round(total_n_steps - (self.current_init_image_strength * total_n_steps)))
+
+        # grab the index in the denoising trajectory that corresponds to the previous timestep:
+        for i,t in enumerate(self.pipe.scheduler.timesteps.cpu().numpy()):
+            if t < timestep_cutoff:
+                target_trajectory_index = i-1
+                break
+
         target_trajectory_index = np.clip(target_trajectory_index, 0, args.steps-1)
 
         # Find the closest t's left and right of the target t_raw:
@@ -616,49 +635,41 @@ class LatentTracker():
             print_info = True
 
         if latents_left is None:
+            print(f"Trying to compute latents at t={args.t_raw:.3f}, index {target_trajectory_index}...")
+            print(f"Required latent at t={t_raw_left:.3f}, index {target_trajectory_index} is None")
+            self.print_stack()
             self.construct_noised_latents(t_raw_left)
             latents_left = self.latents[t_raw_left][target_trajectory_index]
 
         if latents_right is None:
+            print(f"Trying to compute latents at t={args.t_raw:.3f}, index {target_trajectory_index}...")
+            print(f"Required latent at t={t_raw_right:.3f}, index {target_trajectory_index} is None")
+            self.print_stack()
             self.construct_noised_latents(t_raw_right)
             latents_right = self.latents[t_raw_right][target_trajectory_index]
-
-        if print_info:
-            print(f"Using neighbors: {t_raw_left:.3f} and {t_raw_right:.3f} with trajectory_index: {target_trajectory_index}, timestep: {target_timestep}")
-
-            try:
-                print(f"std-left: {latents_left.std():.3f}")
-            except:
-                print(f"std-left: None")
-            try:
-                print(f"std-right: {latents_right.std():.3f}")
-            except:
-                print(f"std-right: None")
-
-            print(f"LEFT: (t-raw: {t_raw_left})")
-            for index in range(len(self.latents[t_raw_left])):
-                latent    = self.latents[t_raw_left][index]
-                timestamp = self.pipe.scheduler.timesteps[index]
-                try:
-                    print(f"index {index}, t: {timestamp}, std: {latent.std():.3f}")
-                except:
-                    print(f"index {index}: None")
-
-            print("----------------------")
-            print(f"RIGHT: (t-raw: {t_raw_right})")
-            for index in range(len(self.latents[t_raw_right])):
-                latent    = self.latents[t_raw_right][index]
-                timestamp = self.pipe.scheduler.timesteps[index]
-                try:
-                    print(f"index {index}, t: {timestamp:.0f}, std: {latent.std():.3f}")
-                except:
-                    print(f"index {index}: None")
 
         # convert to torch tensors:
         latents_left = torch.from_numpy(latents_left).to(self.device)
         latents_right = torch.from_numpy(latents_right).to(self.device)
         
         return latents_left, latents_right, t_raw_left, t_raw_right, target_timestep
+
+    def print_stack(self):
+        import numpy as np
+        import pandas as pd
+
+        def compute_std(arr):
+            return np.nan if arr is None else arr.std().item()
+
+        data = {}
+        for t in sorted(self.latents.keys()):
+            data[f"{t:.3f}"] = [compute_std(arr) for arr in self.latents[t]]
+        
+        df = pd.DataFrame(data)
+
+        df.index = [f"{int(i):02d} - {int(timestep):03d}" for i, timestep in enumerate(self.pipe.scheduler.timesteps)]
+        pd.set_option('display.float_format', '{:.2f}'.format)
+        print(df)
 
     def add_to_phase_data(self, args, t_raw):
         if self.phase_data is None:
