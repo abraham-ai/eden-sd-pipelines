@@ -40,25 +40,25 @@ def real2real(
             #                        "a woman with a pair of sunglasses and a snake head, cyberpunk medusa, snake woman hybrid, tristan eaton, jen bartel, beautiful octopus woman, hyperrealistic art nouveau, art nouveau! cyberpunk! style, art nouveau cyberpunk! style, cyberpunk art nouveau, medusa, portrait of teenage medusa, intricate artwork. neon eyes, beeple and jeremiah ketner"],
             interpolation_init_images = input_images,
             interpolation_init_images_use_img2txt = True,
-            interpolation_init_images_power = 2.0,
-            interpolation_init_images_min_strength = 0.3,  # a higher value will make the video smoother, but allows less visual change / journey
-            interpolation_init_images_max_strength = random.choice([0.7]),
+            interpolation_init_images_power = 2.5,
+            interpolation_init_images_min_strength = random.choice([0.2, 0.25]),  # a higher value will make the video smoother, but allows less visual change / journey
+            interpolation_init_images_max_strength = random.choice([0.8, 0.9]),
             #interpolation_init_images_min_strength = 0.0,  # a higher value will make the video smoother, but allows less visual change / journey
             #interpolation_init_images_max_strength = random.choice([0.0]),
-            latent_blending_skip_f = random.choice([[0.1, 0.65]]),
+            latent_blending_skip_f = random.choice([[0.1, 0.7], [0.0, 0.7]]),
             compile_unet = False,
-            guidance_scale = 9,
-            n_anchor_imgs = random.choice([3]),
-            n_frames = 48*n,
+            guidance_scale = random.choice([7,9]),
+            n_anchor_imgs = random.choice([4,5]),
+            n_frames = 60*n,
             loop = True,
             smooth = True,
             n_film = 0,
             fps = 9,
-            steps =  35,
+            steps =  70,
             sampler = "euler",
             seed = seed,
             H = 1024,
-            W = 1024,
+            W = 1024+640+256,
             upscale_f = 1.0,
             clip_interrogator_mode = "fast",
             lora_path = None,
@@ -158,16 +158,15 @@ if __name__ == "__main__":
     n = 3
     input_dir = "/home/xander/Projects/cog/stable-diffusion-dev/eden/xander/img2img_inits/random"
     init_imgs = [os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.endswith(".jpg")]
-    
 
-    for i in range(20):
+    for i in range(30):
         seed = np.random.randint(0, 1000)
         #seed = 1
 
         random.seed(seed)
         input_images = random.sample(init_imgs, n)
 
-        if 1:
+        if 0:
             real2real(input_images, outdir, seed = seed)
         else:
             try:
