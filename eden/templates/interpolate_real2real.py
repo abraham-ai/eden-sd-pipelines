@@ -27,7 +27,7 @@ def real2real(
     random.seed(seed)
     n = len(input_images)
     
-    name = f"real2real_{name_str}_{seed}_{int(time.time()*100)}"
+    name = f"real2real_{name_str}_{int(time.time()*100)}_{seed}"
     frames_dir = os.path.join(outdir, name)
     os.makedirs(frames_dir, exist_ok=True)
 
@@ -41,20 +41,20 @@ def real2real(
             interpolation_init_images = input_images,
             interpolation_init_images_use_img2txt = True,
             interpolation_init_images_power = 2.0,
-            interpolation_init_images_min_strength = 0.25,  # a higher value will make the video smoother, but allows less visual change / journey
-            interpolation_init_images_max_strength = random.choice([0.85]),
+            interpolation_init_images_min_strength = 0.3,  # a higher value will make the video smoother, but allows less visual change / journey
+            interpolation_init_images_max_strength = random.choice([0.7]),
             #interpolation_init_images_min_strength = 0.0,  # a higher value will make the video smoother, but allows less visual change / journey
             #interpolation_init_images_max_strength = random.choice([0.0]),
-            latent_blending_skip_f = random.choice([[0.1, 0.7]]),
+            latent_blending_skip_f = random.choice([[0.1, 0.65]]),
             compile_unet = False,
-            guidance_scale = 7.5,
-            n_anchor_imgs = 3,
-            n_frames = 32*n,
+            guidance_scale = 9,
+            n_anchor_imgs = random.choice([3]),
+            n_frames = 48*n,
             loop = True,
             smooth = True,
             n_film = 0,
             fps = 9,
-            steps =  40,
+            steps =  35,
             sampler = "euler",
             seed = seed,
             H = 1024,
@@ -64,13 +64,12 @@ def real2real(
             lora_path = None,
         )
 
-    random.seed(int(time.time()))
-    args.offset_1 = random.choice([-1, 0, 1])
-    args.offset_2 = random.choice([-1, 0, 1])
-
+    #random.seed(int(time.time()))
+    #args.offset_1 = random.choice([-1, 0, 1])
+    #args.offset_2 = random.choice([-1, 0, 1])
     #args.offset_1 = -1
     #args.offset_2 = 0
-    print("Offsets:", args.offset_1, args.offset_2)
+    #print("Offsets:", args.offset_1, args.offset_2)
 
     # always make sure these args are properly set:
     args.frames_dir = frames_dir
@@ -138,7 +137,7 @@ def real2real(
 
 if __name__ == "__main__":
 
-    outdir = "results_real2real"
+    outdir = "results_real2real_big"
 
     init_imgs = [
         "https://minio.aws.abraham.fun/creations-stg/7f5971f24bc5c122aed6c1298484785b4d8c90bce41cc6bfc97ad29cc179c53f.jpg",
@@ -150,25 +149,25 @@ if __name__ == "__main__":
         "../assets/01.jpg",
         "../assets/02.jpg",
     ]
+    init_imgs = [
+            "https://generations.krea.ai/images/3cd0b8a8-34e5-4647-9217-1dc03a886b6a.webp",
+            "https://generations.krea.ai/images/928271c8-5a8e-4861-bd57-d1398e8d9e7a.webp",
+            "https://generations.krea.ai/images/865142e2-8963-47fb-bbe9-fbe260271e00.webp"
+        ]
 
-
-    n = 2
+    n = 3
     input_dir = "/home/xander/Projects/cog/stable-diffusion-dev/eden/xander/img2img_inits/random"
     init_imgs = [os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.endswith(".jpg")]
-    init_imgs = [
-        "https://generations.krea.ai/images/3cd0b8a8-34e5-4647-9217-1dc03a886b6a.webp",
-        "https://generations.krea.ai/images/928271c8-5a8e-4861-bd57-d1398e8d9e7a.webp",
-        "https://generations.krea.ai/images/865142e2-8963-47fb-bbe9-fbe260271e00.webp"
-    ]
+    
 
     for i in range(20):
         seed = np.random.randint(0, 1000)
-        seed = 0
+        #seed = 1
 
         random.seed(seed)
         input_images = random.sample(init_imgs, n)
 
-        if 0:
+        if 1:
             real2real(input_images, outdir, seed = seed)
         else:
             try:

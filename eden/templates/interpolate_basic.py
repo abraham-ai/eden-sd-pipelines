@@ -28,23 +28,23 @@ def lerp(
         text_input = interpolation_texts[0],
         interpolation_texts = interpolation_texts,
         interpolation_seeds = interpolation_seeds if interpolation_seeds else [random.randint(1, 1e8) for i in range(n)],
-        n_frames = 64*n,
-        guidance_scale = 7.5,
+        n_frames = 42*n,
+        guidance_scale = random.choice([7,9]),
         loop = True,
         smooth = True,
-        latent_blending_skip_f = [0.1, 0.8],
-        n_anchor_imgs = 3,
+        latent_blending_skip_f = random.choice([[0.1, 0.6],[0.0, 0.6]]),
+        n_anchor_imgs = random.choice([3]),
         n_film = 0,
         fps = 12,
-        steps = 35,
+        steps = 40,
         sampler = "euler",
         seed = seed,
         H = 1024,
         W = 1024,
     )
 
-    args.offset_1 = 0
-    args.offset_2 = 0
+    #args.offset_1 = 0
+    #args.offset_2 = 0
 
     # always make sure these args are properly set:
     args.frames_dir = frames_dir
@@ -90,12 +90,12 @@ def lerp(
 
 if __name__ == "__main__":
 
-    outdir = "results"
+    outdir = "results_lerp_big"
     n = 3
 
-    for i in range(6):
+    for i in range(10):
         seed = np.random.randint(0, 1000)
-        seed = i+4
+        #seed = i+4
 
         seed_everything(seed)
         interpolation_texts = random.sample(text_inputs, n)
@@ -104,9 +104,8 @@ if __name__ == "__main__":
             print(txt)
             print("-----------------------")
         
-        if 1:
+        if 0:
             lerp(interpolation_texts, outdir, seed=seed, save_distance_data=True, interpolation_seeds=None)
-        
         else:
             try:
                 lerp(interpolation_texts, outdir, seed=seed, save_distance_data=True, interpolation_seeds=None)

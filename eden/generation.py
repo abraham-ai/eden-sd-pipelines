@@ -122,12 +122,6 @@ def generate(
     elif (args.init_image is None) and (args.init_latent is None): # generate, no init_img
         shape = (1, pipe.unet.config.in_channels, args.H // pipe.vae_scale_factor, args.W // pipe.vae_scale_factor)
         args.init_image = torch.randn(shape, generator=generator, device=_device)
-    elif (args.init_image is not None): # remix
-        args.start_time_step = None
-
-    #if denoising_start is not None and args.init_image is not None args.init_image.shape[1] == 4:
-    #    print("Prepending first latent!!")
-
 
     pipe_output = pipe(
         prompt = prompt,
@@ -136,7 +130,6 @@ def generate(
         image = args.init_image, 
         strength = 1-args.init_image_strength, 
         denoising_start = denoising_start,
-        start_timestep = args.start_timestep,
         num_inference_steps = args.steps,
         guidance_scale = args.guidance_scale,
         num_images_per_prompt = args.n_samples,
@@ -293,7 +286,7 @@ def make_interpolation(args, force_timepoints = None):
         args.interpolator.latent_tracker.init_noises[t_raw] = init_noise
         args.guidance_scale = scale
         args.t_raw = t_raw
-        args.init_latent, args.init_image, args.init_image_strength, args.start_timestep = create_init_latent(args, t, interpolation_init_images, keyframe_index, init_noise, _device, pipe)
+        args.init_latent, args.init_image, args.init_image_strength = create_init_latent(args, t, interpolation_init_images, keyframe_index, init_noise, _device, pipe)
 
         # TODO, auto adjust min n_steps (needs to happend before latent blending stuff and reset after each frame render):
         #args.steps = max(args.steps, int(args.min_steps/(1-args.init_image_strength)))
@@ -309,6 +302,8 @@ def make_interpolation(args, force_timepoints = None):
         if args.planner is not None: # When audio modulation is active:
             args = args.planner.adjust_args(args, t_raw, force_timepoints=force_timepoints)
 
+        args.interpolator.latent_tracker.print_stack()
+
         print(f"Interpolating frame {f+1}/{len(args.interpolator.ts)} (t_raw = {t_raw:.4f},\
                 init_strength: {args.init_image_strength:.2f},\
                 latent skip_f: {args.interpolator.latent_tracker.latent_blending_skip_f:.2f},\
@@ -317,34 +312,8 @@ def make_interpolation(args, force_timepoints = None):
         
         _, pil_images = generate(args, do_callback = True)
 
-        # print the current stack of latents:
-        args.interpolator.latent_tracker.construct_noised_latents(args.t_raw)
+        print("Post generate:")
         args.interpolator.latent_tracker.print_stack()
-        print("sigmas:", pipe.scheduler.sigmas)
-
-        if 0: # reset the full latent stack:
-            ######################################################################
-            ######################################################################
-
-            # Try to reconstruct the first noise stack:
-            t_zero = t_raw
-            tracker = args.interpolator.latent_tracker
-            current_noise_stack = tracker.latents[t_zero].copy()
-
-            # Remove the contents of the buffer:
-            for i in range(len(tracker.latents[t_zero])-1):
-                tracker.latents[t_zero][i] = None
-
-            # Now reconstruct:
-            tracker.construct_noised_latents(t_zero)
-
-            for i in range(len(tracker.latents[t_zero])):
-                try:
-                    print(f"i: {i}, std orig: {np.std(current_noise_stack[i]):4f}, std new: {np.std(tracker.latents[t_zero][i]):.4f}")
-                except:
-                    print("i: {i}, None")
-            ######################################################################
-            ######################################################################
 
         img_pil = pil_images[0]
         img_t = T.ToTensor()(img_pil).unsqueeze_(0).to(_device)
@@ -381,9 +350,9 @@ def make_callback(
     latent_tracker=None,
     extra_callback=None,
 ):
-    def diffusers_callback(i, t, latents):
+    def diffusers_callback(i, t, latents, pre_timestep = 0):
         if latent_tracker is not None:
-            latent_tracker.add_latent(i, t, latents)
+            latent_tracker.add_latent(i, t, latents, pre_timestep = pre_timestep)
               
     return diffusers_callback
 
