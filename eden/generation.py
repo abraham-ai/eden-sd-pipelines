@@ -302,7 +302,7 @@ def make_interpolation(args, force_timepoints = None):
         if args.planner is not None: # When audio modulation is active:
             args = args.planner.adjust_args(args, t_raw, force_timepoints=force_timepoints)
 
-        args.interpolator.latent_tracker.print_stack()
+        #args.interpolator.latent_tracker.print_stack()
 
         print(f"Interpolating frame {f+1}/{len(args.interpolator.ts)} (t_raw = {t_raw:.4f},\
                 init_strength: {args.init_image_strength:.2f},\
@@ -312,8 +312,8 @@ def make_interpolation(args, force_timepoints = None):
         
         _, pil_images = generate(args, do_callback = True)
 
-        print("Post generate:")
-        args.interpolator.latent_tracker.print_stack()
+        #print("Post generate:")
+        #args.interpolator.latent_tracker.print_stack()
 
         img_pil = pil_images[0]
         img_t = T.ToTensor()(img_pil).unsqueeze_(0).to(_device)

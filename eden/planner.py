@@ -516,7 +516,7 @@ class LatentTracker():
 
     def t_to_index(self, t, pre_timestep):
         # pre_timestep is 0 normally,
-        # but 1 when the callback is called before the first denoising step (just once per frame)
+        # but 1 when the callback is called before the (first) denoising step (just once per frame)
         return (self.pipe.scheduler.timesteps == t).nonzero(as_tuple=True)[0] + 1 - pre_timestep
 
     def add_latent(self, i, t, latent, pre_timestep = 0):
@@ -547,7 +547,7 @@ class LatentTracker():
         return noised_latent
 
     def construct_noised_latents(self, args, t_raw):
-        if 1:
+        if 0:
             print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
             print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
             print(f"Constructing noisy stack of latents at t={t_raw:.3f}...")
@@ -567,7 +567,7 @@ class LatentTracker():
             print("---------- WARNING ----------")
             print("The last (denoised) latent in the stack is None, this should never happen!")
 
-        if self.args.easy_way or 1: #easy way
+        if 1: #easy way
 
             torch_fully_denoised_latent = torch.from_numpy(fully_denoised_latent).to(self.device).float()
             # Loop over all the timesteps and add the corresponding noise to the fully_denoised_latent:
@@ -586,7 +586,6 @@ class LatentTracker():
                 self.latents[t_raw][i] = latents
 
         else: # harder way, but might be smoother:
-            print("HARD")
             # start at the most noisy latent in the stack, grab the corresponding noise level at that index
             # loop over all the missing indices and add the corresponding amount of fixed_noise
             most_noisy_index  = np.min([i for i, latent in enumerate(self.latents[t_raw]) if latent is not None])
@@ -595,9 +594,6 @@ class LatentTracker():
             # Grab the expected sigma levels of noise at each level in the stack:
             # we get rid of the first one since the stack starts saving latents after the first denoising step
             
-            print("target sigmas:")
-            print(np.round(noise_sigmas.cpu().numpy(),3))
-
             def get_k_sigmas(pipe, init_image_strength, steps):
                 pipe.scheduler.set_timesteps(steps, device="cuda")
                 # Compute the number of remaining denoising steps:
