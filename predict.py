@@ -141,7 +141,7 @@ class Predictor(BasePredictor):
         sampler: str = Input(
             description="Which sampler to use", 
             default="euler", 
-            choices=["ddim", "ddpm", "klms", "euler", "euler_ancestral", "dpm", "kdpm2", "pndm"]
+            choices=["ddim", "ddpm", "klms", "euler", "euler_ancestral", "dpm", "kdpm2", "kdpm2_ancestral", "pndm"]
         ),
         steps: int = Input(
             description="Diffusion steps", 

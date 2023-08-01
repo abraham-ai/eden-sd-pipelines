@@ -220,7 +220,7 @@ def make_interpolation(args, force_timepoints = None):
         interpolation_init_images = get_uniformly_sized_crops(args.interpolation_init_images, args.H * args.W)
         args.W, args.H = interpolation_init_images[0].size
 
-        if args.interpolation_texts is None:
+        if (args.interpolation_texts is None) or len(args.interpolation_texts) == 0:
             args.interpolation_texts = [clip_interrogate(args.ckpt, init_img, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH) for init_img in interpolation_init_images]
             print("Using clip-interrogator results:", args.interpolation_texts)
         else: # get prompts for the images that dont have one:
