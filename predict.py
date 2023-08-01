@@ -141,8 +141,7 @@ class Predictor(BasePredictor):
         sampler: str = Input(
             description="Which sampler to use", 
             default="euler", 
-            # choices=["ddim", "plms", "klms", "dpm2", "dpm2_ancestral", "heun", "euler", "euler_ancestral"]
-            choices=["euler"]
+            choices=["ddim", "ddpm", "klms", "euler", "euler_ancestral", "dpm", "kdpm2", "pndm"]
         ),
         steps: int = Input(
             description="Diffusion steps", 
@@ -324,7 +323,7 @@ class Predictor(BasePredictor):
             else:
                 yield CogOutput(files=out_paths, name=name, thumbnails=out_paths, attributes=attributes, isFinal=True, progress=1.0)
 
-        else: # mode == "interpolate" or mode == "real2real"
+        else: # mode == "interpolate" or mode == "real2real" or mode == "blend"
             
             generator = generation.make_interpolation(args)
             attributes = None

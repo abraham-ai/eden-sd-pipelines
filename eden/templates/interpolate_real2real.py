@@ -48,15 +48,17 @@ def real2real(
             compile_unet = False,
             guidance_scale = random.choice([7,9]),
             n_anchor_imgs = random.choice([4,5]),
+            sampler = "euler_ancestral",
             n_frames = 64*n,
             loop = True,
             smooth = True,
             n_film = 0,
             fps = 9,
-            steps =  70,
+            steps =  40,
             seed = seed,
             H = 1024,
-            W = 1024+640+256,
+            W = 1024+640,
+            #W = 1024+640+256,
             upscale_f = 1.0,
             clip_interrogator_mode = "fast",
             lora_path = None,
@@ -128,7 +130,7 @@ def real2real(
 
 if __name__ == "__main__":
 
-    outdir = "results_real2real_big2"
+    outdir = "results_real2real"
 
     init_imgs = [
         "https://minio.aws.abraham.fun/creations-stg/7f5971f24bc5c122aed6c1298484785b4d8c90bce41cc6bfc97ad29cc179c53f.jpg",
@@ -150,7 +152,7 @@ if __name__ == "__main__":
     input_dir = "/home/xander/Projects/cog/stable-diffusion-dev/eden/xander/img2img_inits/random2"
     init_imgs = [os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.endswith(".jpg")]
 
-    for i in range(30):
+    for i in range(30,60):
         seed = np.random.randint(0, 1000)
         seed = i
 

@@ -28,9 +28,11 @@ from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline, S
 from diffusers.models import AutoencoderKL
 
 from diffusers import (
+    DDIMScheduler, 
+    DDPMScheduler,
     LMSDiscreteScheduler, 
     EulerDiscreteScheduler, 
-    DDIMScheduler, 
+    EulerAncestralDiscreteScheduler,
     DPMSolverMultistepScheduler, 
     KDPM2DiscreteScheduler, 
     PNDMScheduler
@@ -61,12 +63,14 @@ torch.set_grad_enabled(False)
 
 def set_sampler(sampler_name, pipe):
     schedulers = {
+        "ddim": DDIMScheduler.from_config(pipe.scheduler.config),
+        "ddpm": DDPMScheduler.from_config(pipe.scheduler.config),
         "klms": LMSDiscreteScheduler.from_config(pipe.scheduler.config), 
         "euler": EulerDiscreteScheduler.from_config(pipe.scheduler.config),
+        "euler_ancestral": EulerAncestralDiscreteScheduler.from_config(pipe.scheduler.config),
         "dpm": DPMSolverMultistepScheduler.from_config(pipe.scheduler.config),
         "kdpm2": KDPM2DiscreteScheduler.from_config(pipe.scheduler.config),
         "pndm": PNDMScheduler.from_config(pipe.scheduler.config),
-        "ddim": DDIMScheduler.from_config(pipe.scheduler.config),
     }
     if sampler_name not in schedulers:
         print(f"Sampler {sampler_name} not found. Available samplers: {list(schedulers.keys())}")
@@ -108,7 +112,6 @@ def load_pipe(args):
 
     if args.compile_unet:
         pipe.unet = torch.compile(pipe.unet, mode="reduce-overhead", fullgraph=True)
-
     
     print(f"Created new pipe in {(time.time() - start_time):.2f} seconds")
     print_model_info(pipe)

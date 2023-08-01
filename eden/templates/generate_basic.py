@@ -42,7 +42,7 @@ def generate_basic(
         sampler = "euler",
         steps = 30,
         guidance_scale = 6,
-        upscale_f = 1.0,
+        upscale_f = 1.5,
         text_input = text_input,
         text_input_2 = text_input_2,
         seed = seed,
