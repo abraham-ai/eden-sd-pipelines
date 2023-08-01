@@ -22,7 +22,7 @@ def real2real(
     remove_frames_dir = 0,
     save_phase_data = False,  # save condition vectors and scale for each frame (used for later upscaling)
     save_distance_data = 1,  # save distance plots to disk
-    debug = 1):
+    debug = 0):
 
     random.seed(seed)
     n = len(input_images)
@@ -39,7 +39,6 @@ def real2real(
             #interpolation_texts = ["a cute, tiny kitten",
             #                        "a massive nuclear explosion"],
             interpolation_init_images = input_images,
-            interpolation_init_images_use_img2txt = True,
             interpolation_init_images_power = 2.5,
             interpolation_init_images_min_strength = random.choice([0.2, 0.25]),  # a higher value will make the video smoother, but allows less visual change / journey
             interpolation_init_images_max_strength = random.choice([0.8, 0.9]),
@@ -54,11 +53,10 @@ def real2real(
             smooth = True,
             n_film = 0,
             fps = 9,
-            steps =  70,
-            sampler = "euler",
+            steps =  40,
             seed = seed,
             H = 1024,
-            W = 1024+640+256,
+            W = 1024,
             upscale_f = 1.0,
             clip_interrogator_mode = "fast",
             lora_path = None,
@@ -71,7 +69,7 @@ def real2real(
 
     if debug: # overwrite some args to make things go FAST
         args.W, args.H = 768, 768
-        args.steps = 35
+        args.steps = 40
         args.n_frames = 8*n
         args.n_anchor_imgs = 3
 
@@ -155,7 +153,7 @@ if __name__ == "__main__":
 
     for i in range(30):
         seed = np.random.randint(0, 1000) + 100
-        #seed = 1
+        seed = i
 
         random.seed(seed)
         input_images = random.sample(init_imgs, n)

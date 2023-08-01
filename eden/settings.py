@@ -121,7 +121,6 @@ class StableDiffusionSettings:
     interpolation_texts: List = field(default_factory=lambda: [])
     interpolation_seeds: List = field(default_factory=lambda: [])
     interpolation_init_images: List = field(default_factory=lambda: [])
-    interpolation_init_images_use_img2txt: bool = False
     #interpolation_init_images_top_k: int = 1
     interpolation_init_images_power: float = 2.0
     interpolation_init_images_min_strength: float = 0.25
@@ -157,7 +156,7 @@ class StableDiffusionSettings:
     # Latent Tracking:
     interpolator: str = None
     n_anchor_imgs: int = 3  # number of anchor images to render before starting latent blending
-    latent_blending_skip_f: List = field(default_factory=lambda: [0.1, 0.7])  # What fraction of the denoising trajectory to skip ahead when using LatentBlending Trick (start and end values for each frame)
+    latent_blending_skip_f: List = field(default_factory=lambda: [0.07, 0.6])  # What fraction of the denoising trajectory to skip ahead when using LatentBlending Trick (start and end values for each frame)
     
     # disk folder interaction:
     frames_dir: str = "."  # root folder of all the data for this generation

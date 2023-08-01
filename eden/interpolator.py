@@ -351,7 +351,6 @@ class Interpolator():
             return next_t, stop
 
     def reset_buffers(self):
-        print("Resetting buffers! (Clearing data from this interpolation phase)")
         self.latent_tracker.reset_buffer()
         self.clear_buffer_at_next_iteration = False
         self.args.c = None

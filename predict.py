@@ -324,15 +324,9 @@ class Predictor(BasePredictor):
             else:
                 yield CogOutput(files=out_paths, name=name, thumbnails=out_paths, attributes=attributes, isFinal=True, progress=1.0)
 
-        else:
+        else: # mode == "interpolate" or mode == "real2real"
             
-            if mode == "interpolate":
-                generator = generation.make_interpolation(args)
-
-            elif mode == "real2real":
-                args.interpolation_init_images_use_img2txt = True
-                generator = generation.make_interpolation(args)
-
+            generator = generation.make_interpolation(args)
             attributes = None
             thumbnail = None
 

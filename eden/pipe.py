@@ -235,6 +235,6 @@ def get_upscaling_pipe(args, force_reload = False):
         tune_lora_scale(upscaling_pipe.text_encoder, args.lora_scale)
 
     upscaling_last_lora_path = args.lora_path
-    set_sampler("euler", upscaling_pipe)
+    #set_sampler("euler", upscaling_pipe)
 
     return upscaling_pipe

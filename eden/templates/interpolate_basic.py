@@ -15,7 +15,7 @@ def lerp(
     name_str = "",
     save_phase_data = False,     # save condition vectors and scale for each frame (used for later upscaling)
     save_distance_data = False,  # save distance plots to disk
-    debug = 1):
+    debug = 0):
 
     seed_everything(seed)
     n = len(interpolation_texts)
@@ -36,15 +36,12 @@ def lerp(
         n_anchor_imgs = random.choice([3]),
         n_film = 0,
         fps = 12,
-        steps = 35,
+        steps = 40,
         sampler = "euler",
         seed = seed,
-        H = 768,
-        W = 768,
+        H = 1024,
+        W = 1024,
     )
-
-    #args.offset_1 = 0
-    #args.offset_2 = 0
 
     # always make sure these args are properly set:
     args.frames_dir = frames_dir

@@ -46,7 +46,6 @@ def real2real_lora(input_images, lora_paths, interpolation_texts, outdir,
             interpolation_seeds = [random.randint(1, 1e8) for _ in range(n)],
             interpolation_texts = interpolation_texts,
             interpolation_init_images = input_images,
-            interpolation_init_images_use_img2txt = True,
             interpolation_init_images_power = 3.0,
             interpolation_init_images_min_strength = 0.25,  # a higher value will make the video smoother, but allows less visual change / journey
             interpolation_init_images_max_strength = 0.96,

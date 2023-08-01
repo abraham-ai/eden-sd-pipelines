@@ -414,7 +414,7 @@ def create_init_latent(args, t, interpolation_init_images, keyframe_index, init_
     init_image, init_latent, timestep  = None, None, None
     
     if (len(latent_tracker.t_raws) < args.n_anchor_imgs or (args.latent_blending_skip_f is None)) and 0:
-        print("Simply alpha-blending the keyframe latents..")
+        #print("Simply alpha-blending the keyframe latents..")
         # simply alpha-blend the keyframe latents using t:
         init_latent, init_image_strength = blend_inits(key_latent0, key_latent1, t, args, real2real = real2real)
 
@@ -425,13 +425,13 @@ def create_init_latent(args, t, interpolation_init_images, keyframe_index, init_
             pass
 
     elif (len(latent_tracker.t_raws) < args.n_anchor_imgs or (args.latent_blending_skip_f is None)) or (not args.smooth):
-        print("Pixel blending...")
+        #print("Pixel blending...")
         # apply linear blending of keyframe images in pixel space and then encode
         init_image, init_image_strength = blend_inits(init_img0, init_img1, t, args, real2real = real2real)
         init_latent = None
 
     else: # Apply Latent-Blending trick:
-        print("Latent Blending...")
+        #print("Latent Blending...")
         _, init_image_strength = blend_inits(key_latent0, key_latent1, t, args, real2real = real2real, only_need_init_strength = True)
         
         # apply latent_blending_skip_f to the init_image_strength:
@@ -480,6 +480,8 @@ class LatentTracker():
         self.frame_buffer = FrameBuffer(smooth, args)
         self.phase_data = None      
         self.pipe.scheduler.set_timesteps(args.steps, device=self.device)
+
+        self.fixed_noise = None
 
     def get_n_frames(self):
         return len(self.frame_buffer.frames)
@@ -537,16 +539,22 @@ class LatentTracker():
         # Re-encode all the noise stacks
         return
 
-    def add_noise_to_latent(self, torch_fully_denoised_latent, timestep, noise = None):
-        if noise is None: # create fully random noise
-            generator = torch.Generator(device=self.device).manual_seed(int(time.time()))
-            noise = torch.randn(*torch_fully_denoised_latent.shape, generator=generator, device=self.device, dtype=torch_fully_denoised_latent.dtype)
-        
-        noised_latent = self.pipe.scheduler.add_noise(torch_fully_denoised_latent, noise, timestep.unsqueeze(0)).cpu().numpy()
-
-        return noised_latent
-
     def construct_noised_latents(self, args, t_raw):
+
+        def pearson_correlation_coefficient(x, y):
+            # Compute the means
+            mean_x = torch.mean(x)
+            mean_y = torch.mean(y)
+            
+            # Center the vectors
+            x_centered = x - mean_x
+            y_centered = y - mean_y
+            
+            # Compute the correlation coefficient
+            r = torch.sum(x_centered * y_centered) / (torch.sqrt(torch.sum(x_centered ** 2) * torch.sum(y_centered ** 2)))
+            
+            return r.item()
+
         if 0:
             print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
             print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
@@ -571,14 +579,25 @@ class LatentTracker():
 
             torch_fully_denoised_latent = torch.from_numpy(fully_denoised_latent).to(self.device).float()
             # Loop over all the timesteps and add the corresponding noise to the fully_denoised_latent:
-            for i in range(len(self.latents[t_raw])):
-                if self.latents[t_raw][i] is not None: # we've reached the existing latents in the stack, stop constructing
-                    break
+            print(self.init_noises[t_raw].std())
 
-                # add_noise() is normally used at the start of the denoising trajectory
+            if self.fixed_noise is None:
+                torch.manual_seed(1234)
+                if torch.cuda.is_available():
+                    torch.cuda.manual_seed_all(1234)
+                self.fixed_noise = torch.randn_like(self.init_noises[0])
+
+            rr = pearson_correlation_coefficient(torch_fully_denoised_latent, self.fixed_noise)
+            print(f"Correlation with fixed noise: {rr:.3f}")    
+
+            for i in range(len(self.latents[t_raw])-1):
+                #if self.latents[t_raw][i] is not None: # we've reached the existing latents in the stack, stop constructing
+                #    break
+
                 timestep = self.pipe.scheduler.timesteps[i]
-                #latents = self.add_noise_to_latent(torch_fully_denoised_latent, timestep, noise = self.init_noises[t_raw])
-                latents = self.pipe.scheduler.add_noise(torch_fully_denoised_latent, self.init_noises[t_raw], timestep.unsqueeze(0)).cpu().numpy()
+
+                #latents = self.pipe.scheduler.add_noise(torch_fully_denoised_latent, self.init_noises[t_raw], timestep.unsqueeze(0)).cpu().numpy()
+                latents = self.pipe.scheduler.add_noise(torch_fully_denoised_latent, self.fixed_noise, timestep.unsqueeze(0)).cpu().numpy()
 
                 # Slight hack to make sure we're at the right noise level:
                 #latents = latents / np.std(latents)

@@ -84,7 +84,6 @@ if __name__ == "__main__":
         uc_text = "watermark, nude, text, ugly, tiling, out of frame, blurry, grainy, signature, cut off, draft",  # negative prompting
         interpolation_seeds = [random.randint(1, 1e8) for _ in range(n)],
         interpolation_init_images = img_paths,
-        interpolation_init_images_use_img2txt = True,
         interpolation_init_images_power = random.choice([3.0]),
         interpolation_init_images_min_strength = random.choice([0.275]),
         interpolation_init_images_max_strength = 0.925,
