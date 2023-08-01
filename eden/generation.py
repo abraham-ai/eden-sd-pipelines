@@ -224,8 +224,10 @@ def make_interpolation(args, force_timepoints = None):
         if args.interpolation_init_images_use_img2txt:
             if args.interpolation_texts is None:
                 args.interpolation_texts = [clip_interrogate(args.ckpt, init_img, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH) for init_img in interpolation_init_images]
-                print("Overwriting prompts with clip-interrogator results:", args.interpolation_texts)
+                print("Using clip-interrogator results:", args.interpolation_texts)
             else: # get prompts for the images that dont have one:
+                assert len(args.interpolation_texts) == len(interpolation_init_images), "Number of provided prompts must match number of init_images"
+                assert isinstance(args.interpolation_texts, list), "Provided interpolation_texts must be list (can contain None values where clip-interrogator is to be used)"
                 for jj, init_img in enumerate(interpolation_init_images):
                     if args.interpolation_texts[jj] is None:
                         init_img_prompt = clip_interrogate(args.ckpt, init_img, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
@@ -286,6 +288,7 @@ def make_interpolation(args, force_timepoints = None):
         args.interpolator.latent_tracker.init_noises[t_raw] = init_noise
         args.guidance_scale = scale
         args.t_raw = t_raw
+        
         args.init_latent, args.init_image, args.init_image_strength = create_init_latent(args, t, interpolation_init_images, keyframe_index, init_noise, _device, pipe)
 
         # TODO, auto adjust min n_steps (needs to happend before latent blending stuff and reset after each frame render):

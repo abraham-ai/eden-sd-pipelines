@@ -22,7 +22,7 @@ def real2real(
     remove_frames_dir = 0,
     save_phase_data = False,  # save condition vectors and scale for each frame (used for later upscaling)
     save_distance_data = 1,  # save distance plots to disk
-    debug = 0):
+    debug = 1):
 
     random.seed(seed)
     n = len(input_images)
@@ -36,8 +36,8 @@ def real2real(
             #watermark_path = "../assets/eden_logo.png",
             text_input = "real2real",  # text_input is also the title, but has no effect on interpolations
             interpolation_seeds = [random.randint(1, 1e8) for _ in range(n)],
-            #interpolation_texts = ["photo of a group of people watching a volcano eruptting from the ground, amazing volcanic eruption, volcano eruption, active volcano, erupting volcano in distance, photorealistic",
-            #                        "a woman with a pair of sunglasses and a snake head, cyberpunk medusa, snake woman hybrid, tristan eaton, jen bartel, beautiful octopus woman, hyperrealistic art nouveau, art nouveau! cyberpunk! style, art nouveau cyberpunk! style, cyberpunk art nouveau, medusa, portrait of teenage medusa, intricate artwork. neon eyes, beeple and jeremiah ketner"],
+            #interpolation_texts = ["a cute, tiny kitten",
+            #                        "a massive nuclear explosion"],
             interpolation_init_images = input_images,
             interpolation_init_images_use_img2txt = True,
             interpolation_init_images_power = 2.5,
@@ -51,7 +51,7 @@ def real2real(
             n_anchor_imgs = random.choice([4,5]),
             n_frames = 60*n,
             loop = True,
-            smooth = True,
+            smooth = 0,
             n_film = 0,
             fps = 9,
             steps =  70,
@@ -77,9 +77,14 @@ def real2real(
     args.save_phase_data = save_phase_data
 
     if debug: # overwrite some args to make things go FAST
-        args.W, args.H = 1024, 1024
+        args.W, args.H = 768, 768
         args.steps = 35
-        args.n_frames = 42*n
+        args.n_frames = 8*n
+        args.n_anchor_imgs = 3
+
+        args.W, args.H = 768, 768
+        args.steps = 40
+        args.n_frames = 8*n
         args.n_anchor_imgs = 3
 
     # Only needed when visualising the smoothing algorithm (debugging mode)
@@ -138,6 +143,7 @@ def real2real(
 if __name__ == "__main__":
 
     outdir = "results_real2real_big"
+    outdir = "results"
 
     init_imgs = [
         "https://minio.aws.abraham.fun/creations-stg/7f5971f24bc5c122aed6c1298484785b4d8c90bce41cc6bfc97ad29cc179c53f.jpg",
@@ -155,18 +161,18 @@ if __name__ == "__main__":
             "https://generations.krea.ai/images/865142e2-8963-47fb-bbe9-fbe260271e00.webp"
         ]
 
-    n = 3
+    n = 2
     input_dir = "/home/xander/Projects/cog/stable-diffusion-dev/eden/xander/img2img_inits/random"
     init_imgs = [os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.endswith(".jpg")]
 
     for i in range(30):
-        seed = np.random.randint(0, 1000)
+        seed = np.random.randint(0, 1000) + 100
         #seed = 1
 
         random.seed(seed)
         input_images = random.sample(init_imgs, n)
 
-        if 0:
+        if 1:
             real2real(input_images, outdir, seed = seed)
         else:
             try:

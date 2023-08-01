@@ -374,17 +374,17 @@ class Interpolator():
         ''' 
         abort = False
 
+        if self.clear_buffer_at_next_iteration:
+            self.reset_buffers()
+
+        self.prompt_index = int(self.ts[self.interpolation_step])
+        if (self.prompt_index > self.prev_prompt_index): # Last frame of this prompt
+            self.clear_buffer_at_next_iteration = True
+            self.prev_prompt_index = self.prompt_index
+            self.prompt_index -= 1
+
         if self.smooth:
             #self.frame_buffer.maybe_reset()
-
-            if self.clear_buffer_at_next_iteration:
-                self.reset_buffers()
-
-            self.prompt_index = int(self.ts[self.interpolation_step])
-            if self.prompt_index > self.prev_prompt_index: # Last frame of this prompt
-                self.clear_buffer_at_next_iteration = True
-                self.prev_prompt_index = self.prompt_index
-                self.prompt_index -= 1
             
             t, abort = self.find_next_t()
             t_raw = t + self.prompt_index
@@ -401,19 +401,21 @@ class Interpolator():
 
         # Get conditioning signals:
         scale      = self.get_scale(t)
+
+        print(len(self.init_noises))
+        print(self.prompt_index)
+
         init_noise = slerp(t, self.init_noises[self.prompt_index], self.init_noises[(self.prompt_index + 1) % self.n], flatten = 1, normalize = 1)
         
         i = self.prompt_index
 
-        try:
+        try: #sdx
             p_c   = lerp(t, self.prompt_embeds[i][0], self.prompt_embeds[(i + 1) % self.n][0])
             np_c  = lerp(t, self.prompt_embeds[i][1], self.prompt_embeds[(i + 1) % self.n][1])
             pp_c  = lerp(t, self.prompt_embeds[i][2], self.prompt_embeds[(i + 1) % self.n][2])
             npp_c = lerp(t, self.prompt_embeds[i][3], self.prompt_embeds[(i + 1) % self.n][3])
-            #c         = lerp(t, self.prompt_conditionings[self.prompt_index], self.prompt_conditionings[(self.prompt_index + 1) % self.n])
-            #c         = slerp(t, self.prompt_conditionings[self.prompt_index], self.prompt_conditionings[(self.prompt_index + 1) % self.n])
             prompt_embeds = [p_c, np_c, pp_c, npp_c]
-        except:
+        except: #sd v1 / v2
             p_c   = lerp(t, self.prompt_embeds[i][0], self.prompt_embeds[(i + 1) % self.n][0])
             np_c  = lerp(t, self.prompt_embeds[i][1], self.prompt_embeds[(i + 1) % self.n][1])
             prompt_embeds = [p_c, np_c]
@@ -421,6 +423,7 @@ class Interpolator():
         self.interpolation_step += 1
         
         if abort:
+            print("Aborting interpolation!")
             # correctly update the step counter before exiting:
             while int(self.ts[self.interpolation_step]) == self.prev_prompt_index:
                 self.interpolation_step += 1

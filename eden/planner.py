@@ -388,18 +388,19 @@ def create_init_latent(args, t, interpolation_init_images, keyframe_index, init_
     higher skip_f values will lead to smoother video transitions and lower render time, but also have less interesting transitions
 
     """
+    real2real = False if interpolation_init_images is None else True
 
-    if not ((args.interpolation_init_images and all(args.interpolation_init_images) or len(args.interpolator.latent_tracker.frame_buffer.ts) >= args.n_anchor_imgs)):
-        # anchor_frames for lerp: only use the raw init_latent noise from interpolator (using the input seeds)
-        pipe.scheduler.set_timesteps(args.steps, device=device)
-        init_latent = init_noise * pipe.scheduler.init_noise_sigma
-        init_image = None
-        init_image_strength = 0.0
+    if not real2real: # lerp
+        if (len(args.interpolator.latent_tracker.frame_buffer.ts) < args.n_anchor_imgs) or (not args.smooth):
+            # anchor_frames for lerp: only use the raw init_latent noise from interpolator (using the input seeds)
+            pipe.scheduler.set_timesteps(args.steps, device=device)
+            init_latent = init_noise * pipe.scheduler.init_noise_sigma
+            init_image = None
+            init_image_strength = 0.0
 
-        return init_latent, init_image, init_image_strength
+            return init_latent, init_image, init_image_strength
 
     latent_tracker = args.interpolator.latent_tracker
-    real2real = False if interpolation_init_images is None else True
 
     if real2real:
         init_img0, init_img1 = interpolation_init_images[keyframe_index], interpolation_init_images[keyframe_index + 1]
@@ -410,7 +411,6 @@ def create_init_latent(args, t, interpolation_init_images, keyframe_index, init_
     # Project init images into latent space:
     key_latent0 = pil_img_to_latent(init_img0, args, device, pipe)
     key_latent1 = pil_img_to_latent(init_img1, args, device, pipe)
-
     init_image, init_latent, timestep  = None, None, None
     
     if (len(latent_tracker.t_raws) < args.n_anchor_imgs or (args.latent_blending_skip_f is None)) and 0:
@@ -424,7 +424,7 @@ def create_init_latent(args, t, interpolation_init_images, keyframe_index, init_
         else: # TODO
             pass
 
-    elif (len(latent_tracker.t_raws) < args.n_anchor_imgs or (args.latent_blending_skip_f is None)) and 1:
+    elif (len(latent_tracker.t_raws) < args.n_anchor_imgs or (args.latent_blending_skip_f is None)) or (not args.smooth):
         print("Pixel blending...")
         # apply linear blending of keyframe images in pixel space and then encode
         init_image, init_image_strength = blend_inits(init_img0, init_img1, t, args, real2real = real2real)
@@ -776,8 +776,11 @@ class FrameBuffer():
         if len(self.distances) < 2:
             return 1.0 # default value for random, unrelated images
         index_t_left = np.searchsorted(self.ts, [t%1], side="left")[0]-1
-        density_at_t = self.distances[index_t_left]
-        return density_at_t
+        try:
+            density_at_t = self.distances[index_t_left]
+            return density_at_t
+        except:
+            return 1.0
 
     def add_frame(self, img, t, latents = None):
         self.frames.append(img)

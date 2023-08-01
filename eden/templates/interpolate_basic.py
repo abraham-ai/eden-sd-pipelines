@@ -15,7 +15,7 @@ def lerp(
     name_str = "",
     save_phase_data = False,     # save condition vectors and scale for each frame (used for later upscaling)
     save_distance_data = False,  # save distance plots to disk
-    debug = 0):
+    debug = 1):
 
     seed_everything(seed)
     n = len(interpolation_texts)
@@ -28,19 +28,19 @@ def lerp(
         text_input = interpolation_texts[0],
         interpolation_texts = interpolation_texts,
         interpolation_seeds = interpolation_seeds if interpolation_seeds else [random.randint(1, 1e8) for i in range(n)],
-        n_frames = 42*n,
+        n_frames = 24*n,
         guidance_scale = random.choice([7,9]),
         loop = True,
-        smooth = True,
+        smooth = 1,
         latent_blending_skip_f = random.choice([[0.1, 0.6],[0.0, 0.6]]),
         n_anchor_imgs = random.choice([3]),
         n_film = 0,
         fps = 12,
-        steps = 40,
+        steps = 35,
         sampler = "euler",
         seed = seed,
-        H = 1024,
-        W = 1024,
+        H = 768,
+        W = 768,
     )
 
     #args.offset_1 = 0
@@ -53,8 +53,8 @@ def lerp(
 
     if debug: # overwrite some args to make things go FAST
         args.W, args.H = 640, 640
-        args.steps = 35
-        args.n_frames = 36*n
+        args.steps = 20
+        args.n_frames = 8*n
 
     start_time = time.time()
 
@@ -91,6 +91,7 @@ def lerp(
 if __name__ == "__main__":
 
     outdir = "results_lerp_big"
+    outdir = "results"
     n = 3
 
     for i in range(10):
@@ -104,7 +105,7 @@ if __name__ == "__main__":
             print(txt)
             print("-----------------------")
         
-        if 0:
+        if 1:
             lerp(interpolation_texts, outdir, seed=seed, save_distance_data=True, interpolation_seeds=None)
         else:
             try:
