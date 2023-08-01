@@ -44,19 +44,19 @@ def real2real(
             interpolation_init_images_max_strength = random.choice([0.8, 0.9]),
             #interpolation_init_images_min_strength = 0.0,  # a higher value will make the video smoother, but allows less visual change / journey
             #interpolation_init_images_max_strength = random.choice([0.0]),
-            latent_blending_skip_f = random.choice([[0.1, 0.7], [0.0, 0.7]]),
+            latent_blending_skip_f = random.choice([[0.1, 0.65], [0.0, 0.65]]),
             compile_unet = False,
             guidance_scale = random.choice([7,9]),
             n_anchor_imgs = random.choice([4,5]),
-            n_frames = 60*n,
+            n_frames = 64*n,
             loop = True,
             smooth = True,
             n_film = 0,
             fps = 9,
-            steps =  40,
+            steps =  70,
             seed = seed,
             H = 1024,
-            W = 1024,
+            W = 1024+640+256,
             upscale_f = 1.0,
             clip_interrogator_mode = "fast",
             lora_path = None,
@@ -128,8 +128,7 @@ def real2real(
 
 if __name__ == "__main__":
 
-    outdir = "results_real2real_big"
-    outdir = "results"
+    outdir = "results_real2real_big2"
 
     init_imgs = [
         "https://minio.aws.abraham.fun/creations-stg/7f5971f24bc5c122aed6c1298484785b4d8c90bce41cc6bfc97ad29cc179c53f.jpg",
@@ -148,17 +147,17 @@ if __name__ == "__main__":
         ]
 
     n = 3
-    input_dir = "/home/xander/Projects/cog/stable-diffusion-dev/eden/xander/img2img_inits/random"
+    input_dir = "/home/xander/Projects/cog/stable-diffusion-dev/eden/xander/img2img_inits/random2"
     init_imgs = [os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.endswith(".jpg")]
 
     for i in range(30):
-        seed = np.random.randint(0, 1000) + 100
+        seed = np.random.randint(0, 1000)
         seed = i
 
         random.seed(seed)
         input_images = random.sample(init_imgs, n)
 
-        if 1:
+        if 0:
             real2real(input_images, outdir, seed = seed)
         else:
             try:

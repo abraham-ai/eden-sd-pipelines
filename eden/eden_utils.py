@@ -483,19 +483,14 @@ def load_img(data, mode):
     image = image.convert(mode)
     return image
 
-
 def round_to_nearest_multiple(number, multiple):
     return int(multiple * round(number / multiple))
-    
 
 def create_seeded_noise(seed, args, device, batch_size=1):
-    #seed = int(time.time()*10000000 % 2**32)
-    #time.sleep(0.05)
     seed_everything(seed)
     shape = [args.C, args.H // args.f, args.W // args.f]
     random_noise = torch.randn([batch_size, *shape], device=device)
     return random_noise
-    
 
 def match_aspect_ratio(n_pixels, img):
     aspect_ratio = np.array(img).shape[1] / np.array(img).shape[0]

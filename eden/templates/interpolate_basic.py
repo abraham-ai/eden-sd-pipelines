@@ -33,10 +33,10 @@ def lerp(
         loop = True,
         smooth = True,
         latent_blending_skip_f = random.choice([[0.1, 0.6],[0.0, 0.6]]),
-        n_anchor_imgs = random.choice([3]),
+        n_anchor_imgs = random.choice([3,4]),
         n_film = 0,
         fps = 12,
-        steps = 40,
+        steps = 35,
         sampler = "euler",
         seed = seed,
         H = 1024,
@@ -88,12 +88,12 @@ def lerp(
 if __name__ == "__main__":
 
     outdir = "results_lerp_big"
-    outdir = "results"
+    outdir = "results_lerp_debug"
     n = 3
 
     for i in range(10):
         seed = np.random.randint(0, 1000)
-        #seed = i+4
+        seed = i
 
         seed_everything(seed)
         interpolation_texts = random.sample(text_inputs, n)
@@ -102,7 +102,7 @@ if __name__ == "__main__":
             print(txt)
             print("-----------------------")
         
-        if 1:
+        if 0:
             lerp(interpolation_texts, outdir, seed=seed, save_distance_data=True, interpolation_seeds=None)
         else:
             try:

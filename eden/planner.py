@@ -604,15 +604,16 @@ class LatentTracker():
                 How the fuck is this possible???
 
                 """
+                # Ideally, the noise we are adding to the latent stack should be entirely uncorrelated
+                # to the latent itself:
                 rr = pearson_correlation_coefficient(torch_fully_denoised_latent, fixed_noise)
-                print(f"Correlation with fixed noise: {rr:.3f}") 
                 
                 resample_index = 1
-                while (np.abs(rr) > 0.05) and resample_index < 20:
-                    print("Resampling fixed noise...")
+                while (np.abs(rr) > 0.03) and resample_index < 20:
+                    prev_rr = rr
                     fixed_noise = sample_random_noise(self.fixed_noise.shape, seed=123451 + resample_index).to(self.device).float()
                     rr = pearson_correlation_coefficient(torch_fully_denoised_latent, fixed_noise)
-                    print(f"Correlation with fixed noise: {rr:.3f}")   
+                    print(f"WARNING: Noise-Latent correlation was {prev_rr:.3f}, resampled {resample_index}x to: {rr:.3f}")   
                     resample_index += 1 
 
             for i in range(len(self.latents[t_raw])-1):
