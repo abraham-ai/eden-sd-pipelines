@@ -35,6 +35,7 @@ from diffusers import (
     EulerAncestralDiscreteScheduler,
     DPMSolverMultistepScheduler, 
     KDPM2DiscreteScheduler, 
+    KDPM2AncestralDiscreteScheduler,
     PNDMScheduler
 )
 
@@ -70,6 +71,7 @@ def set_sampler(sampler_name, pipe):
         "euler_ancestral": EulerAncestralDiscreteScheduler.from_config(pipe.scheduler.config),
         "dpm": DPMSolverMultistepScheduler.from_config(pipe.scheduler.config),
         "kdpm2": KDPM2DiscreteScheduler.from_config(pipe.scheduler.config),
+        "kdpm2_ancestral": KDPM2AncestralDiscreteScheduler.from_config(pipe.scheduler.config),
         "pndm": PNDMScheduler.from_config(pipe.scheduler.config),
     }
     if sampler_name not in schedulers:
@@ -112,7 +114,7 @@ def load_pipe(args):
 
     if args.compile_unet:
         pipe.unet = torch.compile(pipe.unet, mode="reduce-overhead", fullgraph=True)
-    
+
     print(f"Created new pipe in {(time.time() - start_time):.2f} seconds")
     print_model_info(pipe)
     return pipe
