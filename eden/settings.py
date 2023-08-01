@@ -157,7 +157,8 @@ class StableDiffusionSettings:
     interpolator: str = None
     n_anchor_imgs: int = 3  # number of anchor images to render before starting latent blending
     latent_blending_skip_f: List = field(default_factory=lambda: [0.07, 0.6])  # What fraction of the denoising trajectory to skip ahead when using LatentBlending Trick (start and end values for each frame)
-    
+    never_overwrite_existing_latents: bool = True # if True, will never overwrite real, existing latents in the tracker
+
     # disk folder interaction:
     frames_dir: str = "."  # root folder of all the data for this generation
     save_phase_data: bool = False  # store metadata (conditioning c's and scales) for each frame, used for later upscaling

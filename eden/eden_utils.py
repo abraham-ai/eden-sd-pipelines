@@ -489,6 +489,8 @@ def round_to_nearest_multiple(number, multiple):
     
 
 def create_seeded_noise(seed, args, device, batch_size=1):
+    #seed = int(time.time()*10000000 % 2**32)
+    #time.sleep(0.05)
     seed_everything(seed)
     shape = [args.C, args.H // args.f, args.W // args.f]
     random_noise = torch.randn([batch_size, *shape], device=device)

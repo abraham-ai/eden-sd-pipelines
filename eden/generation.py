@@ -309,13 +309,12 @@ def make_interpolation(args, force_timepoints = None):
                 keyframe {keyframe_index+1}/{len(args.interpolation_texts) - 1}...")
         
         _, pil_images = generate(args, do_callback = True)
-        print(pipe.scheduler)
 
-        print("Post generate:")
-        args.interpolator.latent_tracker.print_stack()
+        #print("Post generate:")
+        #args.interpolator.latent_tracker.print_stack()
         args.interpolator.latent_tracker.construct_noised_latents(args, args.t_raw)
-        print("Post construct:")
-        args.interpolator.latent_tracker.print_stack()
+        #print("Post construct:")
+        #args.interpolator.latent_tracker.print_stack()
 
         img_pil = pil_images[0]
         img_t = T.ToTensor()(img_pil).unsqueeze_(0).to(_device)

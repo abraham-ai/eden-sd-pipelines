@@ -555,6 +555,13 @@ class LatentTracker():
             
             return r.item()
 
+        def sample_random_noise(shape, seed=None):
+            if seed is not None:
+                torch.manual_seed(seed)
+                if torch.cuda.is_available():
+                    torch.cuda.manual_seed_all(seed)
+            return torch.randn(shape)
+
         if 0:
             print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
             print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
@@ -573,38 +580,62 @@ class LatentTracker():
 
         if fully_denoised_latent is None:
             print("---------- WARNING ----------")
-            print("The last (denoised) latent in the stack is None, this should never happen!")
+            print("The last (denoised) latent in the latent stack is None, this should never happen!")
 
         if 1: #easy way
 
             torch_fully_denoised_latent = torch.from_numpy(fully_denoised_latent).to(self.device).float()
             # Loop over all the timesteps and add the corresponding noise to the fully_denoised_latent:
-            print(self.init_noises[t_raw].std())
+
+            # save the fully_denoised_latent to disk as .pt tensor:
+            #torch.save(torch_fully_denoised_latent, f"torch_fully_denoised_latent_{t_raw:.3f}.pt")
 
             if self.fixed_noise is None:
-                torch.manual_seed(1234)
-                if torch.cuda.is_available():
-                    torch.cuda.manual_seed_all(1234)
-                self.fixed_noise = torch.randn_like(self.init_noises[0])
+                self.fixed_noise = sample_random_noise(self.init_noises[t_raw].shape, seed=123451).to(self.device).float()
 
-            rr = pearson_correlation_coefficient(torch_fully_denoised_latent, self.fixed_noise)
-            print(f"Correlation with fixed noise: {rr:.3f}")    
+            fixed_noise = self.fixed_noise.clone()
+
+            if True: # This is a total hack, I dont know how else to fix this:
+                """
+                - the fully_denoised_latent is sometimes highly correlated with some fixed_noise vectors
+                - the histogram of the fully_denoised_latent looks totally normal 
+                - it is never correlated with self.init_noises[t_raw]
+
+                How the fuck is this possible???
+
+                """
+                rr = pearson_correlation_coefficient(torch_fully_denoised_latent, fixed_noise)
+                print(f"Correlation with fixed noise: {rr:.3f}") 
+                
+                resample_index = 1
+                while (np.abs(rr) > 0.05) and resample_index < 20:
+                    print("Resampling fixed noise...")
+                    fixed_noise = sample_random_noise(self.fixed_noise.shape, seed=123451 + resample_index).to(self.device).float()
+                    rr = pearson_correlation_coefficient(torch_fully_denoised_latent, fixed_noise)
+                    print(f"Correlation with fixed noise: {rr:.3f}")   
+                    resample_index += 1 
 
             for i in range(len(self.latents[t_raw])-1):
-                #if self.latents[t_raw][i] is not None: # we've reached the existing latents in the stack, stop constructing
-                #    break
+                if args.never_overwrite_existing_latents:
+                    if self.latents[t_raw][i] is not None: # we've reached the existing latents in the stack, stop constructing
+                        break
 
                 timestep = self.pipe.scheduler.timesteps[i]
+                latents = self.pipe.scheduler.add_noise(torch_fully_denoised_latent, fixed_noise, timestep.unsqueeze(0)).cpu().numpy()
 
-                #latents = self.pipe.scheduler.add_noise(torch_fully_denoised_latent, self.init_noises[t_raw], timestep.unsqueeze(0)).cpu().numpy()
-                latents = self.pipe.scheduler.add_noise(torch_fully_denoised_latent, self.fixed_noise, timestep.unsqueeze(0)).cpu().numpy()
+                try:
+                    # Slight hack to make sure we're at the right noise level:
+                    std_diff = np.abs(np.std(latents) - noise_sigmas[i].cpu().item())
+                    if std_diff > 1.0:
+                        print("WARNING: std_diff > 1.0, ideally this shouldn't happen... Ask Xander")
+                        latents = latents / np.std(latents)
+                        latents = latents * (noise_sigmas[i].cpu().item())
+                except:
+                    pass
 
-                # Slight hack to make sure we're at the right noise level:
-                #latents = latents / np.std(latents)
-                #latents = latents * (noise_sigmas[i].cpu().item() + np.std(fully_denoised_latent))
                 self.latents[t_raw][i] = latents
 
-        else: # harder way, but might be smoother:
+        else: # add noise to the most noisy latent (not the most denoised one), might be better, but not compatible with all samplers by default:
             # start at the most noisy latent in the stack, grab the corresponding noise level at that index
             # loop over all the missing indices and add the corresponding amount of fixed_noise
             most_noisy_index  = np.min([i for i, latent in enumerate(self.latents[t_raw]) if latent is not None])
@@ -612,44 +643,18 @@ class LatentTracker():
 
             # Grab the expected sigma levels of noise at each level in the stack:
             # we get rid of the first one since the stack starts saving latents after the first denoising step
-            
-            def get_k_sigmas(pipe, init_image_strength, steps):
-                pipe.scheduler.set_timesteps(steps, device="cuda")
-                # Compute the number of remaining denoising steps:
-                t_enc = int((1.0-init_image_strength) * steps)
-
-                # Noise schedule for the k-diffusion samplers:
-                k_sigmas_full = pipe.scheduler.sigmas
-
-                # Extract the final sigma-noise levels to use for denoising:
-                k_sigmas = k_sigmas_full[len(k_sigmas_full)-t_enc-1:]
-
-                return k_sigmas, k_sigmas_full
-
-            current_sigmas, k_sigmas_full = get_k_sigmas(self.pipe, self.current_init_image_strength, args.steps)
-            active_sigmas = k_sigmas_full - current_sigmas[0]
-            
+ 
             for i in range(len(self.latents[t_raw])):
-                if self.latents[t_raw][i] is not None: # we've reached the existing latents in the stack, stop constructing
-                    break
-
-                # works for lerp, not for real2real:
-                offset1 = 0
-                offset2 = 0
-
-                # works for real2real, not for lerp:
-                #offset1 = 0
-                #offset2 = -1
+                if args.never_overwrite_existing_latents:
+                    if self.latents[t_raw][i] is not None: # we've reached the existing latents in the stack, stop constructing
+                        break
 
                 noise = self.init_noises[t_raw].cpu().numpy()
                 #noise = np.random.normal(size=noise.shape) # create fully random noise
 
-                target_sigma     = noise_sigmas[i + offset1].cpu().item()
-                most_noisy_sigma = noise_sigmas[most_noisy_index + offset2].cpu().item()
+                target_sigma     = noise_sigmas[i].cpu().item()
+                most_noisy_sigma = noise_sigmas[most_noisy_index].cpu().item()
                 sigma_to_add     = target_sigma - most_noisy_sigma
-
-                #print(f"bugged sigma: {sigma_to_add:.3f}, old sigma: {active_sigmas[i].cpu().item():.3f}")
-                #sigma_to_add = active_sigmas[i].cpu().numpy()
 
                 latents = most_noisy_latent + sigma_to_add * noise
 
@@ -658,11 +663,6 @@ class LatentTracker():
                 #latents = latents * (noise_sigmas[i].cpu().item() + np.std(fully_denoised_latent))
                 #latents = latents * noise_sigmas[i].cpu().item()
                 self.latents[t_raw][i] = latents
-
-                if i == 0:
-                    print(f"Target sigma: {target_sigma:.3f}")
-                    print(f"Most noisy sigma: {most_noisy_sigma:.3f}")
-                    print(f"final sigma: {np.std(latents):.3f}")
                 
     def get_neighbouring_latents(self, args, adjusted_init_image_strength = None):
         
