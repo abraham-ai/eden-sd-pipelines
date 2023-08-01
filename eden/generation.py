@@ -261,7 +261,7 @@ def make_interpolation(args, force_timepoints = None):
         if force_timepoints is not None:
             force_t_raw = force_timepoints[f]
 
-        if 0: # catch errors and try to complete the video
+        if 1: # catch errors and try to complete the video
             try:
                 t, t_raw, prompt_embeds, init_noise, scale, keyframe_index, abort_render = args.interpolator.get_next_conditioning(verbose=0, save_distances_to_dir = args.save_distances_to_dir, t_raw = force_t_raw)
             except Exception as e:
