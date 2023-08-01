@@ -378,10 +378,15 @@ class Interpolator():
             self.reset_buffers()
 
         self.prompt_index = int(self.ts[self.interpolation_step])
+
         if (self.prompt_index > self.prev_prompt_index): # Last frame of this prompt
-            self.clear_buffer_at_next_iteration = True
-            self.prev_prompt_index = self.prompt_index
-            self.prompt_index -= 1
+            if self.smooth:
+                self.clear_buffer_at_next_iteration = True
+                self.prev_prompt_index = self.prompt_index
+                self.prompt_index -= 1
+            else:
+                self.reset_buffers()
+                self.prev_prompt_index = self.prompt_index
 
         if self.smooth:
             #self.frame_buffer.maybe_reset()
@@ -401,10 +406,6 @@ class Interpolator():
 
         # Get conditioning signals:
         scale      = self.get_scale(t)
-
-        print(len(self.init_noises))
-        print(self.prompt_index)
-
         init_noise = slerp(t, self.init_noises[self.prompt_index], self.init_noises[(self.prompt_index + 1) % self.n], flatten = 1, normalize = 1)
         
         i = self.prompt_index

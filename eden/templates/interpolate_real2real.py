@@ -51,7 +51,7 @@ def real2real(
             n_anchor_imgs = random.choice([4,5]),
             n_frames = 60*n,
             loop = True,
-            smooth = 0,
+            smooth = True,
             n_film = 0,
             fps = 9,
             steps =  70,
@@ -64,13 +64,6 @@ def real2real(
             lora_path = None,
         )
 
-    #random.seed(int(time.time()))
-    #args.offset_1 = random.choice([-1, 0, 1])
-    #args.offset_2 = random.choice([-1, 0, 1])
-    #args.offset_1 = -1
-    #args.offset_2 = 0
-    #print("Offsets:", args.offset_1, args.offset_2)
-
     # always make sure these args are properly set:
     args.frames_dir = frames_dir
     args.save_distance_data = save_distance_data
@@ -79,11 +72,6 @@ def real2real(
     if debug: # overwrite some args to make things go FAST
         args.W, args.H = 768, 768
         args.steps = 35
-        args.n_frames = 8*n
-        args.n_anchor_imgs = 3
-
-        args.W, args.H = 768, 768
-        args.steps = 40
         args.n_frames = 8*n
         args.n_anchor_imgs = 3
 
@@ -161,7 +149,7 @@ if __name__ == "__main__":
             "https://generations.krea.ai/images/865142e2-8963-47fb-bbe9-fbe260271e00.webp"
         ]
 
-    n = 2
+    n = 3
     input_dir = "/home/xander/Projects/cog/stable-diffusion-dev/eden/xander/img2img_inits/random"
     init_imgs = [os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.endswith(".jpg")]
 

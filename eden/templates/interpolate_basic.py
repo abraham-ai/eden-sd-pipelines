@@ -31,7 +31,7 @@ def lerp(
         n_frames = 24*n,
         guidance_scale = random.choice([7,9]),
         loop = True,
-        smooth = 1,
+        smooth = True,
         latent_blending_skip_f = random.choice([[0.1, 0.6],[0.0, 0.6]]),
         n_anchor_imgs = random.choice([3]),
         n_film = 0,

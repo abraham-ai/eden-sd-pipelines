@@ -205,7 +205,7 @@ class Predictor(BasePredictor):
         ),
         interpolation_init_images_power: float = Input(
             description="Power for interpolation_init_images prompts (mode==interpolate)",
-            ge=0.5, le=5.0, default=3.0
+            ge=0.5, le=5.0, default=2.5
         ),
         interpolation_init_images_min_strength: float = Input(
             description="Minimum init image strength for interpolation_init_images prompts (mode==interpolate)",
@@ -221,11 +221,11 @@ class Predictor(BasePredictor):
         ),
         smooth: bool = Input(
             description="Smooth (mode==interpolate)",
-            default=False
+            default=True
         ),
         n_film: int = Input(
             description="Number of times to smooth final frames with FILM (default is 0) (mode==interpolate)",
-            default=0, ge=0, le=2
+            default=1, ge=0, le=2
         ),
         fps: int = Input(
             description="Frames per second (mode==interpolate)",
