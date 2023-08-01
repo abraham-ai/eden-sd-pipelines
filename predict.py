@@ -130,14 +130,14 @@ class Predictor(BasePredictor):
             choices=checkpoint_options,
             default=checkpoint_default
         ),
-        lora: str = Input(
-            description="(optional) URL of Lora finetuning",
-            default=None
-        ),
-        lora_scale: float = Input(
-            description="Lora scale (how much of the Lora finetuning to apply)",
-            ge=0.0, le=1.2, default=0.8
-        ),
+        #lora: str = Input(
+        #    description="(optional) URL of Lora finetuning",
+        #    default=None
+        #),
+        #lora_scale: float = Input(
+        #    description="Lora scale (how much of the Lora finetuning to apply)",
+        #    ge=0.0, le=1.2, default=0.8
+        #),
         sampler: str = Input(
             description="Which sampler to use", 
             default="euler", 
@@ -241,6 +241,13 @@ class Predictor(BasePredictor):
         interpolation_texts = interpolation_texts.split('|') if interpolation_texts else None
         interpolation_seeds = [float(i) for i in interpolation_seeds.split('|')] if interpolation_seeds else None
         interpolation_init_images = interpolation_init_images.split('|') if interpolation_init_images else None
+
+        #############
+        # temporarily disable lora and lora_scale
+        lora = None
+        lora_scale = 0
+        #############
+
         
         lora_path = None
         if lora:
