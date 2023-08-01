@@ -60,12 +60,12 @@ class StableDiffusionSettings:
     mode: str = "generate"
     
     # dimensions, quantity
-    W: int = 768
-    H: int = 768
+    W: int = 1024
+    H: int = 1024
 
     # sampler params
     sampler: str = "euler"
-    steps: int = 45
+    steps: int = 40
     min_steps: int = 7  # low_n steps often give artifacts, so adopt a min-n-steps
     guidance_scale: float = 7.5
     

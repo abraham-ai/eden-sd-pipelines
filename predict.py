@@ -302,7 +302,7 @@ class Predictor(BasePredictor):
         if mode == "interrogate":
             interrogation = generation.interrogate(args)
             out_path = out_dir / f"interrogation.txt"
-            with open(out_path, 'w') as f:
+            with open(out_path, 'w', encoding='utf-8') as f:
                 f.write(interrogation)
             attributes = {'interrogation': interrogation}
             if DEBUG_MODE:
