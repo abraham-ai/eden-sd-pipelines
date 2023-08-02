@@ -354,14 +354,27 @@ class WaterMarker():
         pil_imgage = pil_imgage.convert("RGB")
         return pil_imgage
 
-
+import time
 class Timer():
-    'convenience function to time code'
-    def __init__(self, name = ''):
+    'convenience class to time code'
+    def __init__(self, name, start = False):
         self.name = name
-        self.start = time.time()
+        self.total_time_running = 0.0
+        if start:
+            self.start()
+
+    def pause(self):
+        self.total_time_running += time.time() - self.last_start
+
+    def start(self):
+        self.last_start = time.time()
+
+    def status(self):
+        print(f'{self.name} accumulated {self.total_time_running:.3f} seconds of runtime')
+
     def exit(self, *args):
-        print(f'{self.name} took {time.time() - self.start:.3f} seconds')
+        self.total_time_running += time.time() - self.last_start
+        print(f'{self.name} took {self.total_time_running:.3f} seconds')
 
 
 def get_prompts_from_json_dir(json_dir, shuffle = False):
