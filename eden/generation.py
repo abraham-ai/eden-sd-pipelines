@@ -57,8 +57,8 @@ def generate(
     assert args.text_input is not None
 
     seed_everything(args.seed)
-    args.W = round_to_nearest_multiple(args.W, 64)
-    args.H = round_to_nearest_multiple(args.H, 64)
+    args.W = round_to_nearest_multiple(args.W, 8)
+    args.H = round_to_nearest_multiple(args.H, 8)
 
     # Load init image
     if args.init_image_data:
@@ -91,9 +91,7 @@ def generate(
         return pt_images, pil_images
 
     if do_callback:
-        callback_ = make_callback(
-            latent_tracker = args.interpolator.latent_tracker if args.interpolator is not None else None,
-        )
+        callback_ = make_callback(latent_tracker = args.interpolator.latent_tracker if args.interpolator is not None else None)
     else:
         callback_ = None
 
@@ -125,7 +123,7 @@ def generate(
 
     pipe_output = pipe(
         prompt = prompt,
-        prompt_2 = prompt_2,
+        #prompt_2 = prompt_2,
         negative_prompt = negative_prompt, 
         image = args.init_image, 
         strength = 1-args.init_image_strength, 
@@ -138,7 +136,6 @@ def generate(
         pooled_prompt_embeds = args.pc,
         negative_pooled_prompt_embeds= args.puc,
         generator = generator,
-        #latents = args.init_latent, # latents is implemented but not actually used in diffusers img2img pipe...
         callback = callback_,
     )
     
@@ -203,9 +200,9 @@ def make_interpolation(args, force_timepoints = None):
         args.n_frames = 1
 
     assert args.n_samples==1, "Batch size >1 not implemented for interpolation!"
-    assert len(args.interpolation_texts) == len(args.interpolation_seeds), "Number of interpolation texts does not match number of interpolation seeds"
-    assert len(args.interpolation_texts) == len(args.interpolation_init_images), "Number of interpolation texts does not match number of interpolation init images"
-    assert len(args.interpolation_init_images) == len(args.interpolation_seeds), "Number of interpolation init images does not match number of interpolation seeds"
+    assert len(args.interpolation_texts) == len(args.interpolation_seeds), f"Number of interpolation texts ({len(args.interpolation_texts)}) does not match number of interpolation seeds ({len(args.interpolation_seeds)})"
+    assert len(args.interpolation_texts) == len(args.interpolation_init_images), f"Number of interpolation texts ({len(args.interpolation_texts)}) does not match number of interpolation init images ({len(args.interpolation_init_images)})"
+    assert len(args.interpolation_init_images) == len(args.interpolation_seeds), f"Number of interpolation init images ({len(args.interpolation_init_images)}) does not match number of interpolation seeds ({len(args.interpolation_seeds)})"
 
     if args.loop and len(args.interpolation_texts) > 2:
         args.interpolation_texts.append(args.interpolation_texts[0])
@@ -379,8 +376,8 @@ def run_upscaler(args_, imgs,
         scale = math.sqrt(max_n_pixels / (args.W * args.H))
         args.W, args.H = int(scale * args.W), int(scale * args.H)
 
-    args.W = round_to_nearest_multiple(args.W, 64)
-    args.H = round_to_nearest_multiple(args.H, 64)
+    args.W = round_to_nearest_multiple(args.W, 8)
+    args.H = round_to_nearest_multiple(args.H, 8)
 
     x_samples_upscaled, x_images_upscaled = [], []
 

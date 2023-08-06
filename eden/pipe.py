@@ -90,17 +90,48 @@ def load_pipe(args):
         location = os.path.join(CHECKPOINTS_PATH, args.ckpt)
     else:
         location = args.ckpt
+
+    if 0: # Load controlnet sdxl
+        from diffusers import StableDiffusionXLControlNetPipeline
+        from diffusers import StableDiffusionControlNetImg2ImgPipeline
+        # controlnet model:
+        args.controlnet = "/data/xander/Projects/cog/eden-sd-pipelines/models/controlnets/controlnet-v1e-sdxl-depth"
         
-    try:
+        #controlnet = StableDiffusionXLControlNetPipeline.from_pretrained(args.controlnet)
+        
+        pipe = StableDiffusionControlNetImg2ImgPipeline.from_pretrained(
+            location, controlnet = args.controlnet, safety_checker=None, #local_files_only=_local_files_only,
+            torch_dtype=torch.float16, use_safetensors=True, variant="fp16")
+
+        """ 
+        example:
+        https://github.com/abraham-ai/diffusers/blob/sdxl/src/diffusers/pipelines/controlnet/pipeline_controlnet_img2img.py#L48
+
+        controlnet = ControlNetModel.from_pretrained("lllyasviel/sd-controlnet-canny", torch_dtype=torch.float16)
+        pipe = StableDiffusionControlNetImg2ImgPipeline.from_pretrained("runwayml/stable-diffusion-v1-5", controlnet=controlnet, torch_dtype=torch.float16)
+        """
+
+    elif 1:
         print(f"Creating new StableDiffusionXLImg2ImgPipeline using {args.ckpt}")
-        
-        pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
-            location, 
-            safety_checker=None, 
-            #local_files_only=_local_files_only, 
-            torch_dtype=torch.float16, use_safetensors=True, variant="fp16"
-        )
-    except:
+
+        if args.ckpt == "dreamshaper": #dreamshaper
+            location = "/data/xander/Projects/cog/eden-sd-pipelines/models/checkpoints/dreamshaper.safetensors"
+            pipe = StableDiffusionXLImg2ImgPipeline.from_single_file(location, safety_checker=None, torch_dtype=torch.float16, use_safetensors=True, variant="fp16")
+            pipe = StableDiffusionXLImg2ImgPipeline(
+                vae = pipe.vae,
+                text_encoder = pipe.text_encoder,
+                text_encoder_2 = pipe.text_encoder_2,
+                tokenizer = pipe.tokenizer,
+                tokenizer_2 = pipe.tokenizer_2,
+                unet = pipe.unet,
+                scheduler = pipe.scheduler)
+
+        else: #SDXL 1.0
+            pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
+                location, safety_checker=None, #local_files_only=_local_files_only,
+                torch_dtype=torch.float16, use_safetensors=True, variant="fp16")
+
+    else: # SD v1 and v2
         print(f"Creating new DiffusionPipeline using {args.ckpt}")
         pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
             location, 
@@ -111,6 +142,7 @@ def load_pipe(args):
 
     pipe.safety_checker = None
     pipe = pipe.to(_device)
+    #pipe.enable_model_cpu_offload()
 
     if args.compile_unet:
         pipe.unet = torch.compile(pipe.unet, mode="reduce-overhead", fullgraph=True)
@@ -153,29 +185,18 @@ def get_pipe(args, force_reload = False):
 
     return pipe
 
-
 def update_pipe_with_lora(pipe, args):
     global last_lora_path
 
-    if args.lora_path == last_lora_path:
+    if (args.lora_path == last_lora_path) or (not args.lora_path):
         return pipe
-
-    if not args.lora_path:
-        return pipe
-
+    
     start_time = time.time()
 
-    patch_pipe(
-        pipe,
-        args.lora_path,
-        patch_text=True,
-        patch_ti=True,
-        patch_unet=True,
-    )
-
+    pipe.load_lora_weights(args.lora_path)
     print(f" ---> Updated pipe in {(time.time() - start_time):.2f}s using lora from {args.lora_path} with scale = {args.lora_scale:.2f}")
 
-    return pipe.to(_device)
+    return pipe
 
 
 """

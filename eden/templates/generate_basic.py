@@ -32,26 +32,50 @@ def generate_basic(
     debug = False,
     init_image_data = None,
     prefix = "",
-    suffix = ""):
+    suffix = "sdxl1.0"):
+
+    init_img = random.choice([
+        "/data/xander/Projects/cog/xander_eden_stuff/xander/assets/hetty/wimesteban_a_middle-aged_short_haired_blonde_female_cyborg_prof_0db6473d-2545-47d7-97c3-18eeae9f00da_ins (1).jpg",
+        "/data/xander/Projects/cog/xander_eden_stuff/xander/assets/hetty/enlarge_wimesteban_a_middle-aged_blonde_female_cyborg_professor_with_ar_ef917cc9-778e-4c30-9d35-977c68bcd051_ins.jpg",
+        "/data/xander/Projects/cog/xander_eden_stuff/xander/assets/hetty/enlarge_wimesteban_a_middle-aged_blonde_female_cyborg_professor_with_ar_ef917cc9-778e-4c30-9d35-977c68bcd051_ins.jpg",
+        "/data/xander/Projects/cog/xander_eden_stuff/xander/assets/hetty/enlarge_wimesteban_a_middle-aged_blonde_female_cyborg_professor_with_ar_ef917cc9-778e-4c30-9d35-977c68bcd051_ins.jpg",
+        None
+    ])
 
     args = StableDiffusionSettings(
         #ckpt = random.choice(checkpoint_options),
         mode = "generate",
-        W = 1024,
-        H = 1024,
+        W = 2300,
+        H = 2300,
         sampler = "euler",
-        steps = 30,
-        guidance_scale = 6,
-        upscale_f = 1.5,
+        steps = 80,
+        guidance_scale = random.choice([5,7,9]),
+        upscale_f = 1.0,
         text_input = text_input,
         text_input_2 = text_input_2,
         seed = seed,
         n_samples = 1,
-        lora_path = None,
-        #init_image_data = "https://minio.aws.abraham.fun/creations-stg/7f5971f24bc5c122aed6c1298484785b4d8c90bce41cc6bfc97ad29cc179c53f.jpg",
-        #init_image_strength = 0.2,
+        #lora_path = None,
+        lora_path = "/data/xander/Projects/cog/diffusers/lora/trained_models/sdxl-lora-hetty-reg/checkpoint-400",
+        init_image_data = init_img,
+        init_image_strength = random.choice([0.2, 0.3, 0.4, 0.5, 0.6, 0.7]),
     )
-    
+
+    if 0: #plantoid:
+        args = StableDiffusionSettings(
+            mode = "generate",
+            W = random.choice([1024, 1024+256, 1024+512]),
+            H = random.choice([1024, 1024+256, 1024+512]),
+            sampler = "euler",
+            steps = 60,
+            guidance_scale = random.choice([5,7,9]),
+            upscale_f = 1.0,
+            text_input = text_input,
+            text_input_2 = text_input_2,
+            seed = seed,
+            n_samples = 1,
+            lora_path = "/data/xander/Projects/cog/diffusers/lora/trained_models/sdxl-lora-plantoid",
+        )  
     name = f'{prefix}{args.text_input[:40]}_{args.seed}_{int(time.time())}{suffix}'
 
     name = name.replace("/", "_")
@@ -69,12 +93,47 @@ def generate_basic(
 
 if __name__ == "__main__":
 
-    outdir = "results"
+    if 0:
+        outdir = "results_plantoid2"
 
-    for i in range(20):
-        seed = i
+        text_inputs = [
+            "a photo of a sks plantoid in a beautiful portugese garden made from a boat anchor chain and an engine gear as head, scrap metal, welded",
+            "a photo of a sks plantoid in a beautiful garden made from an anchor chain and an engine gear head, scrap metal",
+            "a photo of a sks plantoid on an iceberg in the middle of the ocean, moonlit",
+            "a photo of two sks plantoids entangled and in love, masterpiece artwork, glowing hearts",
+            "a magnificent sks plantoid in the desert",
+            "a graceful sks plantoid standing in the middle of a courtyard, surrounded by flowers",
+            "a magnificent sks plantoid standing in the middle of a medievel walled courtyard, surrounded by flowers",
+            "a magnificent, huge sks plantoid standing in the middle of a huge museum made of glass, surrounded by people",
+        ]
 
+        text_inputs = [
+            "a photo of a massive sks plantoid towering high above the New York skyline, apocalypse, sks plantoid taking over the world",
+            "a strong, armored sks plantoid fighting a polar bear",
+            "a sks plantoid sitting on the Iron Throne, game of thrones",
+            "a photo of a sks plantoid in the turret of a tank, going into war",
+            "a photo of a sks plantoid in a cage fight, surrounded by the crowd",
+            "a sks plantoid taking acid, LSD visual",
+        ]
+
+    else:
+        outdir = "results_hetty"
+        text_inputs = [
+            "Envision a beautiful dauntless sks woman, her physique shielded by an avant-garde suit, 2019 sci-fi masterpiece. Hyper-modern tunnel, reminiscent of an 8K snapshot from 'Prometheus'. Amidst the surreal cosmos, highly detailed VFX-rendered spacesuit, exuding both allure and power., poster by ilya kuvshinov katsuhiro, by magali villeneuve",
+            "Beautiful sks woman with short blond hair standing in the corridor of an intergalactic spaceship, wearing spacesuit, helmet under the arm, depth and fuzzy lighting in the background, by ruan jia, trending on artstation, fish eye lens, by jeremy mann",
+            "A beautiful middle aged blonde female cyborg sks woman with army decoration in a white spaceship, wearing super detail futuristic chrome silver armor full body in a big wide background, clear facial features, cinematic, in the style of blade runner and alan moore, 35mm lens, accent lighting, global illumination, polaroid photo",
+            "Envision a beautiful dauntless sks woman, her physique shielded by an avant-garde suit, 2019 sci-fi masterpiece. Hyper-modern tunnel, reminiscent of an 8K snapshot from 'Prometheus'. Amidst the surreal cosmos, highly detailed VFX-rendered spacesuit, exuding both allure and power., poster by ilya kuvshinov katsuhiro, by magali villeneuve",
+            "Beautiful sks woman with short blond hair standing in the corridor of an intergalactic spaceship, wearing spacesuit, helmet under the arm, depth and fuzzy lighting in the background, by ruan jia, trending on artstation, fish eye lens, by jeremy mann",
+            "A beautiful middle aged blonde female cyborg sks woman with army decoration in a white spaceship, wearing super detail futuristic chrome silver armor full body in a big wide background, clear facial features, cinematic, in the style of blade runner and alan moore, 35mm lens, accent lighting, global illumination, polaroid photo",
+            "a photo of an sks woman as the commander of a starship",
+            "a beautiful sks woman commanding the starship enterprise",
+            "movie wallpaper of beautiful sks woman as the commander of starfleet",
+            "incredible photograph of the beautiful sks woman as the commander of starfleet",
+            "a photo of a young and smiling sks woman wearing a spacesuit",
+        ]
+
+    for i in range(400):
+        seed = random.randint(0, 100000)
         seed_everything(seed)
         text_input = random.choice(text_inputs)
-
         generate_basic(text_input, outdir, seed = seed)

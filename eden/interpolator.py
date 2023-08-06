@@ -345,7 +345,7 @@ class Interpolator():
                 plt.clf()
                 plt.close()
 
-                if best_fit_mse > 0.3:
+                if best_fit_mse > 0.5:
                     stop = True
 
             return next_t, stop

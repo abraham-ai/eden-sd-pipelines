@@ -14,6 +14,7 @@ from generation import *
 def real2real(
     input_images, 
     outdir, 
+    input_texts = None,
     args = None, 
     seed = int(time.time()), 
     name_str = "",
@@ -22,7 +23,7 @@ def real2real(
     remove_frames_dir = 0,
     save_phase_data = False,  # save condition vectors and scale for each frame (used for later upscaling)
     save_distance_data = 1,  # save distance plots to disk
-    debug = 0):
+    debug = 1):
 
     random.seed(seed)
     n = len(input_images)
@@ -34,21 +35,21 @@ def real2real(
     if args is None:
         args = StableDiffusionSettings(
             #watermark_path = "../assets/eden_logo.png",
+            ckpt = random.choice(["dreamshaper", "sdxl-v1.0"]),
             text_input = "real2real",  # text_input is also the title, but has no effect on interpolations
             interpolation_seeds = [random.randint(1, 1e8) for _ in range(n)],
-            #interpolation_texts = ["a cute, tiny kitten",
-            #                        "a massive nuclear explosion"],
+            interpolation_texts = input_texts,
             interpolation_init_images = input_images,
             interpolation_init_images_power = 2.5,
             interpolation_init_images_min_strength = random.choice([0.2, 0.25]),  # a higher value will make the video smoother, but allows less visual change / journey
-            interpolation_init_images_max_strength = random.choice([0.8, 0.9]),
+            interpolation_init_images_max_strength = random.choice([0.75, 0.8, 0.85]),
             #interpolation_init_images_min_strength = 0.0,  # a higher value will make the video smoother, but allows less visual change / journey
             #interpolation_init_images_max_strength = random.choice([0.0]),
-            latent_blending_skip_f = random.choice([[0.1, 0.65], [0.0, 0.65]]),
+            latent_blending_skip_f = random.choice([[0.1, 0.65], [0.0, 0.6]]),
             compile_unet = False,
             guidance_scale = random.choice([7,9]),
             n_anchor_imgs = random.choice([4,5]),
-            sampler = "euler_ancestral",
+            sampler = "euler",
             n_frames = 64*n,
             loop = True,
             smooth = True,
@@ -56,9 +57,9 @@ def real2real(
             fps = 9,
             steps =  40,
             seed = seed,
-            H = 1024,
-            W = 1024+640,
-            #W = 1024+640+256,
+            H = 1024+640,
+            #W = 1024+640,
+            W = 1024,
             upscale_f = 1.0,
             clip_interrogator_mode = "fast",
             lora_path = None,
@@ -70,9 +71,9 @@ def real2real(
     args.save_phase_data = save_phase_data
 
     if debug: # overwrite some args to make things go FAST
-        args.W, args.H = 768, 768
-        args.steps = 40
-        args.n_frames = 8*n
+        args.W, args.H = 512, 512
+        args.steps = 20
+        args.n_frames = 6*n
         args.n_anchor_imgs = 3
 
     # Only needed when visualising the smoothing algorithm (debugging mode)
@@ -128,9 +129,62 @@ def real2real(
 
     
 
-if __name__ == "__main__":
+def sample_from_dir(dirpath, n, use_json_prompt_prob = 1.0, shuffle = False, extensions = [".jpg", ".png", ".jpeg", "webp"]):
+    
+    interpolation_texts = []
+    # find all images in this dir:
+    all_files = sorted(os.listdir(dirpath))
+    img_paths = [os.path.join(dirpath,f) for f in all_files if any(f.endswith(ext) for ext in extensions)]
 
-    outdir = "results_real2real"
+    if shuffle:
+        random.shuffle(img_paths)
+    else:
+        if n < len(img_paths):
+            print("Warning: only using first %d images from a directory with %d images" % (n, len(img_paths)))
+
+    #n = len(img_paths)
+    img_paths = img_paths[:n]
+
+    for i in range(n):
+        img_path = img_paths[i]
+        extension = os.path.splitext(img_path)[1]
+
+        json_path = img_path.replace(extension, ".json")
+        json_path = os.path.join(dirpath, json_path)
+
+        json_path2 = img_path.replace("_0" + extension, ".json")
+        json_path2 = os.path.join(dirpath, json_path2)
+
+        txt_path = img_path.replace(extension, ".txt")
+        txt_path = os.path.join(dirpath, txt_path)
+
+        interpolation_text = None
+
+        if (random.random() < use_json_prompt_prob):
+            try:
+                if os.path.exists(json_path):
+                    with open(json_path, "r") as f:
+                        interpolation_text = json.load(f)["text_input"]
+                elif os.path.exists(json_path2):
+                    with open(json_path2, "r") as f:
+                        interpolation_text = json.load(f)["text_input"]
+                elif os.path.exists(txt_path):
+                    with open(txt_path, "r") as f:
+                        interpolation_text = f.read()
+            except:
+                pass
+        
+        interpolation_texts.append(interpolation_text)
+
+    print("Using imgs:")
+    for img_p in img_paths:
+        print(img_p)
+
+    return img_paths, interpolation_texts
+
+
+
+if __name__ == "__main__":
 
     init_imgs = [
         "https://minio.aws.abraham.fun/creations-stg/7f5971f24bc5c122aed6c1298484785b4d8c90bce41cc6bfc97ad29cc179c53f.jpg",
@@ -148,22 +202,37 @@ if __name__ == "__main__":
             "https://generations.krea.ai/images/865142e2-8963-47fb-bbe9-fbe260271e00.webp"
         ]
 
-    n = 3
-    input_dir = "/home/xander/Projects/cog/stable-diffusion-dev/eden/xander/img2img_inits/random2"
-    init_imgs = [os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.endswith(".jpg")]
 
-    for i in range(30,60):
+    
+
+    #input_dir = "/home/xander/Projects/cog/stable-diffusion-dev/eden/xander/img2img_inits/random2"
+    #init_imgs = [os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.endswith(".jpg")]
+
+    root_dir = "/home/xander/Projects/cog/stable-diffusion-dev/eden/xander/img2img_inits/diverse"
+
+
+    outdir = "results_rivers"
+    n = 2
+    for i in range(0,15):
         seed = np.random.randint(0, 1000)
-        seed = i
+        #seed = i
 
         random.seed(seed)
-        input_images = random.sample(init_imgs, n)
 
-        if 0:
-            real2real(input_images, outdir, seed = seed)
+        # get the full path of a random subdir in the root_dir:
+        #input_dir = os.path.join(root_dir, random.choice(os.listdir(root_dir)))
+        #input_images, input_texts = sample_from_dir(input_dir, n, use_json_prompt_prob = 1.0, shuffle = True)
+        
+        #print(input_texts)
+
+        input_images = ["/data/xander/Projects/cog/xander_eden_stuff/xander/assets/rivers/IMG_20230804_191505_536.jpg", "/data/xander/Projects/cog/xander_eden_stuff/xander/assets/rivers/IMG_20230804_191505_536.jpg"]
+        input_texts = None
+
+        if 1:
+            real2real(input_images, outdir, input_texts = input_texts, seed = seed)
         else:
             try:
-                real2real(input_images, outdir, seed = seed)
+                real2real(input_images, outdir, input_texts = input_texts, seed = seed)
             except KeyboardInterrupt:
                 print("Interrupted by user")
                 exit()  # or sys.exit()

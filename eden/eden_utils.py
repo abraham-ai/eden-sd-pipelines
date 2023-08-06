@@ -507,8 +507,8 @@ def create_seeded_noise(seed, args, device, batch_size=1):
 
 def match_aspect_ratio(n_pixels, img):
     aspect_ratio = np.array(img).shape[1] / np.array(img).shape[0]
-    w2 = round_to_nearest_multiple(np.sqrt(n_pixels * aspect_ratio), 64)
-    h2 = round_to_nearest_multiple(np.sqrt(n_pixels / aspect_ratio), 64)
+    w2 = round_to_nearest_multiple(np.sqrt(n_pixels * aspect_ratio), 8)
+    h2 = round_to_nearest_multiple(np.sqrt(n_pixels / aspect_ratio), 8)
     return w2, h2
 
 
@@ -720,8 +720,8 @@ def get_uniformly_sized_crops(imgs, target_n_pixels):
     # Compute final w,h using final_aspect_ratio and target_n_pixels:
     final_h = np.sqrt(target_n_pixels / final_aspect_ratio)
     final_w = final_h * final_aspect_ratio
-    final_h = round_to_nearest_multiple(final_h, 64)
-    final_w = round_to_nearest_multiple(final_w, 64)
+    final_h = round_to_nearest_multiple(final_h, 8)
+    final_w = round_to_nearest_multiple(final_w, 8)
 
     # Resize images
     resized_imgs = [cv2.resize(crop, (final_w, final_h), cv2.INTER_CUBIC) for crop in crops]
