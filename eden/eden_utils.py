@@ -377,21 +377,25 @@ class Timer():
         print(f'{self.name} took {self.total_time_running:.3f} seconds')
 
 
-def get_prompts_from_json_dir(json_dir, shuffle = False):
+def get_prompts_from_json_dir(json_dir, shuffle = False, return_seeds = False):
     json_files = [f for f in sorted(os.listdir(json_dir)) if f.endswith('.json')]
     if shuffle:
         random.shuffle(json_files)
         
     text_inputs = []
+    seeds = []
     for json_file in json_files:
         with open(os.path.join(json_dir, json_file)) as json_file:
             try:
-                prompt_from_disk = json.load(json_file)['text_input']
-                text_inputs.append(prompt_from_disk)
+                data = json.load(json_file)
+                text_inputs.append(data['text_input'])
+                seeds.append(data['seed'])
             except:
                 continue
-
-    return text_inputs
+    if return_seeds:
+        return text_inputs, seeds
+    else:
+        return text_inputs
     
 
 def seed_everything(seed):

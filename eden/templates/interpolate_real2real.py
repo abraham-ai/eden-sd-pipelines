@@ -23,7 +23,7 @@ def real2real(
     remove_frames_dir = 0,
     save_phase_data = False,  # save condition vectors and scale for each frame (used for later upscaling)
     save_distance_data = 1,  # save distance plots to disk
-    debug = 1):
+    debug = 0):
 
     random.seed(seed)
     n = len(input_images)
@@ -35,34 +35,31 @@ def real2real(
     if args is None:
         args = StableDiffusionSettings(
             #watermark_path = "../assets/eden_logo.png",
-            ckpt = random.choice(["dreamshaper", "sdxl-v1.0"]),
+            ckpt = random.choice(["sdxl-v1.0"]),
             text_input = "real2real",  # text_input is also the title, but has no effect on interpolations
             interpolation_seeds = [random.randint(1, 1e8) for _ in range(n)],
             interpolation_texts = input_texts,
             interpolation_init_images = input_images,
             interpolation_init_images_power = 2.5,
-            interpolation_init_images_min_strength = random.choice([0.2, 0.25]),  # a higher value will make the video smoother, but allows less visual change / journey
-            interpolation_init_images_max_strength = random.choice([0.75, 0.8, 0.85]),
-            #interpolation_init_images_min_strength = 0.0,  # a higher value will make the video smoother, but allows less visual change / journey
-            #interpolation_init_images_max_strength = random.choice([0.0]),
+            interpolation_init_images_min_strength = random.choice([0.02]),  # a higher value will make the video smoother, but allows less visual change / journey
+            interpolation_init_images_max_strength = random.choice([0.02]),
             latent_blending_skip_f = random.choice([[0.1, 0.65], [0.0, 0.6]]),
             compile_unet = False,
             guidance_scale = random.choice([7,9]),
             n_anchor_imgs = random.choice([4,5]),
             sampler = "euler",
-            n_frames = 64*n,
+            n_frames = 42*n,
             loop = True,
             smooth = True,
             n_film = 0,
-            fps = 9,
-            steps =  40,
+            fps = 12,
+            steps =  50,
             seed = seed,
             H = 1024+640,
-            #W = 1024+640,
-            W = 1024,
+            W = 1024+640,
             upscale_f = 1.0,
-            clip_interrogator_mode = "fast",
-            lora_path = None,
+            #lora_path = None,
+            lora_path = "/data/xander/Projects/cog/diffusers/lora/trained_models/sdxl-lora-plantoid/checkpoint-400"
         )
 
     # always make sure these args are properly set:
@@ -211,9 +208,9 @@ if __name__ == "__main__":
     root_dir = "/home/xander/Projects/cog/stable-diffusion-dev/eden/xander/img2img_inits/diverse"
 
 
-    outdir = "results_rivers"
+    outdir = "plantoid_real2real"
     n = 2
-    for i in range(0,15):
+    for i in range(0,50):
         seed = np.random.randint(0, 1000)
         #seed = i
 
@@ -225,10 +222,16 @@ if __name__ == "__main__":
         
         #print(input_texts)
 
-        input_images = ["/data/xander/Projects/cog/xander_eden_stuff/xander/assets/rivers/IMG_20230804_191505_536.jpg", "/data/xander/Projects/cog/xander_eden_stuff/xander/assets/rivers/IMG_20230804_191505_536.jpg"]
-        input_texts = None
+        text_inputs = [
+            "a glorious artwork of sks plantoids flying through the Aurora Borealis, wings of steel and light, colors dancing, ethereal flight, mystical journey, sks plantoid northern lights explorer.",
+            "artwork of a majestic ancient sks plantoid city, worshiped by people as gods, sks plantoid temples, sks plantoid gods",
+            "a masterpiece artwork of the sks plantoid universe",
+        ]
 
-        if 1:
+        input_images = ["/data/xander/Projects/cog/xander_eden_stuff/xander/assets/circle.jpeg", "/data/xander/Projects/cog/xander_eden_stuff/xander/assets/circle.jpeg", "/data/xander/Projects/cog/xander_eden_stuff/xander/assets/circle.jpeg"]
+        input_texts = random.choices(text_inputs, k = len(input_images))
+
+        if 0:
             real2real(input_images, outdir, input_texts = input_texts, seed = seed)
         else:
             try:

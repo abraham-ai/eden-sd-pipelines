@@ -28,18 +28,18 @@ def lerp(
         text_input = interpolation_texts[0],
         interpolation_texts = interpolation_texts,
         interpolation_seeds = interpolation_seeds if interpolation_seeds else [random.randint(1, 1e8) for i in range(n)],
-        n_frames = 64*n,
+        n_frames = 100*n,
         guidance_scale = random.choice([8]),
         loop = True,
         smooth = True,
-        latent_blending_skip_f = random.choice([[0.05, 0.6]]),
-        n_anchor_imgs = random.choice([5]),
+        latent_blending_skip_f = random.choice([[0.0, 0.75]]),
+        n_anchor_imgs = random.choice([6]),
         n_film = 0,
         fps = 12,
         steps = 60,
         seed = seed,
-        H = 1024,
-        W = 1024+640,
+        H = 960-128,
+        W = 1024+1024+256,
     )
 
     # always make sure these args are properly set:
@@ -55,9 +55,11 @@ def lerp(
     start_time = time.time()
 
     # run the interpolation and save each frame
+    frame_counter = 0
     for frame, t_raw in make_interpolation(args):
-        frame.save(os.path.join(frames_dir, "frame_%0.16f.jpg"%t_raw), quality=95)
-
+        frame.save(os.path.join(frames_dir, "frame_%018.14f_%05d.jpg"%(t_raw, frame_counter)), quality=95)
+        frame_counter += 1
+        
     # run FILM
     if args.n_film > 0:
         # clear cuda cache:
@@ -86,47 +88,99 @@ def lerp(
 
 if __name__ == "__main__":
 
-    outdir = "results_lerp_big"
+    outdir = "jeffrey_lerp_test_02"
     n = 3
 
-    for i in range(4):
+    for i in range(2):
         seed = np.random.randint(0, 1000)
-        #seed = i
+        seed = i
 
         seed_everything(seed)
         interpolation_texts = random.sample(text_inputs, n)
 
-        interpolation_texts = [
-                "Stone Age Tools, A prehistoric landscape at dawn with a humanoid figure kneeling on the ground, crafting sharp-edged flint tools amidst scattered rocks and bones. 4k, Photorealistic",
-                "Agricultural Revolution, Fields bathed in golden sunlight, where human figures tend to crops using primitive wooden plows, surrounded by early granaries and mud huts. 4k, Photorealistic",
-                "Bronze Age and Metalwork, A bustling village market scene with an artisan melting copper and tin in a fiery furnace, fashioning early bronze weapons and tools, while villagers barter goods around. 4k, Photorealistic",
-                "Medieval Engineering, A medieval town with towering cathedrals under construction, showing engineers using wooden cranes, pulleys, and early mechanical clocks in the town square. 4k, Photorealistic",
-                "Industrial Revolution, Smoky factories with large chimneys dominate a landscape, as steam trains move on tracks and people operate large looming machines, with the distant hum of the steam engine. 4k, Photorealistic",
-                "Birth of Electricity, An early 20th-century home interior lit by a single electric bulb, with a family gathered around, marveling at a phonograph playing music, and a telephone on a wooden table. 4k, Photorealistic",
-                "Computer Age, A 1970s office scene with workers using large mainframe computers and punch cards, transitioning to early personal computers with floppy disks and green monochrome screens. 4k, Photorealistic",
-                "Digital Revolution, A late 90s living room with a family gathered around a bulky desktop computer, dialing up to access the internet, while mobile phones and digital cameras lie on the table. 4k, Photorealistic",
-                "Modern Tech Era, A contemporary, minimalist workspace dominated by sleek laptops, tablets, drones hovering outside a window, and augmented reality glasses charging on a desk. 4k, Photorealistic",
-                "Futuristic, A serene, holographic living space with translucent walls, where a person interacts with a hovering AI assistant, crafting tools and objects using a 3D nano-assembler, and the ambiance filled with soft glows of quantum computers. 4k, Photorealistic",
+        text_inputs1 = [
+
+            "a microscopic photo of cosmic water droplets floating in thin air, photorealistic, microscope, flat, blurred background",
+            "photo of dewdrops on spiderwebs, leaves, and petals, sparkling like jewels as they begin to trickle downwards in the morning light, photorealistic",
+            "a photo of droplets Forming on the grass: A serene landscape at dawn where dew is gently forming on the tips of fresh, green grass, first light of the day. Individual droplets of water are clinging to the grass, reflecting the early morning light, photorealistic",
+            "a photo of fresh rainfall: A dense forest enveloped in a sudden downpour. Heavy raindrops hitting large, broad leaves and the surface of puddles, photorealistic",
+            "a photo of small forest critters taking shelter from a massive downpour, covering underneath large leafs, National Geographic",
+            "a photo of a completely soaked forest, drenched in water during a massive downpour, the water is forming huge puddles and trenches and is starting to flow, photorealistc",
+            "a dslr photo of a flowing stream, small bubbling mountain stream, meandering through a rocky landscape high in the mountains. Clear water rushes over smooth stones, banks covered in wildflowers and ferns. The sunlight is filtering through the leaves, photorealistic.",
+            "a photo of the river's mighty journey: A young river winding through a majestic valley with huge mountains, cutting through cliffs and forests. It's seen from a distance. National Geographic wallpaper, photorealistic",
+            "a photo of a wide river flowing through magnificent landscapes, wide meandering river, sandy banks, wallpaper, photorealistic",
+            "a photo of a wide river meeting the Ocean, waves gently lapping at the estuary. The horizon stretches infinitely, and the colors of sunset blend with the blue of the sea. A sailboat is seen in the distance, and seabirds are silhouetted against the sky.",
+            "a photo of the mighty blue sea, expanding infinitely in all directions. The sky is cloudy and there are waves with white crests, turbulent skies, thunder, storm, photorealistic",
+            "a dark photo of the Ocean Depths: shrouded underwater scene revealing the mysterious, dark depths of the ocean filled with alien creatures, eerie lighting, photorealistic",
+            "a photo of a rich coral reef, marine life, fish, and turtle captured in their natural habitat. Shafts of sunlight penetrate the surface, symbolizing the complexity and wonder of life below the surface, photorealistic",
+            "a wide angle photo taken exactly at the surface of the ocean water, showing both the air above the water and the coral reef below, photorealistic, award winning, wallpaper",
+            "a photo of water evaporating into the sky: A stunning view of a coastal area at sea, where the hot sun shining from above causes water to evaporate from the ocean's surface. The sun casts a golden glow on the water, creating a scene that signifies transition, transformation, and the eternal cycle of water.",
+            "a closeup photo of tiny water droplets in the sky and transparent, white steamclouds forming above the surface of the ocean, photorealistic",
+            "a photo taken from high above the clouds at the edges of outer space, looking down at the earth where the ocean meets the land, photorealistic, birds eye view, edge of space",
+            "a photorealistic artwork showing microscopic water droplets as small worlds of glass, time crystals, photorealistic",
+            "a stunning photo of the earth seen from afar, from the international spacestation, with sunrays striking through the atmosphere, photorealistic",
+            "a telescope photo of the deep universe: a sky filled with stars, galaxies, and nebulae. The Milky Way stretches across the sky. The scene encapsulates a sense of cosmic connection, mystery, and existential wonder.",
+            "incredible photorealistic artwork of the Atman, the Soul: A 3D render of the soul or Atman, eternal in time. mystical symbols converge to form a harmonious pattern, a human silhouette, photorealistic",
+            "incredible photorealistic depiction of the ultimate void, the end of time, the circle of life, symbolizing that the cycle continues and life is in perpetual flow and reincarnation",
+            "a fantastic 3D render of yin and yang, the balance of life, the balance of the universe, against the cosmic voide, photorealistic",
+        
         ]
 
-        interpolation_texts_2 = [
-            "A vast empty landscape bathed in the soft glow of dawn, the horizon stretches infinitely with a rich soil bed, and nestled within it is a solitary, firm seed with its outer shell beginning to crack.",
-            "In the middle of a sunlit clearing, a tiny sapling emerges from the earth, its first green leaves tenderly reaching out towards the sun's nurturing light.",
-            "A young tree stands proudly amidst a meadow, its roots anchored deep and branches starting to spread out, providing shade to the ground below and a perch for a bird that sits atop.",
-            "In a bustling forest, the tree has now grown to a significant height, its thick bark bearing the marks of time, while a squirrel scampers up its sturdy trunk.",
-            "The tree, fully grown, dominates the scene, its expansive canopy sheltering a diverse array of life, from birds that nest within its branches to ferns growing at its base.",
-            "A golden-hued autumn landscape where the tree, its leaves transformed into shades of red and gold, drops a colorful blanket onto the ground, heralding the change of seasons.",
-            "Winter's embrace covers the scene. The tree, now barren of leaves, stands resilient against a backdrop of snow, its silhouette contrasting against the pale sky, as snowflakes settle on its branches.",
-            "Time has passed, and the majestic tree now stands with a hollow in its trunk, giving refuge to a family of owls, while mushrooms and mosses claim spaces on its aging bark.",
-            "An evening scene portrays the tree in twilight years, branches withered and fewer leaves, casting long shadows under the setting sun, with fallen logs surrounding it, a testament to time's passage.",
-            "The once mighty tree, now a mere stump, provides a platform for new life: a cluster of saplings sprouting from its center, reaching for the sky, heralding a new beginning.",
+        text_inputs = [
+
+            " with sharp details of cosmic water droplets floating in thin air, microscope, flat, blurred background",
+            " of dewdrops on spiderwebs, leaves, and petals, sparkling like jewels as they begin to trickle downwards in the morning light",
+            " of droplets Forming on the grass: A serene landscape at dawn where dew is gently forming on the tips of fresh, green grass, first light of the day. Individual droplets of water are clinging to the grass, reflecting the early morning light",
+            " of fresh rainfall: A dense forest enveloped in a sudden downpour. Heavy raindrops hitting large, broad leaves and the surface of puddles",
+            " of small forest critters taking shelter from a massive downpour, covering underneath large leafs, National Geographic",
+            " of a completely soaked forest, drenched in water during a massive downpour, the water is forming huge puddles and trenches and is starting to flow",
+            " of a flowing stream, small bubbling mountain stream, meandering through a rocky landscape high in the mountains. Clear water rushes over smooth stones, banks covered in wildflowers and ferns. The sunlight is filtering through the leaves.",
+            " of the river's mighty journey: A young river winding through a majestic valley with huge mountains, cutting through cliffs and forests. It's seen from a distance. National Geographic wallpaper",
+            " of a wide river flowing through magnificent landscapes, wide meandering river, sandy banks, wallpaper",
+            " of a wide river meeting the Ocean, waves gently lapping at the estuary. The horizon stretches infinitely, and the colors of sunset blend with the blue of the sea. A sailboat is seen in the distance, and seabirds are silhouetted against the sky.",
+            " of the mighty blue sea, expanding infinitely in all directions. The sky is cloudy and there are waves with white crests, turbulent skies, thunder, storm",
+            " the Ocean Depths: shrouded underwater scene revealing the mysterious, dark depths of the ocean filled with alien creatures, eerie lighting",
+            " of a rich coral reef, marine life, fish, and turtle captured in their natural habitat. Shafts of sunlight penetrate the surface, symbolizing the complexity and wonder of life below the surface",
+            " taken exactly at the surface of the ocean water, showing both the air above the water and the coral reef below, award winning, wallpaper",
+            " of water evaporating into the sky: A stunning view of a coastal area at sea, where the hot sun shining from above causes water to evaporate from the ocean's surface. The sun casts a golden glow on the water, creating a scene that signifies transition, transformation, and the eternal cycle of water.",
+            " of tiny water droplets in the sky and transparent, white steamclouds forming above the surface of the ocean",
+            " high above the clouds at the edges of outer space, looking down at the earth where the ocean meets the land, birds eye view, edge of space",
+            " showing microscopic water droplets as small worlds of glass, time crystals",
+            " of the earth seen from afar, from the international spacestation, with sunrays striking through the atmosphere",
+            " of the deep universe: a sky filled with stars, galaxies, and nebulae. The Milky Way stretches across the sky. The scene encapsulates a sense of cosmic connection, mystery, and existential wonder.",
+            " of the Atman, the Soul: A 3D render of the soul or Atman, eternal in time. mystical symbols converge to form a harmonious pattern, a human silhouette",
+            " of the ultimate void, the end of time, the circle of life, symbolizing that the cycle continues and life is in perpetual flow and reincarnation",
+            " of yin and yang, the balance of life, the balance of the universe, against the cosmic voide",
+        
         ]
+
+        prefix = "Acid & Hallucinogenic - artwork by Yoko Honda & James Rosenquist"
+        prefixes = [
+            "3D render, unreal engine, psychedelic visual",
+            "depth of field, fractal patterns",
+            "geometric shapes, Stereoscopic 3D, Salvador Dali",
+            "unity 3D, psychedelic colors, hyperrealism"
+        ]
+
+        prefixes  = [
+            "Ray Tracing, Mandelbrot Set, Liquid Crystal Display",
+            "Virtual Reality, Quantum Physics, H.R. Giger",
+            "Augmented Reality, Sacred Geometry, Yayoi Kusama",
+            "Motion Capture, Optical Illusions, Wassily Kandinsky",
+            "Holographic Projections, Fractal Flames, Alex Grey",
+            "3D Scanning, Cubism, Unreal Physics",
+            "Cyberpunk, Neon Retro Futurism",
+            ]
+
+
+
+        interpolation_texts = [prefix + f for f in text_inputs]
 
         for txt in interpolation_texts:
             print(txt)
             print("-----------------------")
         
-        if 1:
+        if 0:
             lerp(interpolation_texts, outdir, seed=seed, save_distance_data=True, interpolation_seeds=None)
         else:
             try:
