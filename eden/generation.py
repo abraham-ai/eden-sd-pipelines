@@ -121,6 +121,11 @@ def generate(
         shape = (1, pipe.unet.config.in_channels, args.H // pipe.vae_scale_factor, args.W // pipe.vae_scale_factor)
         args.init_image = torch.randn(shape, generator=generator, device=_device)
 
+    if args.lora_scale > 0.0:
+        cross_attention_kwargs = {"scale": args.lora_scale}
+    else:
+        cross_attention_kwargs = None
+
     pipe_output = pipe(
         prompt = prompt,
         #prompt_2 = prompt_2,
@@ -137,6 +142,7 @@ def generate(
         negative_pooled_prompt_embeds= args.puc,
         generator = generator,
         callback = callback_,
+        cross_attention_kwargs = cross_attention_kwargs,
     )
     
     pil_images = pipe_output.images
@@ -358,7 +364,7 @@ def run_upscaler(args_, imgs,
         init_image_strength    = 0.68, 
         upscale_guidance_scale = 5.0,
         min_upscale_steps      = 16,  # never do less than this many steps
-        max_n_pixels           = 1536**2, # max number of pixels to avoid OOM
+        max_n_pixels           = 1600**2, # max number of pixels to avoid OOM
     ):
     args = copy(args_)
 

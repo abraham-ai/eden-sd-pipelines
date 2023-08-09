@@ -176,15 +176,15 @@ def get_pipe(args, force_reload = False):
     # Potentially update the pipe:
     pipe = set_sampler(args.sampler, pipe)
     pipe = update_pipe_with_lora(pipe, args)
-    
-    if args.lora_path is not None:
-        tune_lora_scale(pipe.unet, args.lora_scale)
-        tune_lora_scale(pipe.text_encoder, args.lora_scale)
 
     last_lora_path = args.lora_path
 
     return pipe
 
+from safetensors import safe_open
+from safetensors.torch import load_file
+from diffusers.models.attention_processor import LoRAAttnProcessor2_0
+from dataset_and_utils import TokenEmbeddingsHandler
 def update_pipe_with_lora(pipe, args):
     global last_lora_path
 
@@ -193,7 +193,47 @@ def update_pipe_with_lora(pipe, args):
     
     start_time = time.time()
 
-    pipe.load_lora_weights(args.lora_path)
+    print("LORA params:")
+    with open(os.path.join(args.lora_path, "special_params.json"), "r") as f:
+        print(json.dumps(json.load(f), indent=4, sort_keys=True))
+
+    unet = pipe.unet
+    tensors = load_file(os.path.join(args.lora_path, "lora.safetensors"))
+    unet_lora_attn_procs = {}
+
+    for name, attn_processor in unet.attn_processors.items():
+        cross_attention_dim = (
+            None
+            if name.endswith("attn1.processor")
+            else unet.config.cross_attention_dim
+        )
+        if name.startswith("mid_block"):
+            hidden_size = unet.config.block_out_channels[-1]
+        elif name.startswith("up_blocks"):
+            block_id = int(name[len("up_blocks.")])
+            hidden_size = list(reversed(unet.config.block_out_channels))[
+                block_id
+            ]
+        elif name.startswith("down_blocks"):
+            block_id = int(name[len("down_blocks.")])
+            hidden_size = unet.config.block_out_channels[block_id]
+
+        module = LoRAAttnProcessor2_0(
+            hidden_size=hidden_size,
+            cross_attention_dim=cross_attention_dim,
+            rank=4,
+        )
+        unet_lora_attn_procs[name] = module.to("cuda")
+
+    unet.set_attn_processor(unet_lora_attn_procs)
+    unet.load_state_dict(tensors, strict=False)
+
+    handler = TokenEmbeddingsHandler(
+            [pipe.text_encoder, pipe.text_encoder_2], [pipe.tokenizer, pipe.tokenizer_2]
+        )
+    handler.load_embeddings(os.path.join(args.lora_path, "embeddings.pti"))
+
+    #pipe.load_lora_weights(args.lora_path)
     print(f" ---> Updated pipe in {(time.time() - start_time):.2f}s using lora from {args.lora_path} with scale = {args.lora_scale:.2f}")
 
     return pipe
