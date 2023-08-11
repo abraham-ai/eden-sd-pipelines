@@ -228,7 +228,7 @@ class Predictor(BasePredictor):
         ),
         fps: int = Input(
             description="Frames per second (mode==interpolate)",
-            default=12, ge=1, le=24
+            default=12, ge=1, le=30
         ),
 
     ) -> Iterator[GENERATOR_OUTPUT_TYPE]:
