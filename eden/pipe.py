@@ -47,9 +47,11 @@ from lora_diffusion import *
 global pipe
 global last_checkpoint
 global last_lora_path
+global last_controlnet_path
 pipe = None
 last_checkpoint = None
 last_lora_path = None
+last_controlnet_path = None
 
 global upscaling_pipe
 global upscaling_last_checkpoint
@@ -99,7 +101,7 @@ def load_pipe(args):
         #from diffusers import StableDiffusionControlNetImg2ImgPipeline
 
         print("Loading SDXL controlnet-pipeline..")
-        
+
         controlnet = ControlNetModel.from_pretrained(
             os.path.join(CONTROLNET_PATH, args.controlnet_path),
             torch_dtype=torch.float16
@@ -147,11 +149,16 @@ def get_pipe(args, force_reload = False):
     global pipe
     global last_checkpoint
     global last_lora_path
+    global last_controlnet_path
     # create a persistent, global pipe object:
 
     if args.ckpt != last_checkpoint:
         force_reload = True
         last_checkpoint = args.ckpt
+
+    if args.controlnet_path != last_controlnet_path:
+        force_reload = True
+        last_controlnet_path = args.controlnet_path
 
     if not args.lora_path and last_lora_path:
         force_reload = True

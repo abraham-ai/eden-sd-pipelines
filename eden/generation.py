@@ -113,6 +113,9 @@ def generate(
     if args.init_latent is not None:
         args.init_latent = args.init_latent.half()
 
+    if args.controlnet_path is not None and args.init_image is None:
+        raise ValueError("Must provide init_image if using controlnet")
+
     denoising_start = None
     if (args.init_image is None) and (args.init_latent is not None): # lerp/real2real
         args.init_image = args.init_latent
@@ -120,12 +123,12 @@ def generate(
     elif (args.init_image is None) and (args.init_latent is None): # generate, no init_img
         shape = (1, pipe.unet.config.in_channels, args.H // pipe.vae_scale_factor, args.W // pipe.vae_scale_factor)
         args.init_image = torch.randn(shape, generator=generator, device=_device)
+        args.init_image_strength = 0.0
 
     if args.lora_scale > 0.0:
         cross_attention_kwargs = {"scale": args.lora_scale}
     else:
         cross_attention_kwargs = None
-
     
     # for now, use init_image_strength to control the strength of the conditioning
     args.controlnet_conditioning_scale = args.init_image_strength

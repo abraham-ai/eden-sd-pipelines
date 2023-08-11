@@ -503,7 +503,7 @@ def load_img(data, mode):
     except Exception as e:
         print(f"Error loading init_img from {data}")
         print(e)
-        return None
+        raise ValueError(f"Error loading init_img, {str(e)}")
 
 def round_to_nearest_multiple(number, multiple):
     return int(multiple * round(number / multiple))
