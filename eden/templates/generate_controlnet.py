@@ -62,23 +62,11 @@ def generate_basic(
     prefix = "",
     suffix = ""):
 
-    controlnet_img_dir = "/data/xander/Projects/cog/xander_eden_stuff/xander/assets/controlnet/garden"
+    controlnet_img_dir = "/data/xander/Projects/cog/xander_eden_stuff/xander/assets/controlnet/control_nsfw"
     init_imgs = [os.path.join(controlnet_img_dir, f) for f in os.listdir(controlnet_img_dir)]
-
-    low_t = random.choice([75, 100, 125])
-    high_t = random.choice([150, 200, 250])
 
     #init_img = "/data/xander/Projects/cog/xander_eden_stuff/xander/assets/controlnet/architecture/eden_logo_transparent copy.png"
     init_img = random.choice(init_imgs)
-    
-    control_input_img = Image.open(init_img).convert("RGB")
-    canny_img = cv2.Canny(np.array(control_input_img), low_t, high_t)[:, :, None]
-    canny_img = np.concatenate([canny_img, canny_img, canny_img], axis=2)
-    control_image = Image.fromarray(canny_img)
-
-    # save the image:
-    control_img_path = os.path.join(SD_PATH, "controlnet_input.jpg")
-    control_image.save(control_img_path)
 
     args = StableDiffusionSettings(
         #ckpt = random.choice(checkpoint_options),
@@ -94,17 +82,22 @@ def generate_basic(
         seed = seed,
         n_samples = 1,
         lora_path = None,
-        init_image_data = control_img_path,
-        controlnet_conditioning_scale = random.choice([0.4, 0.5, 0.6, 0.7]),
+        init_image_data = init_img,
+        init_image_strength = random.choice([0.6, 0.7, 0.8, 0.9]),
         controlnet_path = "controlnet-canny-sdxl-1.0",
+        low_t = random.choice([75, 100, 125]),
+        high_t = random.choice([150, 200, 250]),
     )
 
-    args.W, args.H = match_aspect_ratio(args.W * args.H, control_image)
-    args.low_t = low_t
-    args.high_t = high_t
+    # make sure W and H match the aspect ratio of the controlnet image:
+    total_n_pixels = args.W * args.H
+    controlnet_img = Image.open(init_img)
+    aspect_ratio = controlnet_img.width / controlnet_img.height
+    args.W = int(np.sqrt(total_n_pixels * aspect_ratio)/8)*8
+    args.H = int(np.sqrt(total_n_pixels / aspect_ratio)/8)*8
 
     # resize control_input_img to match args.W, args.H
-    control_input_img = control_input_img.resize((args.W, args.H), Image.LANCZOS)
+    control_input_img = Image.open(init_img).resize((args.W, args.H), Image.LANCZOS)
 
     #name = f'{prefix}{args.text_input[:40]}_{os.path.basename(args.lora_path)}_{args.seed}_{int(time.time())}{suffix}'
     name = f'{prefix}{args.text_input[:40]}_{args.seed}_{int(time.time())}{suffix}'
@@ -127,30 +120,35 @@ def generate_basic(
 if __name__ == "__main__":
 
     
-    outdir = "controlnet_garden"
+    outdir = "controlnet_nsfw"
 
     text_inputs += [
-        "Decaying urban alleyway, graffiti-tagged walls converging into a glowing, neon-lit Chinatown archway.",
-        "Lush rainforest, vines and ferns up close, leading to a distant waterfall veiled in mist.",
-        "Medieval castle hallways, torchlit walls drawing into a grand throne gleaming under a chandelier.",
-        "Sandy desert, dunes closeby framing a distant oasis with verdant palm trees.",
-        "Cosmic space vortex, starry expanse narrowing into a vibrant wormhole center.",
-        "Underwater cave, coral-laden entrance expanding into a deep blue abyss, shimmers of distant marine life.",
-        "Ancient library, bookshelf walls drawing in to reveal a lone illuminated manuscript on a pedestal.",
-        "Snow-clad mountains, frosted pines up close, guiding eyes to a serene, distant monastery.",
-        "Cyberpunk cityscape, neon billboards nearby merging into a far-off levitating train zipping through skyscrapers.",
-        "Fantasy forest, magical will-o'-the-wisps up close, guiding toward a hidden elfin palace bathed in moonlight.",
-        "Mystical cavern, gem-studded walls leading to a distant radiant crystal cluster.",
-        "Victorian street, gas-lit lamps revealing a remote, fog-veiled bridge over the Thames.",
-        "Clockwork corridor, brass gears close up converging to an intricate pendulum heart in motion.",
-        "Ancient Egyptian tomb, hieroglyphic walls narrowing into a distant golden sarcophagus.",
-        "Rooftop perspective, cityscape edges leading to a central distant park, bathed in sunset.",
-        "Apocalyptic wasteland, broken vehicles nearby merging into a far-off green haven.",
-        "Golden wheat fields, nearby sheaves leading to a distant windmill against an azure sky.",
-        "Cobbled streets of Rome, buildings on both sides pointing toward the Colosseum bathed in twilight.",
-        "Spiraled seashell, textured edges narrowing into a distant, echoing, oceanic void.",
-        "Steampunk airship dock, craft close up, pointing toward a floating city silhouette against a coppery horizon.",
-            
+        "A delicate tapestry of cherry blossom petals, their pale pink hues gently contrasting with dark branches, kissed by the golden glow of dawn, realism blending with abstraction.",
+        "Intricate interlocking leaves in an evergreen forest, shadows playing on the vibrant greens, a touch of surrealism with a hint of metallic sheen.",
+        "A pile of scrap metal, rusted and twisted, reflecting the harsh sunlight, shadows forming chaotic patterns, post-apocalyptic ambiance.",
+        "The rich, complex pattern of a Persian carpet, intertwining geometrical shapes and organic forms, a dance of reds and blues, aged with wisdom and softened by wear.",
+        "The fascinating complexity of a Mandelbrot set, endless spirals, each layer revealing new details, colored with neon hues, a fractal dream in digital art.",
+        "A meticulously crafted Arabic mathematical manuscript, numbers and symbols woven in with ornamental designs, aged paper and ink, a marriage of science and aesthetic.",
+        "The graceful curves of calligraphy, black ink on parchment, letters forming a poetry of shapes, traditional yet infused with modern flair and abstract motifs.",
+        "A stark contrast of black and white vector art, minimalistic shapes forming a complex cityscape, precision balanced with chaos, modern design with a retro touch.",
+        "A field of wildflowers, each bloom painted with an impressionistic touch, colors melting into one another, dappled with sunlight, a soft focus dream.",
+        "The rugged texture of tree bark, moss and lichen growing, every crack and crevice a microcosm of life, hyper-realism infused with fantasy elements.",
+        "A 3D geometric pattern, unfolding like a mechanical puzzle, metallic reflections, industrial strength meets delicate design, steampunk inspired.",
+        "An intricate lacework, weaving together threads of history and femininity, monochromatic yet rich in detail, vintage with a shimmer of silver.",
+        "The mesmerizing swirl of marble, colors blending, veins intersecting, a photograph caught in time, with a splash of gold for opulence.",
+        "Digital pixels forming a portrait, each square a color, the whole an enigmatic face, futuristic and nostalgic, 8-bit style with a touch of glitch art.",
+        "A pile of old books, pages yellowed, leather cracked, words fading but stories alive, vintage charm blended with surreal imagery and a whiff of magic.",
+        "The chaotic beauty of a stormy sea, waves crashing, foam splattering, the power of nature captured in oil on canvas, with a hint of darkness and mystery.",
+        "A jungle of cacti, each shape unique, thorns like art, sun-baked and shadowed, surrealism mixed with realism, desert dream in aqua tones.",
+        "The elegant geometry of Art Deco, lines intersecting, shapes forming, gold, black, and ivory, a dance of the Roaring Twenties, with a modern twist.",
+        "A mural of graffiti, vibrant, rebellious, a street symphony of color and form, urban decay meets creativity, with a layer of grunge.",
+        "An abstract expressionist splash of paint, bold, unapologetic, emotions in color, with a hidden pattern, modern art with a classical soul.",
+
+
+
+
+
+
     ]
         
     for i in range(150):

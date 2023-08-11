@@ -41,25 +41,24 @@ def real2real(
             interpolation_texts = input_texts,
             interpolation_init_images = input_images,
             interpolation_init_images_power = 2.5,
-            interpolation_init_images_min_strength = random.choice([0.02]),  # a higher value will make the video smoother, but allows less visual change / journey
-            interpolation_init_images_max_strength = random.choice([0.02]),
+            interpolation_init_images_min_strength = 0.25,  # a higher value will make the video smoother, but allows less visual change / journey
+            interpolation_init_images_max_strength = 0.95,
             latent_blending_skip_f = random.choice([[0.1, 0.65], [0.0, 0.6]]),
             compile_unet = False,
             guidance_scale = random.choice([7,9]),
             n_anchor_imgs = random.choice([4,5]),
             sampler = "euler",
-            n_frames = 42*n,
+            n_frames = 12*n,
             loop = True,
             smooth = True,
             n_film = 0,
             fps = 12,
             steps =  50,
             seed = seed,
-            H = 1024+640,
-            W = 1024+640,
+            H = 1024,
+            W = 1024,
             upscale_f = 1.0,
-            #lora_path = None,
-            lora_path = "/data/xander/Projects/cog/diffusers/lora/trained_models/sdxl-lora-plantoid/checkpoint-400"
+            lora_path = None,
         )
 
     # always make sure these args are properly set:
@@ -219,7 +218,6 @@ if __name__ == "__main__":
         # get the full path of a random subdir in the root_dir:
         #input_dir = os.path.join(root_dir, random.choice(os.listdir(root_dir)))
         #input_images, input_texts = sample_from_dir(input_dir, n, use_json_prompt_prob = 1.0, shuffle = True)
-        
         #print(input_texts)
 
         text_inputs = [

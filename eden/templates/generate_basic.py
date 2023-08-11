@@ -71,13 +71,11 @@ def generate_basic(
         None,
         None]
 
-    size_f = random.choice([0.8, 1.0, 1.2])
-
     args = StableDiffusionSettings(
         #ckpt = random.choice(checkpoint_options),
         mode = "generate",
-        W = random.choice([1024+256]) * size_f,
-        H = random.choice([1024+256]) * size_f,
+        W = random.choice([1024]),
+        H = random.choice([1024]),
         #H = 960-128,
         #W = 1024+1024+256+128,
         sampler = random.choice(["euler", "euler_ancestral"]),
@@ -88,12 +86,12 @@ def generate_basic(
         text_input_2 = text_input_2,
         seed = seed,
         n_samples = 1,
-        #lora_path = None,
-        lora_path = random.choice(lora_dirs),
+        lora_path = None,
+        #lora_path = random.choice(lora_dirs),
         #lora_path = "/data/xander/Projects/cog/xander_eden_stuff/loras/hetty_cog_2",
-        lora_scale = random.choice([0.8, 0.9, 1.0]),
-        init_image_data = random.choice(init_imgs),
-        init_image_strength = random.choice([0.1, 0.15, 0.2, 0.25, 0.3, 0.35]),
+        #lora_scale = random.choice([0.8, 0.9, 1.0]),
+        #init_image_data = random.choice(init_imgs),
+        #init_image_strength = random.choice([0.1, 0.15, 0.2, 0.25, 0.3, 0.35]),
     )
 
     #name = f'{prefix}{args.text_input[:40]}_{os.path.basename(args.lora_path)}_{args.seed}_{int(time.time())}{suffix}'
