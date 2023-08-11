@@ -92,6 +92,9 @@ def load_pipe(args):
     else:
         location = args.ckpt
 
+    print("#############################################")
+    print("Loading new SD pipeline..")
+
     if args.controlnet_path is not None: # Load controlnet sdxl
         #from diffusers import StableDiffusionControlNetImg2ImgPipeline
 

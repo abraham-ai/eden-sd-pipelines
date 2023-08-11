@@ -163,19 +163,41 @@ if __name__ == "__main__":
         "A cosmic dance, planets orbiting, stars twinkling, the universe in motion, astrophysics meets psychedelia, with a touch of the otherworldly.",
         "The crackle and pop of burning wood, flames alive with color and form, a primal scene with a touch of modern abstraction.",
         "The rich texture of an ancient rock wall, lichen growing, history embedded in every crack, geological time captured in visual form, rugged with a hint of the mystical.",
+    ]
+        
 
-
+    text_inputs = [
+        "The mesmerizing swirl of marble, colors blending, veins intersecting, a photograph caught in time, with a splash of gold for opulence",
+        "The mesmerizing swirl of marble, colors blending, veins intersecting, a photograph caught in time, with a splash of gold for opulence",
+        "The labyrinthine twists of black marble, veined with silver, reflecting a cold, moonlit glow, an elegant dance of shadow and light with a hint of Gothic grandeur.",
+        "A close-up of obsidian marble, its dark surface rippled with subtle waves, a glassy reflection interrupted by rough textures, mysterious and dramatic.",
+        "The deep swirls of emerald green marble, inky shadows giving way to flashes of gold, a rich tapestry of texture, luxurious yet foreboding.",
+        "A tumultuous sea captured in blue marble, waves crashing, darkness in the depths, the power of the ocean frozen in time, with a touch of melancholy.",
+        "The intersecting veins of dark crimson marble, bold and intense, a surface alive with energy, drama, and passion, with a hint of Baroque elegance.",
+        "An abstract pattern in stormy gray marble, clouds of color clashing and mingling, a visual storm captured in stone, with flashes of metallic silver.",
+        "The chaotic beauty of fractured marble, cracks forming a web, dark shadows within, a study in destruction and grace, with a Gothic touch.",
+        "A dark forest mirrored in green marble, trees and shadows intertwined, an eerie landscape caught in time, surrealism meets realism.",
+        "The fierce elegance of black and gold marble, a royal dance of texture and reflection, opulence tinged with a dark allure.",
+        "A fusion of fire and stone, dark marble veined with red, flames flickering, a visual symphony of heat and hardness, with a touch of the mystical.",
+        "The delicate trace of rose gold in dark chocolate marble, a blend of femininity and strength, romanticism with a dark, modern twist.",
+        "A celestial pattern in midnight blue marble, stars twinkling, the universe captured in stone, a cosmic dream with a touch of the enigmatic.",
+        "The dark maze of charcoal gray marble, a labyrinth of texture, a path of intrigue and mystery, with a hint of minimalist elegance.",
+        "A waterfall of dark marble, cascading shades, reflections of life's turbulence, nature's artistry with a somber twist.",
+        "A glimpse of ancient ruins through the veined pattern of worn marble, history whispering, time etched in stone, with a touch of dark nostalgia.",
 
 
     ]
-        
     for i in range(150):
         seed = random.randint(0, 100000)
-        #seed = i
+        seed = i
 
         seed_everything(seed)
 
         text_input = random.choice(text_inputs)
+
+        n_modifiers = random.randint(0, 3)
+        text_input = text_input + ", " + ", ".join(random.sample(modifiers, n_modifiers))
+        
         print(text_input)
         if 0:
             generate_basic(text_input, outdir, seed = seed)
