@@ -85,7 +85,7 @@ def generate_basic(
         n_samples = 1,
         lora_path = None,
         init_image_data = init_img,
-        init_image_strength = random.choice([0.6, 0.7, 0.8, 0.9]),
+        init_image_strength = random.choice([0.7, 0.8, 0.9, 0.95]),
         controlnet_path = "controlnet-canny-sdxl-1.0",
         low_t = random.choice([75, 100, 125]),
         high_t = random.choice([150, 200, 250]),
@@ -143,8 +143,26 @@ if __name__ == "__main__":
         "The elegant geometry of Art Deco, lines intersecting, shapes forming, gold, black, and ivory, a dance of the Roaring Twenties, with a modern twist.",
         "A mural of graffiti, vibrant, rebellious, a street symphony of color and form, urban decay meets creativity, with a layer of grunge.",
         "An abstract expressionist splash of paint, bold, unapologetic, emotions in color, with a hidden pattern, modern art with a classical soul.",
-
-
+        "A field of lavender swaying in the breeze, purple and green mingling, the scent almost tangible, romanticism meets hyperrealism.",
+        "Grass blades covered in morning dew, each droplet a tiny prism, nature's jewel, with a soft bokeh effect and a touch of surrealism.",
+        "A lush canopy of tropical foliage, leaves intertwining, shades of green and splashes of color, jungle magic with a hint of fantasy.",
+        "The universe captured in a single shot, galaxies spiraling, stars sparkling, the vastness of space rendered in vibrant hues, cosmic realism with a touch of mysticism.",
+        "A night sky filled with stars, constellations forming, the Milky Way a river of light, astronomy meets art, a celestial dance.",
+        "A cosmological model, abstract geometry representing galaxies, dark matter, and cosmic strings, a scientific wonder in surreal shapes and metallic shades.",
+        "Flames dancing in a fireplace, oranges, reds, and yellows alive, the crackle almost audible, expressionism meets realism, warmth with a hint of danger.",
+        "The swirling pattern of blue marble, veins intersecting, colors melting, a tactile experience in visual form, elegance with a splash of gold.",
+        "A rugged mountain scene, rocks jutting out, textures telling a geological tale, realism with a touch of the sublime, nature's strength.",
+        "A garden of exotic flowers, each bloom a masterpiece, colors clashing and blending, an impressionistic dream with a touch of the wild.",
+        "The core of a nebula, stars being born, colors unimaginable, a cosmic ballet, science fiction meets fine art, with a touch of the fantastical.",
+        "Grassland in autumn, golden hues, textures of drying foliage, nature's transition captured in a moment, nostalgia with a touch of melancholy.",
+        "The fiery eruption of a volcano, molten rock flowing, smoke billowing, earth's fury in vivid color, realism meets apocalyptic art.",
+        "A sculpture of intricate flowers carved from marble, every petal perfect, the chill of stone with the softness of blossoms, classical with a modern twist.",
+        "A meteor shower, stars falling, night alive with movement, the universe reaching out, surrealism with a touch of romance.",
+        "The gentle flow of a river over rocks, water smooth as silk, stones like ancient sculptures, nature's artistry with a touch of the mystical.",
+        "A close-up of grass, each blade a unique shade, dew like diamonds, macro photography meets abstract art, nature's simplicity with complexity.",
+        "A cosmic dance, planets orbiting, stars twinkling, the universe in motion, astrophysics meets psychedelia, with a touch of the otherworldly.",
+        "The crackle and pop of burning wood, flames alive with color and form, a primal scene with a touch of modern abstraction.",
+        "The rich texture of an ancient rock wall, lichen growing, history embedded in every crack, geological time captured in visual form, rugged with a hint of the mystical.",
 
 
 

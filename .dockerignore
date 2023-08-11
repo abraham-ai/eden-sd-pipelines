@@ -1,3 +1,5 @@
 models/checkpoints/eden:eden-v1
 models/checkpoints/gordon-berger:gordon-berger-figurative
+models/dreamshaper.safetensors
 eden/templates
+eden/xander

@@ -165,7 +165,11 @@ class Predictor(BasePredictor):
             description="Strength of initial image", 
             ge=0.0, le=1.0, default=0.0
         ),
-
+        controlnet_type: str = Input(
+            description="Controlnet type",
+            default="off",
+            choices=["off", "canny-edge"]
+        ),
         # Generate mode
         text_input: str = Input(
             description="Text input (mode==generate)", default=None
@@ -253,6 +257,11 @@ class Predictor(BasePredictor):
         if lora:
             lora_folder = Path('loras')
             lora_path = download(lora, lora_folder, '.safetensors')
+
+        controlnet_paths = {
+            "off": None,
+            "canny-edge": "controlnet-canny-sdxl-1.0"
+        }
         
         args = StableDiffusionSettings(
             ckpt = checkpoint,
@@ -270,6 +279,7 @@ class Predictor(BasePredictor):
 
             init_image_data = init_image_data,
             init_image_strength = init_image_strength,
+            controlnet_path = controlnet_paths[controlnet_type],
 
             text_input = text_input,
             uc_text = uc_text,
