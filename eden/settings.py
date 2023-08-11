@@ -48,6 +48,8 @@ class StableDiffusionSettings:
     # controlnet
     controlnet_conditioning_scale: float = 0.0
     controlnet_path: str = None
+    low_t: float = 100.0   # low canny threshold
+    high_t: float = 200.0  # high canny threshold
 
     # Lora / finetuning:
     lora_path: str = None

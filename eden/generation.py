@@ -126,7 +126,11 @@ def generate(
     else:
         cross_attention_kwargs = None
 
-    if args.controlnet_path is not None and args.controlnet_conditioning_scale > 0:
+    
+    # for now, use init_image_strength to control the strength of the conditioning
+    args.controlnet_conditioning_scale = args.init_image_strength
+
+    if args.controlnet_path is not None and args.controlnet_conditioning_scale > 0 and args:
         args.init_image = preprocess_canny(args.init_image)
                          
         pipe_output = pipe(
