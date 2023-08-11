@@ -96,7 +96,7 @@ def load_pipe(args):
         from diffusers import StableDiffusionXLControlNetPipeline
         from diffusers import StableDiffusionControlNetImg2ImgPipeline
 
-        print("Loading controlnet sdxl pipe...")
+        print("Loading SDXL controlnet-pipeline..")
 
         controlnet = ControlNetModel.from_pretrained(
             os.path.join(CONTROLNET_PATH, args.controlnet_path),
@@ -108,16 +108,7 @@ def load_pipe(args):
             controlnet=controlnet,
             torch_dtype=torch.float16, use_safetensors=True, variant="fp16"
         )
-
         #pipe.enable_model_cpu_offload()
-
-        """ 
-        example:
-        https://github.com/abraham-ai/diffusers/blob/sdxl/src/diffusers/pipelines/controlnet/pipeline_controlnet_img2img.py#L48
-
-        controlnet = ControlNetModel.from_pretrained("lllyasviel/sd-controlnet-canny", torch_dtype=torch.float16)
-        pipe = StableDiffusionControlNetImg2ImgPipeline.from_pretrained("runwayml/stable-diffusion-v1-5", controlnet=controlnet, torch_dtype=torch.float16)
-        """
 
     elif 1:
         print(f"Creating new StableDiffusionXLImg2ImgPipeline using {args.ckpt}")

@@ -9,6 +9,7 @@ src/
 *nohup.out
 
 # eden specific stuff
+controlnet_input.jpg
 MiDaS
 pytorch3d-lite
 AdaBins
