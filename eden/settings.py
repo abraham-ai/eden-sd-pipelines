@@ -45,6 +45,10 @@ class StableDiffusionSettings:
     #ckpt: str = "eden:eden-v1"
     ckpt: str = "sdxl-v1.0"
 
+    # controlnet
+    controlnet_conditioning_scale: float = 0.0
+    controlnet_path: str = None
+
     # Lora / finetuning:
     lora_path: str = None
     lora_scale: float = 0.0

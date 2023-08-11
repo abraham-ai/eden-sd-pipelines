@@ -9,6 +9,7 @@ print("ROOT_PATH: ", ROOT_PATH)
 
 DIFFUSERS_PATH = os.path.join(ROOT_PATH, 'diffusers')
 CHECKPOINTS_PATH = os.path.join(SD_PATH, 'models/checkpoints')
+CONTROLNET_PATH = os.path.join(SD_PATH, 'models/controlnets')
 LORA_PATH = os.path.join(SD_PATH, 'lora')
 LORA_DIFFUSION_PATH = os.path.join(LORA_PATH, 'lora_diffusion')
 
@@ -24,8 +25,8 @@ import diffusers
 print("Importing diffusers from:")
 print(diffusers.__file__)
 from diffusers import DiffusionPipeline, StableDiffusionXLImg2ImgPipeline
+from diffusers import ControlNetModel, StableDiffusionXLControlNetPipeline, AutoencoderKL
 from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline, StableDiffusionDepth2ImgPipeline
-from diffusers.models import AutoencoderKL
 
 from diffusers import (
     DDIMScheduler, 
@@ -91,17 +92,24 @@ def load_pipe(args):
     else:
         location = args.ckpt
 
-    if 0: # Load controlnet sdxl
+    if args.controlnet_path is not None: # Load controlnet sdxl
         from diffusers import StableDiffusionXLControlNetPipeline
         from diffusers import StableDiffusionControlNetImg2ImgPipeline
-        # controlnet model:
-        args.controlnet = "/data/xander/Projects/cog/eden-sd-pipelines/models/controlnets/controlnet-v1e-sdxl-depth"
-        
-        #controlnet = StableDiffusionXLControlNetPipeline.from_pretrained(args.controlnet)
-        
-        pipe = StableDiffusionControlNetImg2ImgPipeline.from_pretrained(
-            location, controlnet = args.controlnet, safety_checker=None, #local_files_only=_local_files_only,
-            torch_dtype=torch.float16, use_safetensors=True, variant="fp16")
+
+        print("Loading controlnet sdxl pipe...")
+
+        controlnet = ControlNetModel.from_pretrained(
+            os.path.join(CONTROLNET_PATH, args.controlnet_path),
+            torch_dtype=torch.float16
+        )
+
+        pipe = StableDiffusionXLControlNetPipeline.from_pretrained(
+            location,
+            controlnet=controlnet,
+            torch_dtype=torch.float16, use_safetensors=True, variant="fp16"
+        )
+
+        #pipe.enable_model_cpu_offload()
 
         """ 
         example:

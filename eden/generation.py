@@ -126,24 +126,42 @@ def generate(
     else:
         cross_attention_kwargs = None
 
-    pipe_output = pipe(
-        prompt = prompt,
-        #prompt_2 = prompt_2,
-        negative_prompt = negative_prompt, 
-        image = args.init_image, 
-        strength = 1-args.init_image_strength, 
-        denoising_start = denoising_start,
-        num_inference_steps = args.steps,
-        guidance_scale = args.guidance_scale,
-        num_images_per_prompt = args.n_samples,
-        prompt_embeds = args.c,
-        negative_prompt_embeds = args.uc,
-        pooled_prompt_embeds = args.pc,
-        negative_pooled_prompt_embeds= args.puc,
-        generator = generator,
-        callback = callback_,
-        cross_attention_kwargs = cross_attention_kwargs,
-    )
+    if args.controlnet_path is not None and args.controlnet_conditioning_scale > 0:
+        pipe_output = pipe(
+            prompt = prompt,
+            negative_prompt = negative_prompt, 
+            image = args.init_image, 
+            num_inference_steps = args.steps,
+            guidance_scale = args.guidance_scale,
+            num_images_per_prompt = args.n_samples,
+            prompt_embeds = args.c,
+            negative_prompt_embeds = args.uc,
+            pooled_prompt_embeds = args.pc,
+            negative_pooled_prompt_embeds= args.puc,
+            controlnet_conditioning_scale = args.controlnet_conditioning_scale,
+            generator = generator,
+            callback = callback_,
+            cross_attention_kwargs = cross_attention_kwargs,
+        )
+
+    else:
+        pipe_output = pipe(
+            prompt = prompt,
+            negative_prompt = negative_prompt, 
+            image = args.init_image, 
+            strength = 1-args.init_image_strength, 
+            denoising_start = denoising_start,
+            num_inference_steps = args.steps,
+            guidance_scale = args.guidance_scale,
+            num_images_per_prompt = args.n_samples,
+            prompt_embeds = args.c,
+            negative_prompt_embeds = args.uc,
+            pooled_prompt_embeds = args.pc,
+            negative_pooled_prompt_embeds= args.puc,
+            generator = generator,
+            callback = callback_,
+            cross_attention_kwargs = cross_attention_kwargs,
+        )
     
     pil_images = pipe_output.images
     pt_images = [None]*len(pil_images)
@@ -192,6 +210,8 @@ def make_interpolation(args, force_timepoints = None):
     
     # Always disbale upscaling for videos (since it introduces frame jitter)
     args.upscale_f = 1.0
+    args.controlnet_conditioning_scale = 0.0 # for now, disable controlnet for videos
+    args.controlnet_path = None
 
     if args.interpolation_init_images and all(args.interpolation_init_images):
         if not args.interpolation_texts: #len(args.interpolation_texts) == 0:

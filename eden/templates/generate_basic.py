@@ -65,15 +65,23 @@ def generate_basic(
     lora_root_dir = "/data/xander/Projects/cog/diffusers/lora/trained_models/sdxl-lora-hetty_all_plzwork"
     lora_dirs = [os.path.join(lora_root_dir, d) for d in os.listdir(lora_root_dir) if "checkpoint-" in d]
 
+    init_imgs = [
+        #"/data/xander/Projects/cog/xander_eden_stuff/xander/assets/hetty/big_template.jpg",
+        #"/data/xander/Projects/cog/xander_eden_stuff/xander/assets/hetty/small_template.jpg",
+        None,
+        None]
+
+    size_f = random.choice([0.8, 1.0, 1.2])
+
     args = StableDiffusionSettings(
         #ckpt = random.choice(checkpoint_options),
         mode = "generate",
-        W = random.choice([1024, 1024+256]),
-        H = random.choice([1024, 1024+256]),
+        W = random.choice([1024+256]) * size_f,
+        H = random.choice([1024+256]) * size_f,
         #H = 960-128,
         #W = 1024+1024+256+128,
         sampler = random.choice(["euler", "euler_ancestral"]),
-        steps = 50,
+        steps = 60,
         guidance_scale = random.choice([6,8,10]),
         upscale_f = random.choice([1.0, 1.0]),
         text_input = text_input,
@@ -82,10 +90,10 @@ def generate_basic(
         n_samples = 1,
         #lora_path = None,
         lora_path = random.choice(lora_dirs),
-        #lora_path = "/data/xander/Projects/cog/xander_eden_stuff/loras/hetty_cog",
-        lora_scale = random.choice([0.6, 0.7, 0.8, 0.9, 1.0]),
-        #init_image_data = "/data/xander/Projects/cog/xander_eden_stuff/xander/assets/hetty/big_template.jpg",
-        #init_image_strength = random.choice([0.3, 0.4, 0.5, 0.6, 0.7]),
+        #lora_path = "/data/xander/Projects/cog/xander_eden_stuff/loras/hetty_cog_2",
+        lora_scale = random.choice([0.8, 0.9, 1.0]),
+        init_image_data = random.choice(init_imgs),
+        init_image_strength = random.choice([0.1, 0.15, 0.2, 0.25, 0.3, 0.35]),
     )
 
     #name = f'{prefix}{args.text_input[:40]}_{os.path.basename(args.lora_path)}_{args.seed}_{int(time.time())}{suffix}'
@@ -107,7 +115,7 @@ def generate_basic(
 if __name__ == "__main__":
 
     if 1:
-        outdir = "hetty_diffusers_trainer"
+        outdir = "controlnet"
 
         json_dir = "/data/xander/Projects/cog/xander_eden_stuff/xander/assets/hetty/templates2"
         # load all the json files from the json_dir:
@@ -120,10 +128,29 @@ if __name__ == "__main__":
                 j = json.load(f)
                 text_inputs.append(j["text_input"])
 
-        # replace <person1> with "Cate Blanchett" in each of the text_inputs:
-        text_inputs = [t.replace("<person1>", "<s0><s1>") for t in text_inputs]
+        extra_prompts = [
+            "a photo of Cate Blanchett as the commander of the starfleet enterprise",
+            "a photo of Cate Blanchett as the commander of starfleet",
+            "a photo of Cate Blanchett as the commander of the starfleet, posing proud in the hallway of her spaceship",
+            "a photo of Cate Blanchett standing in the control room of the galactic starship, posing proud in front her crew who's blurry in the background, smiling, leader figure",
+            "A photo of Cate Blanchett in the captain's chair of a futuristic starship, her crew diligently working in the background",
+            "An image of Cate Blanchett dressed as the admiral of a galactic fleet, standing tall and authoritative on the bridge of her flagshig",
+            "A picture of Cate Blanchett as the supreme commander of a space armada, surveying her fleet from the observation deck, determination in her eyes",
+            "A still of Cate Blanchett portraying the role of a space captain, confidently guiding her starship through the unexplored territories of the galaxy",
+            "A snapshot of Cate Blanchett in a commander's uniform, standing at the helm of an interstellar cruiser, her face reflecting the weight of leadership",
+            "An illustration of Cate Blanchett as the general of an advanced space force, briefing her team in the war room, a holographic star map glowing before them",
+            "A photograph of Cate Blanchett, poised and dignified as the head of a space exploration mission, in the control room with her dedicated crew blurred in the background",
+            "A cinematic shot of Cate Blanchett as a starship captain, saluting her fleet from the command deck, with the endless cosmos stretching out behind her",
+            "A rendering of Cate Blanchett in a futuristic uniform, strategizing with her officers in the operations room of a cutting-edge galactic vessel",
+            "A freeze-frame of Cate Blanchett, leader of an elite space corps, standing in front of her soldiers, with the glimmering stars and planets visible through the viewport behind her",
+        ]
+        text_inputs.extend(extra_prompts)
 
-        text_inputs = ['a photo of Cate Blanchett as the commander of the starfleet enterprise']
+        # replace <person1> with "Cate Blanchett" in each of the text_inputs:
+        text_inputs = [t.replace("<person1>", "Cate Blanchett") for t in text_inputs]
+        text_inputs = [t.replace("dystopian", "utopian") for t in text_inputs]
+
+        #text_inputs = ['a photo of <s0><s1> as the commander of the starfleet enterprise']
 
     else:
         outdir = "wedding_ismotrainer_final"
@@ -192,13 +219,18 @@ if __name__ == "__main__":
             "high quality professional photography, nikon d850 50mm",
         ]
 
+    photoreal = "high quality professional photography, nikon d850 50mm"
+
     for i in range(150):
         n_modifiers = random.randint(0, 3)
         seed = random.randint(0, 100000)
         seed = int(time.time())
         #seed = i
+
         seed_everything(seed)
         text_input = random.choice(text_inputs)
+        if random.choice([0,0,1]):
+            text_input += ", " + photoreal
         #text_input = text_input + ", " + random.choice(suffixes)
         #text_input = text_input + ", " + ", ".join(random.sample(modifiers, n_modifiers))
 
