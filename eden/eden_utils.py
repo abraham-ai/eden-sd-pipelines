@@ -1087,5 +1087,22 @@ def huemin_background_gen(outdir,timestring,index):
     return gen_path
 
 
+############ ControlNet inputs ############
+
+def preprocess_canny(pil_control_image, low_t = 100, high_t = 200):
+    """
+    Takes a PIL image, computes the canny edge map
+    and returns a canny edge map PIL image to use in the control net
+    """
+
+    control_input_img = pil_control_image.convert("RGB")
+    canny_img = cv2.Canny(np.array(control_input_img), low_t, high_t)[:, :, None]
+    canny_img = np.concatenate([canny_img, canny_img, canny_img], axis=2)
+    return  Image.fromarray(canny_img)
+
+
 if __name__ == '__main__':
     pick_best_gpu_id()
+
+
+
