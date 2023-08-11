@@ -323,6 +323,10 @@ class Predictor(BasePredictor):
                 yield CogOutput(files=[out_path], name=interrogation, thumbnails=[out_path], attributes=attributes, isFinal=True, progress=1.0)
 
         elif mode == "generate" or mode == "remix":
+
+            if args.init_image_data is None:
+                args.init_image_strength = 0.0
+                
             frames = generation.make_images(args)
             
             attributes = None

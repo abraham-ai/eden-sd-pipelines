@@ -99,7 +99,7 @@ def load_pipe(args):
         #from diffusers import StableDiffusionControlNetImg2ImgPipeline
 
         print("Loading SDXL controlnet-pipeline..")
-
+        
         controlnet = ControlNetModel.from_pretrained(
             os.path.join(CONTROLNET_PATH, args.controlnet_path),
             torch_dtype=torch.float16
