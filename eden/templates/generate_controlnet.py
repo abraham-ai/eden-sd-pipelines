@@ -68,6 +68,8 @@ def generate_basic(
     #init_img = "/data/xander/Projects/cog/xander_eden_stuff/xander/assets/controlnet/architecture/eden_logo_transparent copy.png"
     init_img = random.choice(init_imgs)
 
+    save_control_img = False
+
     args = StableDiffusionSettings(
         #ckpt = random.choice(checkpoint_options),
         mode = "generate",
@@ -96,9 +98,6 @@ def generate_basic(
     args.W = int(np.sqrt(total_n_pixels * aspect_ratio)/8)*8
     args.H = int(np.sqrt(total_n_pixels / aspect_ratio)/8)*8
 
-    # resize control_input_img to match args.W, args.H
-    control_input_img = Image.open(init_img).resize((args.W, args.H), Image.LANCZOS)
-
     #name = f'{prefix}{args.text_input[:40]}_{os.path.basename(args.lora_path)}_{args.seed}_{int(time.time())}{suffix}'
     name = f'{prefix}{args.text_input[:40]}_{args.seed}_{int(time.time())}{suffix}'
 
@@ -110,7 +109,8 @@ def generate_basic(
         control_frame = f'{name}_{i}_cond.jpg'
         os.makedirs(outdir, exist_ok = True)
         img.save(os.path.join(outdir, frame), quality=95)
-        control_input_img.save(os.path.join(outdir, control_frame), quality=95)
+        if save_control_img:
+            Image.open(init_img).resize((args.W, args.H), Image.LANCZOS).save(os.path.join(outdir, control_frame), quality=95)
 
     # save settings
     settings_filename = f'{outdir}/{name}.json'
