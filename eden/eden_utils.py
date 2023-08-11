@@ -490,15 +490,20 @@ def pil_img_to_latent(img, args, device, pipe, noise_seed = 0):
 
 
 def load_img(data, mode):
-    if data.startswith('http://') or data.startswith('https://'):
-        image = Image.open(requests.get(data, stream=True).raw)
-    elif data.startswith('data:image/'):
-        image = load_base64(data, mode)
-    elif isinstance(data, str):
-        assert os.path.exists(data), f'File {data} does not exist'
-        image = Image.open(data)
-    image = image.convert(mode)
-    return image
+    try:
+        if data.startswith('http://') or data.startswith('https://'):
+            image = Image.open(requests.get(data, stream=True).raw)
+        elif data.startswith('data:image/'):
+            image = load_base64(data, mode)
+        elif isinstance(data, str):
+            assert os.path.exists(data), f'File {data} does not exist'
+            image = Image.open(data)
+        image = image.convert(mode)
+        return image
+    except Exception as e:
+        print(f"Error loading init_img from {data}")
+        print(e)
+        return None
 
 def round_to_nearest_multiple(number, multiple):
     return int(multiple * round(number / multiple))

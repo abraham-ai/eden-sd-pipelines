@@ -258,7 +258,7 @@ class Predictor(BasePredictor):
             lora_folder = Path('loras')
             lora_path = download(lora, lora_folder, '.safetensors')
 
-        controlnet_paths = {
+        controlnet_options = {
             "off": None,
             "canny-edge": "controlnet-canny-sdxl-1.0"
         }
@@ -279,7 +279,7 @@ class Predictor(BasePredictor):
 
             init_image_data = init_image_data,
             init_image_strength = init_image_strength,
-            controlnet_path = controlnet_paths[controlnet_type],
+            controlnet_path = controlnet_options[controlnet_type],
 
             text_input = text_input,
             uc_text = uc_text,
@@ -304,8 +304,10 @@ class Predictor(BasePredictor):
             aesthetic_lr = 0.0001,
             ag_L2_normalization_constant = 0.25, # for real2real, only 
         )
-
+        
+        print("Arguments:")
         print(args)
+        print("--------------------------------------")
 
         out_dir = Path(tempfile.mkdtemp())
 

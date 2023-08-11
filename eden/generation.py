@@ -130,8 +130,9 @@ def generate(
     # for now, use init_image_strength to control the strength of the conditioning
     args.controlnet_conditioning_scale = args.init_image_strength
 
-    if args.controlnet_path is not None and args.controlnet_conditioning_scale > 0 and args:
+    if args.controlnet_path is not None and args.controlnet_conditioning_scale > 0 and args.init_image is not None:
         args.init_image = preprocess_canny(args.init_image)
+        args.upscale_f = 1.0 # disable upscaling with controlnet for now
                          
         pipe_output = pipe(
             prompt = prompt,
@@ -430,6 +431,7 @@ def run_upscaler(args_, imgs,
 
     for i in range(len(imgs)): # upscale in a loop:
         args.init_image = imgs[i]
+
         image = upscaling_pipe(
             prompt = args.text_input,
             image=args.init_image.resize((args.W, args.H)),

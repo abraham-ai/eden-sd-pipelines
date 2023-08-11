@@ -93,8 +93,7 @@ def load_pipe(args):
         location = args.ckpt
 
     if args.controlnet_path is not None: # Load controlnet sdxl
-        from diffusers import StableDiffusionXLControlNetPipeline
-        from diffusers import StableDiffusionControlNetImg2ImgPipeline
+        #from diffusers import StableDiffusionControlNetImg2ImgPipeline
 
         print("Loading SDXL controlnet-pipeline..")
 
@@ -110,7 +109,7 @@ def load_pipe(args):
         )
         #pipe.enable_model_cpu_offload()
 
-    elif 1:
+    else:
         print(f"Creating new StableDiffusionXLImg2ImgPipeline using {args.ckpt}")
 
         if args.ckpt == "dreamshaper": #dreamshaper
@@ -129,15 +128,6 @@ def load_pipe(args):
             pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
                 location, safety_checker=None, #local_files_only=_local_files_only,
                 torch_dtype=torch.float16, use_safetensors=True, variant="fp16")
-
-    else: # SD v1 and v2
-        print(f"Creating new DiffusionPipeline using {args.ckpt}")
-        pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
-            location, 
-            safety_checker=None, 
-            #local_files_only=_local_files_only, 
-            torch_dtype=torch.float16, use_safetensors=True, variant="fp16"
-        )
 
     pipe.safety_checker = None
     pipe = pipe.to(_device)
