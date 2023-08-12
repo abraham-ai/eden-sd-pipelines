@@ -62,7 +62,7 @@ def generate_basic(
     prefix = "",
     suffix = ""):
 
-    controlnet_img_dir = "/data/xander/Projects/cog/xander_eden_stuff/xander/assets/controlnet/control_nsfw"
+    controlnet_img_dir = "/data/xander/Projects/cog/xander_eden_stuff/xander/assets/controlnet/garden"
     init_imgs = [os.path.join(controlnet_img_dir, f) for f in os.listdir(controlnet_img_dir)]
 
     #init_img = "/data/xander/Projects/cog/xander_eden_stuff/xander/assets/controlnet/architecture/eden_logo_transparent copy.png"
@@ -120,7 +120,7 @@ def generate_basic(
 if __name__ == "__main__":
 
     
-    outdir = "controlnet_nsfw"
+    outdir = "controlnet_GARDEN"
 
     text_inputs += [
         "A delicate tapestry of cherry blossom petals, their pale pink hues gently contrasting with dark branches, kissed by the golden glow of dawn, realism blending with abstraction.",
@@ -166,7 +166,7 @@ if __name__ == "__main__":
     ]
         
 
-    text_inputs = [
+    text_inputs += [
         "The mesmerizing swirl of marble, colors blending, veins intersecting, a photograph caught in time, with a splash of gold for opulence",
         "The mesmerizing swirl of marble, colors blending, veins intersecting, a photograph caught in time, with a splash of gold for opulence",
         "The labyrinthine twists of black marble, veined with silver, reflecting a cold, moonlit glow, an elegant dance of shadow and light with a hint of Gothic grandeur.",
@@ -189,8 +189,8 @@ if __name__ == "__main__":
     ]
     for i in range(150):
         seed = random.randint(0, 100000)
-        seed = i
-
+        #seed = i
+        
         seed_everything(seed)
 
         text_input = random.choice(text_inputs)

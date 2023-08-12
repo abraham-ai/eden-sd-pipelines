@@ -488,16 +488,45 @@ def pil_img_to_latent(img, args, device, pipe, noise_seed = 0):
 
     return latent
 
+def load_image_with_orientation(path):
+    image = Image.open(path)
+
+    # Try to get the Exif orientation tag (0x0112), if it exists
+    try:
+        exif_data = image._getexif()
+        orientation = exif_data.get(0x0112)
+    except (AttributeError, KeyError, IndexError):
+        orientation = None
+
+    # Apply the orientation, if it's present
+    if orientation:
+        if orientation == 2:
+            image = image.transpose(Image.FLIP_LEFT_RIGHT)
+        elif orientation == 3:
+            image = image.rotate(180)
+        elif orientation == 4:
+            image = image.transpose(Image.FLIP_TOP_BOTTOM)
+        elif orientation == 5:
+            image = image.rotate(-90).transpose(Image.FLIP_LEFT_RIGHT)
+        elif orientation == 6:
+            image = image.rotate(-90)
+        elif orientation == 7:
+            image = image.rotate(90).transpose(Image.FLIP_LEFT_RIGHT)
+        elif orientation == 8:
+            image = image.rotate(90)
+
+    return image
+
 
 def load_img(data, mode):
     try:
         if data.startswith('http://') or data.startswith('https://'):
-            image = Image.open(requests.get(data, stream=True).raw)
+            image = load_image_with_orientation(requests.get(data, stream=True).raw)
         elif data.startswith('data:image/'):
             image = load_base64(data, mode)
         elif isinstance(data, str):
             assert os.path.exists(data), f'File {data} does not exist'
-            image = Image.open(data)
+            image = load_image_with_orientation(data)
         image = image.convert(mode)
         return image
     except Exception as e:
