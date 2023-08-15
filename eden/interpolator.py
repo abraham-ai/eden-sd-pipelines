@@ -305,7 +305,7 @@ class Interpolator():
             else:
                 perceptual_target_curve = np.ones(len(perceptual_distances)+1)
 
-                if 1:
+                if 0:
                     print("####################################################")
                     print("WARNING setting perceptual_target_curve to a sine curve!")
                     print("####################################################")
