@@ -74,11 +74,11 @@ def generate_basic(
     args = StableDiffusionSettings(
         #ckpt = random.choice(checkpoint_options),
         mode = "generate",
-        W = random.choice([1024]),
-        H = random.choice([1024]),
-        #H = 960-128,
-        #W = 1024+1024+256+128,
-        sampler = random.choice(["euler", "euler_ancestral"]),
+        #W = random.choice([1024]),
+        #H = random.choice([1024]),
+        H = 960-128,
+        W = 1024+1024+256+128,
+        sampler = random.choice(["euler"]),
         steps = 60,
         guidance_scale = random.choice([6,8,10]),
         upscale_f = random.choice([1.0, 1.0]),
@@ -112,7 +112,7 @@ def generate_basic(
 
 if __name__ == "__main__":
 
-    if 1:
+    if 0:
         outdir = "controlnet"
 
         json_dir = "/data/xander/Projects/cog/xander_eden_stuff/xander/assets/hetty/templates2"
@@ -151,90 +151,72 @@ if __name__ == "__main__":
         #text_inputs = ['a photo of <s0><s1> as the commander of the starfleet enterprise']
 
     else:
-        outdir = "wedding_ismotrainer_final"
-
+        outdir = "fire_fin"
         text_inputs = [
-            "a wedding photo of bride and groom in front of the piramids of Gizeh, high quality professional photography, nikon d850 50mm",
-            "a wedding photo of bride and groom on the north pole, high quality professional photography, nikon d850 50mm",
-            "a wedding painting of bride and groom by Vincent Van Gogh",
-            "a wedding artwork of bride and groom",
-            "a pencil sketch of bride and groom",
-            "a photo of bride and groom high quality professional photography, nikon d850 50mm",
-            "a photo of bride and groom in superhero capes striking a pose, high quality professional photography, Nikon D850 50mm",
-            "a photo of bride and groom in the midst of a pie fight, high quality professional photography, Nikon D850 50mm",
-            "a photo of bride and groom in mismatched shoes, trying to walk a straight line, high quality professional photography, Nikon D850 50mm",
-            "a photo of bride and groom in rubber duck floaties, standing in a kiddie pool, high quality professional photography, Nikon D850 50mm",
-            "a photo of bride and groom in their favorite team's jerseys, playing a one-on-one soccer match, high quality professional photography, Nikon D850 50mm",
-            "a photo of bride and groom in oversized sunglasses and floppy hats, striking a 1970s disco pose, high quality professional photography, Nikon D850 50mm",
-            "a photo of bride and groom in fishing gear, holding up toy fish, high quality professional photography, Nikon D850 50mm",
-            "a photo of bride and groom in roller skates, holding hands, high quality professional photography, Nikon D850 50mm",
-            "a photo of bride and groom in dinosaur costumes, roaring at each other, high quality professional photography, Nikon D850 50mm",
-            "a photo of bride and groom on a huge inflatable unicorn, floating on the pool, high quality professional photography, Nikon D850 50mm",
-        ]
-
-        text_inputs = [f.replace("bride and groom", "<s0><s1>") for f in text_inputs]
-
-        #text_inputs = [f.replace("TOK", "<s0><s1>") for f in text_inputs]
-        #text_inputs = [prefix + f + suffix for f in text_inputs]
-
-        outdir = "mushrooms"
-        text_inputs = [
-            "A dense forest floor layered with dead leaves, mystical glowing hues emanating from decomposing foliage, vibrant colors and 3D swirling patterns, capturing the beginning of a magical journey.",
-            "A dance with shadows and fireflies, every movement creating ripples in the fabric of reality, painting the night with 3D impressions of joy, sorrow, love, and longing, sharp details, surreal textures, rendered in vivid 3D, vibrant colors, psychedelic",
-            "Psychedelic close-up of forest floor, brimming with life; small critters with fantastical features crawling amid the leaves and roots, intricate and surreal textures, rendered in vivid 3D.",
-            "Mushrooms sprouting with supernatural growth, luminescent caps, twisted stems, surrounded by sparkling dewdrops, enhanced by kaleidoscopic colors and immersive 3D depth.",
-            "A hidden glade illuminated by ethereal fairies, their translucent wings shimmering with spectral light, dancing in a psychedelic pattern, forming intricate 3D trails.",
-            "Whimsical gnomes hidden amongst the forest, their eyes glinting, bodies contorted in surreal, organic shapes, surrounded by magical flora, rendered in trippy 3D aesthetics.",
-            "A close-up view of mycelium networks growing, pulsating with life, connecting everything in a glowing, complex web, visualized with dazzling colors and 3D textures.",
-            "Enchanting scene of interconnected roots and branches, forming a network that seems alive, eyes embedded in the bark, looking out, drawn in psychedelic colors and abstract 3D forms.",
-            "Walking through a live forest, nature personified, the trees' branches reaching out, leaves swirling in colorful 3D spirals, a surreal and magical pathway unfolding.",
-            "Discovery of an ancient, glowing tree, its branches a library of life, leaves inscribed with sacred runes, roots whispering secrets, a 3D tapestry of wisdom and knowledge., ambient lighting, startrek atmosphere, movie scene, trippy 3D aesthetic, vibrant colors",
-            "3D perspective of ascending a mystical hill, footprints glowing behind, the trail illuminated by otherworldly flora and fauna, rendered in dazzling psychedelic hues.",
-            "Reach the top of a mountain; breathtaking 3D vista of the enchanted forest below, clouds parting in vibrant swirls, a path leading to the next phase of the journey.",
-            "Holding up a magical mushroom, glowing with a powerful aura, intricate patterns on its surface, surrounded by 3D sparkling particles, a moment of realization and connection.",
-            "Beaming light descending from the sky, penetrating the forest, creating a 3D tunnel of kaleidoscopic colors and patterns, leading to a deeper level of understanding.",
-            "Thunderclouds breaking open in a surreal 3D display, sunlit rays piercing through, illuminating a path through the forest, rendered in vibrant psychedelic colors.",
-            "Floating above the forest, transcending into a higher plane, ethereal clouds and landscapes merging in a 3D psychedelic dance of shapes, colors, and textures.",
-            "Journeying through a tunnel of vibrant, connected trees, their branches forming intricate 3D patterns, guiding towards a glowing portal, a mystical transformation.",
-            "Walking a path of glowing stars, constellations guiding the way, each step resonating with cosmic vibrations, a 3D celestial exploration of destiny and purpose., ambient lighting, startrek atmosphere, movie scene, fish eye lens, psychedelic colors",
-            "Encounter with mystical creatures, blending with nature, their 3D forms twisting and turning in a dance of life, all rendered in hypnotic psychedelic colors.",
-            "Descending back to the forest floor, a psychedelic perspective of the entire ecosystem in harmony, life thriving in surreal 3D shapes and mesmerizing colors.",
-            "Navigating a river of liquid crystal, reflections creating endless 3D fractals, a path that twists and winds, animated by mystical fish and radiant, floating flora, ambient lighting, startrek atmosphere, psychedelic colors, trippy 3D aesthetic",
-            "Sunset over the psychedelic forest, a 3D panorama of glowing trees, mystical mountains, reflecting the entire journey's wisdom and revelations, vivid and ethereal.",
-            "A starlit night in the forest, the sky opening into cosmic patterns, a 3D celestial connection with the universe, capturing the spiritual essence in vibrant, surreal colors.",
-            "Final scene of tranquility, unity with nature, the forest asleep yet alive, bathed in moonlit psychedelic hues, a 3D dreamlike serenade to the magical journey's end.",
-            "A dense forest floor layered with dead leaves, mystical glowing hues emanating from decomposing foliage, vibrant colors and 3D swirling patterns, capturing the beginning of a magical journey."
+            "A conceptual art piece showing a human heart engulfed in flames, the power of love",
+            "A lone tree burning in a barren landscape, incredible artwork, bible, tree of life",
+            "A surreal depiction of a person holding firewand, an entire galaxy is burning at the end. Stars, planets, and cosmic clouds swirl around in a mesmerizing dance, connecting the elemental nature of fire with the universe's grandeur",
+            "Abstract Expressionism: Fluid abstract shapes and colors of fire, creating a dynamic and evolving canvas that responds to the rhythm and emotion of firespinning, photorealistic",
+            "an otherworldly connection flames dance reshape, reflecting the fleeting crafted from personal and fire spinners, and as if Sacred geometric shapes dances, and colors, incredible composition, photorealistic",
+            "Ink and Fire Fusion: Fire interacting with ink in water, creating abstract forms and patterns. The dance of color and shape mirrors the firespinning, symbolizing creativity and impermanence",
+            "Smoke and Fire Fusion: Fire interacting with smoke and ice, creating abstract forms and patterns. The dance of color and shape mirrors the firespinning, symbolizing creativity and impermanence",
+            "Ink and Fire Fusion: Fire interacting with ink in water, creating abstract forms and patterns. The dance of color and shape mirrors the firespinning",
+            "Masks in Firelight: Tribal masks illuminated by flickering firelight, casting haunting shadows. Up-close shots reveal textures, materials, and emotions encapsulated in these sacred objects",
+            "render, professional portrait a forest rejuvenating mirrors the firespinning, expression., 3D photograph, dslr, 4k, and twist flames and shadows",
+            "The Dance of Fire Elementals: Ethereal beings composed of flame dancing gracefully, mirroring the human fire dancers, creating an otherworldly connection, photorealistic",
+            "Underwater Fire Reflections: The reflection of tribal ceremonies in calm water, creating an otherworldly connection between the physical and spiritual realms",
+            "tribal people are performing fire magic in the air, directing the flames with their hands, creating twisting and bending shapes",
+            "a magical fire ritual, flames creating shapes in the sky, massive fireballs, fire magic",
+            "firespinning performance at a tribal festival",
+            "jaguar shamans performing a purification ritual around a fire, tribal, jungle",
+            "a meditating shape engulfed in flames, floating above the fire",
+            "a mythical creature emerging from the flames, rebirth",
+            "the balrog from lord of the rings, engulfed in flames, rebirth",
+            "a fire elemental, a mythical creature emerging from the flames, rebirth",
+            "the elemnt of fire, purity, rebirth, destruction",
+            "abstract shapes of flaming glass, liminal reflections, twisting and bending, fire",
+            "the majestic tree of life with small flames instead of leaves, fire, rebirth",
+            "the birth of fire, incredible masterpiece",
+            "a fire elemental, a mythical creature",
+            "tribal fire ritual, masks, amazon",
+            "cosmic flames, fire and stars, the universe inside a flame",
         ]
 
     suffixes = [
+            "",
+            "",
+            "backlit, liminal space, 4k",
             "incredible artwork, masterpiece",
             "sharp details, photorealistic",
             "award winning photograph, dslr, 4k",
             "ambient lighting, startrek atmosphere, movie scene",
             "incredible composition, backlit, 4k",
-            "3D render, professional portrait photograph",
+            "3D render, professional post processing, 4k",
+            "oil on canvas",
             "high quality professional photography, nikon d850 50mm",
             "high quality professional photography, nikon d850 50mm",
         ]
 
-    photoreal = "high quality professional photography, nikon d850 50mm"
-
-    for i in range(150):
+    json_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/fireshow_02"
+    interpolation_texts, interpolation_seeds = get_prompts_from_json_dir(json_dir, return_seeds = True)
+    
+    
+    for i in range(200):
         n_modifiers = random.randint(0, 3)
         seed = random.randint(0, 100000)
-        seed = int(time.time())
         #seed = i
 
         seed_everything(seed)
         text_input = random.choice(text_inputs)
-        if random.choice([0,0,1]):
-            text_input += ", " + photoreal
+        text_input = random.choice(interpolation_texts)
+
         #text_input = text_input + ", " + random.choice(suffixes)
-        #text_input = text_input + ", " + ", ".join(random.sample(modifiers, n_modifiers))
+        #if n_modifiers > 0:
+        #    text_input = text_input + ", " + ", ".join(random.sample(modifiers, n_modifiers))
 
         #text_input = text_inputs[i%len(text_inputs)]
         print(text_input)
-        if 1:
+        if 0:
             generate_basic(text_input, outdir, seed = seed)
         else:
             try:

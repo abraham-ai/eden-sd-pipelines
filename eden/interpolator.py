@@ -299,12 +299,16 @@ class Interpolator():
             perceptual_distances = self.latent_tracker.frame_buffer.distances.copy()
 
             if self.args.planner is not None:
+                print("###### Using planner to get audio push curve! ######")
                 perceptual_target_curve, high_fps_target_curve = self.args.planner.get_audio_push_curve(len(perceptual_distances)+1, self.prompt_index, self.n_frames_between_two_prompts, max_n_samples = self.n_frames_between_two_prompts)
                 perceptual_target_curve = high_fps_target_curve
             else:
                 perceptual_target_curve = np.ones(len(perceptual_distances)+1)
 
-                if 0:
+                if 1:
+                    print("####################################################")
+                    print("WARNING setting perceptual_target_curve to a sine curve!")
+                    print("####################################################")
                     # create a full period sine curve that starts at 0 and ends at 0:
                     # this slows down the keyframes and speeds up the middle frames
                     perceptual_target_curve = np.sin(np.linspace(-np.pi/2, 2*np.pi - np.pi/2, len(perceptual_distances)+1)) + 2.0

@@ -65,6 +65,8 @@ def generate_basic(
     controlnet_img_dir = "/data/xander/Projects/cog/xander_eden_stuff/xander/assets/controlnet/garden"
     init_imgs = [os.path.join(controlnet_img_dir, f) for f in os.listdir(controlnet_img_dir)]
 
+    init_imgs = ["/data/xander/Projects/cog/xander_eden_stuff/xander/assets/controlnet/garden/20230803_125517.jpg"]
+
     #init_img = "/data/xander/Projects/cog/xander_eden_stuff/xander/assets/controlnet/architecture/eden_logo_transparent copy.png"
     init_img = random.choice(init_imgs)
 
@@ -187,9 +189,10 @@ if __name__ == "__main__":
 
 
     ]
-    for i in range(150):
+
+    for i in range(250):
         seed = random.randint(0, 100000)
-        #seed = i
+        seed = i+200
         
         seed_everything(seed)
 

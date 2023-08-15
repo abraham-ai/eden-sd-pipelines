@@ -72,6 +72,9 @@ def generate(
     global pipe
     pipe = eden_pipe.get_pipe(args)
 
+    if "remix_this_image" in args.text_input:
+        args.text_input = clip_interrogate(args.ckpt, args.init_image, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
+
     if args.interpolator is not None:
         args.interpolator.latent_tracker.create_new_denoising_trajectory(args, pipe)
     
