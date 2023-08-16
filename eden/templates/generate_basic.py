@@ -74,10 +74,8 @@ def generate_basic(
     args = StableDiffusionSettings(
         #ckpt = random.choice(checkpoint_options),
         mode = "generate",
-        #W = random.choice([1024]),
-        #H = random.choice([1024]),
-        H = 960-128,
-        W = 1024+1024+256+128,
+        W = random.choice([1024]),
+        H = random.choice([1024]),
         sampler = random.choice(["euler"]),
         steps = 60,
         guidance_scale = random.choice([6,8,10]),
@@ -86,10 +84,11 @@ def generate_basic(
         text_input_2 = text_input_2,
         seed = seed,
         n_samples = 1,
-        lora_path = None,
+        #lora_path = None,
         #lora_path = random.choice(lora_dirs),
-        #lora_path = "/data/xander/Projects/cog/xander_eden_stuff/loras/hetty_cog_2",
-        #lora_scale = random.choice([0.8, 0.9, 1.0]),
+        #lora_path = "/data/xander/Projects/cog/diffusers/lora/trained_models/sdxl-lora-banny-all/pytorch_lora_weights.bin",
+        lora_path = "/data/xander/Projects/cog/diffusers/lora/trained_models/sdxl-lora-banny-all/checkpoint-700",
+        lora_scale = random.choice([1.0]),
         #init_image_data = random.choice(init_imgs),
         #init_image_strength = random.choice([0.1, 0.15, 0.2, 0.25, 0.3, 0.35]),
     )
@@ -151,36 +150,9 @@ if __name__ == "__main__":
         #text_inputs = ['a photo of <s0><s1> as the commander of the starfleet enterprise']
 
     else:
-        outdir = "fire_fin"
-        text_inputs = [
-            "A conceptual art piece showing a human heart engulfed in flames, the power of love",
-            "A lone tree burning in a barren landscape, incredible artwork, bible, tree of life",
-            "A surreal depiction of a person holding firewand, an entire galaxy is burning at the end. Stars, planets, and cosmic clouds swirl around in a mesmerizing dance, connecting the elemental nature of fire with the universe's grandeur",
-            "Abstract Expressionism: Fluid abstract shapes and colors of fire, creating a dynamic and evolving canvas that responds to the rhythm and emotion of firespinning, photorealistic",
-            "an otherworldly connection flames dance reshape, reflecting the fleeting crafted from personal and fire spinners, and as if Sacred geometric shapes dances, and colors, incredible composition, photorealistic",
-            "Ink and Fire Fusion: Fire interacting with ink in water, creating abstract forms and patterns. The dance of color and shape mirrors the firespinning, symbolizing creativity and impermanence",
-            "Smoke and Fire Fusion: Fire interacting with smoke and ice, creating abstract forms and patterns. The dance of color and shape mirrors the firespinning, symbolizing creativity and impermanence",
-            "Ink and Fire Fusion: Fire interacting with ink in water, creating abstract forms and patterns. The dance of color and shape mirrors the firespinning",
-            "Masks in Firelight: Tribal masks illuminated by flickering firelight, casting haunting shadows. Up-close shots reveal textures, materials, and emotions encapsulated in these sacred objects",
-            "render, professional portrait a forest rejuvenating mirrors the firespinning, expression., 3D photograph, dslr, 4k, and twist flames and shadows",
-            "The Dance of Fire Elementals: Ethereal beings composed of flame dancing gracefully, mirroring the human fire dancers, creating an otherworldly connection, photorealistic",
-            "Underwater Fire Reflections: The reflection of tribal ceremonies in calm water, creating an otherworldly connection between the physical and spiritual realms",
-            "tribal people are performing fire magic in the air, directing the flames with their hands, creating twisting and bending shapes",
-            "a magical fire ritual, flames creating shapes in the sky, massive fireballs, fire magic",
-            "firespinning performance at a tribal festival",
-            "jaguar shamans performing a purification ritual around a fire, tribal, jungle",
-            "a meditating shape engulfed in flames, floating above the fire",
-            "a mythical creature emerging from the flames, rebirth",
-            "the balrog from lord of the rings, engulfed in flames, rebirth",
-            "a fire elemental, a mythical creature emerging from the flames, rebirth",
-            "the elemnt of fire, purity, rebirth, destruction",
-            "abstract shapes of flaming glass, liminal reflections, twisting and bending, fire",
-            "the majestic tree of life with small flames instead of leaves, fire, rebirth",
-            "the birth of fire, incredible masterpiece",
-            "a fire elemental, a mythical creature",
-            "tribal fire ritual, masks, amazon",
-            "cosmic flames, fire and stars, the universe inside a flame",
-        ]
+        outdir = "banny_test"
+        
+        text_inputs = ["a cartoon of Banny on a surfboard riding a wave"]
 
     suffixes = [
             "",
@@ -196,10 +168,6 @@ if __name__ == "__main__":
             "high quality professional photography, nikon d850 50mm",
             "high quality professional photography, nikon d850 50mm",
         ]
-
-    json_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/fireshow_02"
-    interpolation_texts, interpolation_seeds = get_prompts_from_json_dir(json_dir, return_seeds = True)
-    
     
     for i in range(200):
         n_modifiers = random.randint(0, 3)
@@ -208,7 +176,6 @@ if __name__ == "__main__":
 
         seed_everything(seed)
         text_input = random.choice(text_inputs)
-        text_input = random.choice(interpolation_texts)
 
         #text_input = text_input + ", " + random.choice(suffixes)
         #if n_modifiers > 0:
@@ -216,7 +183,7 @@ if __name__ == "__main__":
 
         #text_input = text_inputs[i%len(text_inputs)]
         print(text_input)
-        if 0:
+        if 1:
             generate_basic(text_input, outdir, seed = seed)
         else:
             try:

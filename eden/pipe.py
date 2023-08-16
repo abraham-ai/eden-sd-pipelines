@@ -192,7 +192,7 @@ def update_pipe_with_lora(pipe, args):
     
     start_time = time.time()
 
-    if args.lora_path.endswith(".safetensors") or "checkpoint-" in args.lora_path:
+    if args.lora_path.endswith(".safetensors") or args.lora_path.endswith(".bin") or "checkpoint-" in args.lora_path:
         pipe.load_lora_weights(args.lora_path)
 
     else: # trained with closeofismo trainer
