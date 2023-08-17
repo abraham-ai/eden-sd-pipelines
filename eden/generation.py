@@ -127,8 +127,8 @@ def generate(
         shape = (1, pipe.unet.config.in_channels, args.H // pipe.vae_scale_factor, args.W // pipe.vae_scale_factor)
         args.init_image = torch.randn(shape, generator=generator, device=_device)
         args.init_image_strength = 0.0
-
-    if args.lora_scale > 0.0:
+        
+    if args.lora_scale > 0.0 and args.lora_path is not None:
         cross_attention_kwargs = {"scale": args.lora_scale}
     else:
         cross_attention_kwargs = None
@@ -158,6 +158,9 @@ def generate(
         )
 
     else:
+        print('no controlnet pipe')
+        print(pipe)
+        print(cross_attention_kwargs)
         pipe_output = pipe(
             prompt = prompt,
             negative_prompt = negative_prompt, 

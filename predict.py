@@ -1,6 +1,7 @@
 # don't push DEBUG_MODE = True to Replicate!
 DEBUG_MODE = False
 
+from pathlib import Path
 import os
 import time
 import sys
@@ -63,15 +64,47 @@ def run_and_kill_cmd(command, pipe_output=True):
             print(stderr)
 
 def download(url, folder, ext):
-    filename = url.split('/')[-1]+ext
-    filepath = folder / filename
-    os.makedirs(folder, exist_ok=True)
-    if filepath.exists():
+    """
+    Download a file from a given URL to the specified folder.
+    
+    Args:
+        url (str): The URL of the file to download.
+        folder (str): The folder where the downloaded file should be saved.
+        ext (str): The file extension for the downloaded file.
+        
+    Returns:
+        filepath (Path): The path to the downloaded file.
+    """
+    try:
+        # Parse the URL to get the filename and append the extension
+        filename = url.split('/')[-1] + ext
+        folder_path = Path(folder)
+        filepath = folder_path / filename
+        
+        # Create the folder if it does not exist
+        os.makedirs(folder_path, exist_ok=True)
+        
+        # Check if the file already exists
+        if filepath.exists():
+            return filepath
+        
+        # Make a request to the URL and check for errors
+        response = requests.get(url, stream=True)
+        response.raise_for_status()  # Raise an exception if the request was unsuccessful
+        
+        # Write the content to the file
+        with open(filepath, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+                
         return filepath
-    raw_file = requests.get(url, stream=True).raw
-    with open(filepath, 'wb') as f:
-        f.write(raw_file.read())
-    return filepath
+    except requests.exceptions.RequestException as e:
+        print(f"Error downloading the file: {e}")
+        return None
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
+
 
 from settings import StableDiffusionSettings
 import eden_utils
@@ -130,14 +163,14 @@ class Predictor(BasePredictor):
             choices=checkpoint_options,
             default=checkpoint_default
         ),
-        #lora: str = Input(
-        #    description="(optional) URL of Lora finetuning",
-        #    default=None
-        #),
-        #lora_scale: float = Input(
-        #    description="Lora scale (how much of the Lora finetuning to apply)",
-        #    ge=0.0, le=1.2, default=0.8
-        #),
+        lora: str = Input(
+            description="(optional) URL of Lora finetuning",
+            default=None
+        ),
+        lora_scale: float = Input(
+            description="Lora scale (how much of the Lora finetuning to apply)",
+            ge=0.0, le=1.2, default=0.8
+        ),
         sampler: str = Input(
             description="Which sampler to use", 
             default="euler", 
@@ -245,18 +278,11 @@ class Predictor(BasePredictor):
         interpolation_texts = interpolation_texts.split('|') if interpolation_texts else None
         interpolation_seeds = [float(i) for i in interpolation_seeds.split('|')] if interpolation_seeds else None
         interpolation_init_images = interpolation_init_images.split('|') if interpolation_init_images else None
-
-        #############
-        # temporarily disable lora and lora_scale
-        lora = None
-        lora_scale = 0
-        #############
-
         
         lora_path = None
         if lora:
             lora_folder = Path('loras')
-            lora_path = download(lora, lora_folder, '.safetensors')
+            lora_path = download(lora, lora_folder, '.bin')
 
         controlnet_options = {
             "off": None,

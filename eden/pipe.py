@@ -1,5 +1,6 @@
 import os
 import sys
+import shutil
 from pathlib import Path
 
 SD_PATH = Path(os.path.dirname(os.path.realpath(__file__))).parents[0]
@@ -193,6 +194,19 @@ def update_pipe_with_lora(pipe, args):
     start_time = time.time()
 
     if args.lora_path.endswith(".safetensors") or args.lora_path.endswith(".bin") or "checkpoint-" in args.lora_path:
+
+        # if args.lora_path is a file, move it to a temporary folder since the lora_loader expects a folder as input:
+        # Check if the given path is a file or a directory
+        if os.path.isfile(args.lora_path):
+            # If it's a file, create a temporary directory and move the file there
+            print('Received a file for lora, putting it inside a tmp_folder')
+            temp_dir = "tmp_lora_folder"
+            os.makedirs(temp_dir, exist_ok=True)
+            shutil.copy(args.lora_path, os.path.join(temp_dir, os.path.basename(args.lora_path)))
+            
+            # Update args.lora_path to point to the temporary directory
+            args.lora_path = temp_dir
+
         pipe.load_lora_weights(args.lora_path)
 
     else: # trained with closeofismo trainer
