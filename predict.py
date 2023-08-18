@@ -282,7 +282,26 @@ class Predictor(BasePredictor):
         lora_path = None
         if lora:
             lora_folder = Path('loras')
-            lora_path = download(lora, lora_folder, '.bin')
+            lora_zip_path = download(lora, lora_folder, '.zip')
+            #lora_zip_path = "/src/lora.zip"
+            # unzip the lora:
+            import zipfile
+            with zipfile.ZipFile(lora_zip_path, 'r') as zip_ref:
+                zip_ref.extractall(lora_folder)
+
+            lora_path = os.path.join(lora_folder, "pytorch_lora_weights.bin")
+            lora_args_path = os.path.join(lora_folder, "args.json")
+
+            # Load the lora args:
+            import json
+            with open(lora_args_path, 'r') as f:
+                lora_args = json.load(f)
+                # extract the trigger prompt:
+                lora_trigger_prompt = lora_args['instance_prompt']
+
+            # Prepend the lora_trigger_prompt to the text input:
+            text_input = lora_trigger_prompt + "," + text_input if text_input else lora_trigger_prompt
+
 
         controlnet_options = {
             "off": None,

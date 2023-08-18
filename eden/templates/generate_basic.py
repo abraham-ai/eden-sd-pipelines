@@ -87,7 +87,7 @@ def generate_basic(
         #lora_path = None,
         #lora_path = random.choice(lora_dirs),
         #lora_path = "/data/xander/Projects/cog/diffusers/lora/trained_models/sdxl-lora-banny-all/pytorch_lora_weights.bin",
-        lora_path = "/data/xander/Projects/cog/diffusers/lora/trained_models/sdxl-lora-banny-all/checkpoint-700",
+        lora_path = "/data/xander/Projects/cog/diffusers/lora/trained_models/banny_test/pytorch_lora_weights.bin",
         lora_scale = random.choice([1.0]),
         #init_image_data = random.choice(init_imgs),
         #init_image_strength = random.choice([0.1, 0.15, 0.2, 0.25, 0.3, 0.35]),
