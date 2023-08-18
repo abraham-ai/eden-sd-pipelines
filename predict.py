@@ -283,7 +283,6 @@ class Predictor(BasePredictor):
         if lora:
             lora_folder = Path('loras')
             lora_zip_path = download(lora, lora_folder, '.zip')
-            #lora_zip_path = "/src/lora.zip"
             # unzip the lora:
             import zipfile
             with zipfile.ZipFile(lora_zip_path, 'r') as zip_ref:
@@ -300,7 +299,7 @@ class Predictor(BasePredictor):
                 lora_trigger_prompt = lora_args['instance_prompt']
 
             # Prepend the lora_trigger_prompt to the text input:
-            text_input = lora_trigger_prompt + "," + text_input if text_input else lora_trigger_prompt
+            text_input = lora_trigger_prompt + ", " + text_input if text_input else lora_trigger_prompt
 
 
         controlnet_options = {
@@ -371,7 +370,9 @@ class Predictor(BasePredictor):
 
             if args.init_image_data is None:
                 args.init_image_strength = 0.0
-                
+            
+            print("Prompt:")
+            print(args.text_input)
             frames = generation.make_images(args)
             
             attributes = None
