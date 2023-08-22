@@ -72,6 +72,11 @@ def generate(
     global pipe
     pipe = eden_pipe.get_pipe(args)
 
+    # Map LORA tokens:
+    if args.token_map is not None:
+        for k, v in args.token_map.items():
+            args.text_input = args.text_input.replace(k, v)
+
     if "remix_this_image" in args.text_input:
         args.text_input = clip_interrogate(args.ckpt, args.init_image, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
 
@@ -136,6 +141,8 @@ def generate(
     # for now, use init_image_strength to control the strength of the conditioning
     args.controlnet_conditioning_scale = args.init_image_strength
 
+    print(args.text_input)
+
     if args.controlnet_path is not None and args.controlnet_conditioning_scale > 0 and args.init_image is not None:
         args.init_image = preprocess_canny(args.init_image)
         args.upscale_f = 1.0 # disable upscaling with controlnet for now
@@ -158,9 +165,6 @@ def generate(
         )
 
     else:
-        print('no controlnet pipe')
-        print(pipe)
-        print(cross_attention_kwargs)
         pipe_output = pipe(
             prompt = prompt,
             negative_prompt = negative_prompt, 
@@ -274,6 +278,12 @@ def make_interpolation(args, force_timepoints = None):
     # Load model
     global pipe
     pipe = eden_pipe.get_pipe(args)
+    
+    # Map LORA tokens:
+    if args.token_map is not None:
+        for i, _ in enumerate(args.interpolation_texts):
+            for k, v in args.token_map.items():
+                args.interpolation_texts[i] = args.interpolation_texts[i].replace(k, v)
 
     # Release CLIP memory:
     del_clip_interrogator_models()

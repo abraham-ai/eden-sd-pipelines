@@ -372,6 +372,8 @@ class TokenEmbeddingsHandler:
     def _load_embeddings(self, loaded_embeddings, tokenizer, text_encoder):
         # Assuming new tokens are of the format <s_i>
         self.inserting_toks = [f"<s{i}>" for i in range(loaded_embeddings.shape[0])]
+
+        print(self.inserting_toks)
         special_tokens_dict = {"additional_special_tokens": self.inserting_toks}
         tokenizer.add_special_tokens(special_tokens_dict)
         text_encoder.resize_token_embeddings(len(tokenizer))

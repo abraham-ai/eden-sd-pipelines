@@ -283,6 +283,7 @@ class Predictor(BasePredictor):
         if lora:
             lora_folder = Path('loras')
             lora_zip_path = download(lora, lora_folder, '.zip')
+            #lora_zip_path = "/src/lora.zip"
             # unzip the lora:
             import zipfile
             with zipfile.ZipFile(lora_zip_path, 'r') as zip_ref:

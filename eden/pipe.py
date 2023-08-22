@@ -49,9 +49,11 @@ global pipe
 global last_checkpoint
 global last_lora_path
 global last_controlnet_path
+global last_lora_token_map
 pipe = None
 last_checkpoint = None
 last_lora_path = None
+last_lora_token_map = None
 last_controlnet_path = None
 
 global upscaling_pipe
@@ -187,6 +189,7 @@ from diffusers.models.attention_processor import LoRAAttnProcessor2_0
 from dataset_and_utils import TokenEmbeddingsHandler
 def update_pipe_with_lora(pipe, args):
     global last_lora_path
+    global last_lora_token_map
 
     if (args.lora_path == last_lora_path) or (not args.lora_path):
         return pipe
@@ -210,9 +213,11 @@ def update_pipe_with_lora(pipe, args):
         pipe.load_lora_weights(args.lora_path)
 
     else: # trained with closeofismo trainer
-        print("LORA params:")
+        print("Loading LORA token mapping:")
         with open(os.path.join(args.lora_path, "special_params.json"), "r") as f:
-            print(json.dumps(json.load(f), indent=4, sort_keys=True))
+            token_map = json.load(f)
+            print(json.dumps(token_map, indent=4, sort_keys=True))
+            args.token_map = token_map
 
         unet = pipe.unet
         tensors = load_file(os.path.join(args.lora_path, "lora.safetensors"))
@@ -245,6 +250,7 @@ def update_pipe_with_lora(pipe, args):
         unet.set_attn_processor(unet_lora_attn_procs)
         unet.load_state_dict(tensors, strict=False)
 
+        print("Adding new token embeddings to pipe...")
         handler = TokenEmbeddingsHandler(
                 [pipe.text_encoder, pipe.text_encoder_2], [pipe.tokenizer, pipe.tokenizer_2]
             )
