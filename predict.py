@@ -198,6 +198,10 @@ class Predictor(BasePredictor):
             description="Strength of initial image", 
             ge=0.0, le=1.0, default=0.0
         ),
+        adopt_aspect_from_init_img: bool = Input(
+            description="Adopt aspect ratio from init image",
+            default=True
+        ),
         controlnet_type: str = Input(
             description="Controlnet type",
             default="off",
@@ -324,6 +328,7 @@ class Predictor(BasePredictor):
 
             init_image_data = init_image_data,
             init_image_strength = init_image_strength,
+            adopt_aspect_from_init_img = adopt_aspect_from_init_img,
             controlnet_path = controlnet_options[controlnet_type],
 
             text_input = text_input,
