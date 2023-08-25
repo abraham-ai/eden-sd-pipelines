@@ -1,1 +1,1 @@
-cog predict -i mode=generate -i text_input="climbing mount everest" -i seed=15 -i width=768 -i height=768 -i steps=100 -i lora="/src/lora.zip" -i lora_scale=1.0
+cog predict -i mode=generate -i text_input="climbing mount everest" -i seed=15 -i width=768 -i height=768 -i steps=40 -i lora="https://storage.googleapis.com/public-assets-xander/Random/remove/lora.zip" -i lora_scale=1.0

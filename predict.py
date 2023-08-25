@@ -212,14 +212,12 @@ class Predictor(BasePredictor):
 
             lora_zip_path = download(lora, lora_folder)
             #lora_zip_path = "/src/lora.zip"
-            
-            unzip_to_folder(lora_zip_path, lora_folder)
 
-            lora_path      = os.path.join(lora_folder, "pytorch_lora_weights.bin")
-            lora_args_path = os.path.join(lora_folder, "args.json")
+            lora_path = os.path.join(lora_folder, os.path.splitext(os.path.basename(lora_zip_path))[0])
+            unzip_to_folder(lora_zip_path, lora_path)
 
             # Load the lora args:
-            with open(lora_args_path, 'r') as f:
+            with open(os.path.join(lora_path, "args.json"), 'r') as f:
                 lora_args = json.load(f)
                 lora_trigger_prompt = lora_args['instance_prompt']
 

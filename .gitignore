@@ -22,6 +22,7 @@ eden/tests/*.jpg
 eden/templates/results
 eden/templates/unit_test_results
 eden/templates/cache
+loras
 
 # large files
 models

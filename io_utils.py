@@ -75,9 +75,11 @@ def download(url, folder, filepath = None):
         
         # Check if the file already exists
         if filepath.exists():
+            print(f"{filepath} already exists, skipping download..")
             return filepath
         
         # Make a request to the URL and check for errors
+        print(f"Downloading {url} to {filepath}...")
         response = requests.get(url, stream=True, timeout=600)
         response.raise_for_status()  # Raise an exception if the request was unsuccessful
         
@@ -104,8 +106,12 @@ def unzip_to_folder(zip_path, target_folder):
     """
     Unzip the .zip file to the target folder.
     """
+
     if not is_zip_file(zip_path):
         raise ValueError(f"The file {zip_path} is not a .zip file!")
+    
+    os.makedirs(target_folder, exist_ok=True)
+
     with zipfile.ZipFile(zip_path, 'r') as zip_ref:
         zip_ref.extractall(target_folder)
 
