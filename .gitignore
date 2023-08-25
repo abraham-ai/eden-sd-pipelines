@@ -23,7 +23,7 @@ eden/templates/results
 eden/templates/unit_test_results
 eden/templates/cache
 loras
-
+tests/logs/
 # large files
 models
 .huggingface/

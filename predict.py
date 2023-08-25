@@ -291,7 +291,7 @@ class Predictor(BasePredictor):
             else:
                 yield CogOutput(files=[out_path], name=interrogation, thumbnails=[out_path], attributes=attributes, isFinal=True, progress=1.0)
 
-        elif mode == "generate" or mode == "remix":
+        elif mode == "generate" or mode == "remix" or mode == "controlnet":
 
             if args.init_image_data is None:
                 args.init_image_strength = 0.0
