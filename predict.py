@@ -5,6 +5,7 @@ from pathlib import Path
 import os
 import time
 import sys
+import json
 import tempfile
 import requests
 import subprocess
@@ -27,85 +28,7 @@ sys.path.extend([
     "/clip-interrogator",
 ])
 
-
-def run_and_kill_cmd(command, pipe_output=True):
-    p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    time.sleep(0.25)
-
-    # Get output from stdout and stderr
-    stdout, stderr = p.communicate()    
-    # Print the output to stdout in the main process
-    if pipe_output:
-        if stdout:
-            print("cmd, stdout:")
-            print(stdout)
-        if stderr:
-            print("cmd, stderr:")
-            print(stderr)
-
-    p.send_signal(signal.SIGTERM) # Sends termination signal
-    p.wait()  # Waits for process to terminate
-
-    # Get output from stdout and stderr
-    stdout, stderr = p.communicate()
-
-    # If the process hasn't ended yet
-    if p.poll() is None:  
-        p.kill()  # Forcefully kill the process
-        p.wait()  # Wait for the process to terminate
-
-    # Print the output to stdout in the main process
-    if pipe_output:
-        if stdout:
-            print("cmd done, stdout:")
-            print(stdout)
-        if stderr:
-            print("cmd done, stderr:")
-            print(stderr)
-
-def download(url, folder, ext):
-    """
-    Download a file from a given URL to the specified folder.
-    
-    Args:
-        url (str): The URL of the file to download.
-        folder (str): The folder where the downloaded file should be saved.
-        ext (str): The file extension for the downloaded file.
-        
-    Returns:
-        filepath (Path): The path to the downloaded file.
-    """
-    try:
-        # Parse the URL to get the filename and append the extension
-        filename = url.split('/')[-1] + ext
-        folder_path = Path(folder)
-        filepath = folder_path / filename
-        
-        # Create the folder if it does not exist
-        os.makedirs(folder_path, exist_ok=True)
-        
-        # Check if the file already exists
-        if filepath.exists():
-            return filepath
-        
-        # Make a request to the URL and check for errors
-        response = requests.get(url, stream=True)
-        response.raise_for_status()  # Raise an exception if the request was unsuccessful
-        
-        # Write the content to the file
-        with open(filepath, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
-                
-        return filepath
-    except requests.exceptions.RequestException as e:
-        print(f"Error downloading the file: {e}")
-        return None
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return None
-
-
+from io_utils import *
 from settings import StableDiffusionSettings
 import eden_utils
 from cog import BasePredictor, BaseModel, File, Input, Path
@@ -286,21 +209,18 @@ class Predictor(BasePredictor):
         lora_path = None
         if lora:
             lora_folder = Path('loras')
-            lora_zip_path = download(lora, lora_folder, '.zip')
-            #lora_zip_path = "/src/lora.zip"
-            # unzip the lora:
-            import zipfile
-            with zipfile.ZipFile(lora_zip_path, 'r') as zip_ref:
-                zip_ref.extractall(lora_folder)
 
-            lora_path = os.path.join(lora_folder, "pytorch_lora_weights.bin")
+            lora_zip_path = download(lora, lora_folder)
+            #lora_zip_path = "/src/lora.zip"
+            
+            unzip_to_folder(lora_zip_path, lora_folder)
+
+            lora_path      = os.path.join(lora_folder, "pytorch_lora_weights.bin")
             lora_args_path = os.path.join(lora_folder, "args.json")
 
             # Load the lora args:
-            import json
             with open(lora_args_path, 'r') as f:
                 lora_args = json.load(f)
-                # extract the trigger prompt:
                 lora_trigger_prompt = lora_args['instance_prompt']
 
             # Prepend the lora_trigger_prompt to the text input:
