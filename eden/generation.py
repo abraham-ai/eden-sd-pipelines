@@ -29,12 +29,6 @@ from clip_tools import *
 from planner import LatentTracker, create_init_latent, blend_inits
 from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline, StableDiffusionDepth2ImgPipeline
 
-print("-----------------------------------------------------------------")
-print("-----------------------------------------------------------------")
-print("-----------------------sdxl branch!!-----------------------------")
-print("-----------------------------------------------------------------")
-print("-----------------------------------------------------------------")
-
 def maybe_apply_watermark(args, x_images):
     # optionally, apply watermark to final image:
     if args.watermark_path is not None:
@@ -57,16 +51,18 @@ def generate(
     assert args.text_input is not None
 
     seed_everything(args.seed)
-    args.W = round_to_nearest_multiple(args.W, 8)
-    args.H = round_to_nearest_multiple(args.H, 8)
 
     # Load init image
     if args.init_image_data:
         args.init_image = load_img(args.init_image_data, 'RGB')
 
     if args.init_image is not None:
-        #args.W, args.H  = match_aspect_ratio(args.W * args.H, args.init_image)
+        if args.adopt_aspect_from_init_img:
+            args.W, args.H  = match_aspect_ratio(args.W * args.H, args.init_image)
         args.init_image = args.init_image.resize((args.W, args.H), Image.LANCZOS)
+    
+    args.W = round_to_nearest_multiple(args.W, 8)
+    args.H = round_to_nearest_multiple(args.H, 8)
 
     # Load model
     global pipe

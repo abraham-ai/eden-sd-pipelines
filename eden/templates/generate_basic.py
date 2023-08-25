@@ -12,6 +12,24 @@ from generation import *
 from prompts import text_inputs, style_modifiers
 from eden_utils import *
 
+def download_an_untar(tar_url, output_folder, tar_name):
+    """
+    Download a tar file from a url, and untar it.
+    """
+    output_dir = os.path.join(output_folder, tar_name)
+    os.makedirs(output_dir, exist_ok = True)
+    tar_path = os.path.join(output_folder, tar_name + ".tar")
+    if not os.path.exists(tar_path):
+        print(f"Downloading {tar_url} to {tar_path}")
+        os.system(f"wget {tar_url} -O {tar_path}")
+
+    print(f"Untarring {tar_path}")
+    os.system(f"tar -xvf {tar_path} -C {output_dir}")
+
+    print(f"Untarred {tar_path} to {output_dir}")
+
+    return output_dir
+
 
 modifiers = [
     "trending on artstation",
@@ -62,14 +80,12 @@ def generate_basic(
     prefix = "",
     suffix = ""):
 
-    lora_root_dir = "/data/xander/Projects/cog/diffusers/lora/trained_models/sdxl-lora-hetty_all_plzwork"
-    lora_dirs = [os.path.join(lora_root_dir, d) for d in os.listdir(lora_root_dir) if "checkpoint-" in d]
 
-    init_imgs = [
-        #"/data/xander/Projects/cog/xander_eden_stuff/xander/assets/hetty/big_template.jpg",
-        #"/data/xander/Projects/cog/xander_eden_stuff/xander/assets/hetty/small_template.jpg",
-        None,
-        None]
+    init_imgs = [None]
+
+    #lora_tar_path = "https://pbxt.replicate.delivery/ZCxKsJNhsH7uMxAfM4PeD4mGMMEo9nQlbP3YFwgCnHSrke5iA/trained_model.tar"
+    #lora_name     = "banny_all"
+    #lora_path = download_an_untar(lora_tar_path, "replicate_tar_loras", lora_name)
 
     args = StableDiffusionSettings(
         #ckpt = random.choice(checkpoint_options),
@@ -84,12 +100,12 @@ def generate_basic(
         text_input_2 = text_input_2,
         seed = seed,
         n_samples = 1,
-        #lora_path = None,
-        #lora_path = random.choice(lora_dirs),
-        #lora_path = "/data/xander/Projects/cog/diffusers/lora/trained_models/sdxl-lora-banny-all/pytorch_lora_weights.bin",
-        lora_path = "/data/xander/Projects/cog/diffusers/lora/trained_models/banny_test/pytorch_lora_weights.bin",
-        lora_scale = random.choice([1.0]),
-        #init_image_data = random.choice(init_imgs),
+        lora_path = None,
+        #lora_path = lora_path,
+        #lora_path = "/data/xander/Projects/cog/xander_eden_stuff/loras/diffusers/banny1/pytorch_lora_weights.bin",
+        #lora_path = "/data/xander/Projects/cog/diffusers/lora/lora_compare_diffusers/gene_single/checkpoint-400",
+        #lora_scale = random.choice([0.8]),
+        #init_image_data = "/data/xander/Projects/cog/eden-sd-pipelines/eden/templates/garden_inputs/a closeup portrait of a woman wrapped in_203_1691967507_0.jpg",
         #init_image_strength = random.choice([0.1, 0.15, 0.2, 0.25, 0.3, 0.35]),
     )
 
@@ -150,36 +166,35 @@ if __name__ == "__main__":
         #text_inputs = ['a photo of <s0><s1> as the commander of the starfleet enterprise']
 
     else:
-        outdir = "banny_test"
+        outdir = "plantoid"
         
-        text_inputs = ["a cartoon of Banny on a surfboard riding a wave"]
-
-    suffixes = [
-            "",
-            "",
-            "backlit, liminal space, 4k",
-            "incredible artwork, masterpiece",
-            "sharp details, photorealistic",
-            "award winning photograph, dslr, 4k",
-            "ambient lighting, startrek atmosphere, movie scene",
-            "incredible composition, backlit, 4k",
-            "3D render, professional post processing, 4k",
-            "oil on canvas",
-            "high quality professional photography, nikon d850 50mm",
-            "high quality professional photography, nikon d850 50mm",
-        ]
+        text_inputs = [
+            "a cartoon of TOK as a superhero",
+            "a cartoon of TOK on a surfboard riding a wave",
+            "a photo of TOK climbing mount everest",
+            "a masterpiece artwork of TOK",
+            "a photo of a massive TOK statue",
+            "a photo of TOK exploring the Amazon rainforest",
+            "a photo of TOK at the top of the Eiffel Tower",
+            "a photo of a TOK-themed amusement park",
+            "a photo of TOK meditating, reaching enlightenment",
+            ]
     
-    for i in range(200):
+    for i in range(20):
         n_modifiers = random.randint(0, 3)
-        seed = random.randint(0, 100000)
-        #seed = i
+        #seed = random.randint(0, 100000)
+        seed = i
 
         seed_everything(seed)
-        text_input = random.choice(text_inputs)
+        #text_input = random.choice(text_inputs)
+        text_input = text_inputs[i%len(text_inputs)]
 
-        #text_input = text_input + ", " + random.choice(suffixes)
-        #if n_modifiers > 0:
-        #    text_input = text_input + ", " + ", ".join(random.sample(modifiers, n_modifiers))
+        #text_input = text_input.replace("TOK", "<s0><s1>")
+        text_input = text_input.replace("TOK", "plantoid")
+        #text_input = text_input.replace("TOK", "Banny")
+
+        if n_modifiers > 0:
+            text_input = text_input + ", " + ", ".join(random.sample(modifiers, n_modifiers))
 
         #text_input = text_inputs[i%len(text_inputs)]
         print(text_input)

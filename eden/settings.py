@@ -90,6 +90,7 @@ class StableDiffusionSettings:
     init_image: Image = None
     init_image_data: str = None
     init_image_strength: float = 0.0
+    adopt_aspect_from_init_img: bool = True
     #init_image_inpaint_mode: str = None # ["mean_fill", "edge_pad", "cv2_telea", "cv2_ns"]
     init_sample: str = None
     init_latent: str = None

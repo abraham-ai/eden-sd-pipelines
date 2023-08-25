@@ -40,23 +40,23 @@ def real2real(
             interpolation_seeds = [random.randint(1, 1e8) for _ in range(n)],
             interpolation_texts = input_texts,
             interpolation_init_images = input_images,
-            interpolation_init_images_power = 3.0,
-            interpolation_init_images_min_strength = random.choice([0.6, 0.7]),  # a higher value will make the video smoother, but allows less visual change / journey
+            interpolation_init_images_power = 3.5,
+            interpolation_init_images_min_strength = random.choice([0.25]),  # a higher value will make the video smoother, but allows less visual change / journey
             interpolation_init_images_max_strength = 0.95,
             latent_blending_skip_f = random.choice([[0.1, 0.65], [0.0, 0.6]]),
             compile_unet = False,
-            guidance_scale = random.choice([7,9]),
-            n_anchor_imgs = random.choice([4,5]),
+            guidance_scale = random.choice([7]),
+            n_anchor_imgs = random.choice([3]),
             sampler = "euler",
-            n_frames = 64*n,
+            n_frames = 24*n,
             loop = True,
             smooth = True,
             n_film = 0,
             fps = 12,
-            steps =  80,
+            steps =  60,
             seed = seed,
-            H = 1024+640,
-            W = 1024+640,
+            H = 1024,
+            W = 1024,
             upscale_f = 1.0,
             lora_path = None,
         )
@@ -198,73 +198,25 @@ if __name__ == "__main__":
             "https://generations.krea.ai/images/865142e2-8963-47fb-bbe9-fbe260271e00.webp"
         ]
 
-    #input_dir = "/home/xander/Projects/cog/stable-diffusion-dev/eden/xander/img2img_inits/random2"
-    #init_imgs = [os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.endswith(".jpg")]
+    input_dir = "/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/img2img_inits/random2"
+    init_imgs = [os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.endswith(".jpg")]
 
-    root_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/templates/garden_inputs"
-
-    # get all .jpg files in root_dir:
-    init_imgs = sorted([os.path.join(root_dir, f) for f in os.listdir(root_dir) if f.endswith(".jpg")])
-    # get all .json files in root_dir:
-    init_jsons = sorted([os.path.join(root_dir, f) for f in os.listdir(root_dir) if f.endswith(".json")])
-
-    # cutoff lists if one of the two is larger:
-    min_len = min(len(init_imgs), len(init_jsons))
-    init_imgs = init_imgs[:min_len]
-    init_jsons = init_jsons[:min_len]
-
-    assert len(init_imgs) == len(init_jsons)
-    for i, init_json in enumerate(init_jsons):
-        assert init_json.split(".json")[0] in init_imgs[i], f"{init_json} not in {init_imgs[i]}"
-
-    def create_trajectory(glitch_img_paths, glitch_jsons, n):
-        init_imgs, init_texts = [], []
-
-        while len(init_imgs) < n:
-            # sample a random index:
-            idx = np.random.randint(0, len(glitch_img_paths))
-            # get the corresponding img and json:
-            glitch_img = glitch_img_paths[idx]
-            glitch_json = glitch_jsons[idx]
-
-            json_data = json.load(open(glitch_json))
-
-            # get the original input img:
-            orig_img_path = json_data["init_image_data"]
-
-            if orig_img_path not in init_imgs:
-                # add to trajectory:
-                init_imgs.append(orig_img_path)
-                init_texts.append(None)
-                init_imgs.append(glitch_img)
-                init_texts.append(json_data["text_input"])
-                print(f"Added {orig_img_path} to trajectory --> len {len(init_imgs)}")
-
-        return init_imgs, init_texts
-
-
-    outdir = "garden_glitching"
-    n = 7
+    outdir = "results"
+    n = 3
 
     for i in range(0,50):
         seed = np.random.randint(0, 1000)
-        #seed = i
+        seed = i
 
         random.seed(seed)
 
-        # get the full path of a random subdir in the root_dir:
-        #input_dir = os.path.join(root_dir, random.choice(os.listdir(root_dir)))
-        
-        #input_images, input_texts = sample_from_dir(input_dir, n, use_json_prompt_prob = 1.0, shuffle = True)
-        #print(input_texts)
-
-        input_images, input_texts = create_trajectory(init_imgs, init_jsons, n)
+        input_images = random.sample(init_imgs, n)
 
         if 0:
-            real2real(input_images, outdir, input_texts = input_texts, seed = seed)
+            real2real(input_images, outdir, seed = seed)
         else:
             try:
-                real2real(input_images, outdir, input_texts = input_texts, seed = seed)
+                real2real(input_images, outdir, seed = seed)
             except KeyboardInterrupt:
                 print("Interrupted by user")
                 exit()  # or sys.exit()
