@@ -12,6 +12,7 @@ import subprocess
 import signal
 from typing import Iterator, Optional
 from dotenv import load_dotenv
+from copy import deepcopy
 
 load_dotenv()
 
@@ -294,26 +295,32 @@ class Predictor(BasePredictor):
 
             if args.init_image_data is None:
                 args.init_image_strength = 0.0
-            
-            print("Prompt:")
-            print(args.text_input)
-            frames = generation.make_images(args)
-            
+
             attributes = None
             if mode == "remix":
                 attributes = {"interrogation": args.text_input}
-
-            name = args.text_input
-
+            
+            print("Prompt:")
+            print(args.text_input)
             out_paths = []
-            for f, frame in enumerate(frames):
-                out_path = out_dir / f"frame_{f:04d}.jpg"
-                frame.save(out_path, format='JPEG', subsampling=0, quality=95)
-                out_paths.append(out_path)
+
+            # slight overhead here to do iterative batching (avoid OOM):
+            n_samples = args.n_samples
+            args.n_samples = 1
+
+            for batch_i in range(n_samples):
+                batch_i_args = deepcopy(args)
+                batch_i_args.seed += 1
+                frames = generation.make_images(batch_i_args)
+                for f, frame in enumerate(frames):
+                    out_path = out_dir / f"frame_{f:04d}_{batch_i}.jpg"
+                    frame.save(out_path, format='JPEG', subsampling=0, quality=95)
+                    out_paths.append(out_path)
             
             if DEBUG_MODE:
                 yield out_paths[0]
             else:
+                name = args.text_input[:120]
                 yield CogOutput(files=out_paths, name=name, thumbnails=out_paths, attributes=attributes, isFinal=True, progress=1.0)
 
         else: # mode == "interpolate" or mode == "real2real" or mode == "blend"
