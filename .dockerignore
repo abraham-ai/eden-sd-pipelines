@@ -3,3 +3,4 @@ models/checkpoints/gordon-berger:gordon-berger-figurative
 models/checkpoints/dreamshaper.safetensors
 eden/templates
 eden/xander
+tests/logs
