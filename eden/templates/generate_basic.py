@@ -99,7 +99,7 @@ def generate_basic(
         text_input = text_input,
         text_input_2 = text_input_2,
         seed = seed,
-        n_samples = 1,
+        n_samples = 4,
         lora_path = None,
         #lora_path = lora_path,
         #lora_path = "/data/xander/Projects/cog/xander_eden_stuff/loras/diffusers/banny1/pytorch_lora_weights.bin",

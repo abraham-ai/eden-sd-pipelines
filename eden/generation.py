@@ -60,7 +60,7 @@ def generate(
         if args.adopt_aspect_from_init_img:
             args.W, args.H  = match_aspect_ratio(args.W * args.H, args.init_image)
         args.init_image = args.init_image.resize((args.W, args.H), Image.LANCZOS)
-    
+
     args.W = round_to_nearest_multiple(args.W, 8)
     args.H = round_to_nearest_multiple(args.H, 8)
 
@@ -73,14 +73,14 @@ def generate(
         for k, v in args.token_map.items():
             args.text_input = args.text_input.replace(k, v)
 
-    if "remix_this_image" in args.text_input:
+    if args.text_input == "remix_this_image" and (args.init_image is not None): # hardcoded prompt hack to trigger clip_interrogator
         args.text_input = clip_interrogate(args.ckpt, args.init_image, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
 
     if args.interpolator is not None:
         args.interpolator.latent_tracker.create_new_denoising_trajectory(args, pipe)
     
     # if init image strength == 1, just return the initial image
-    if (args.init_image_strength == 1.0 or (int(args.steps*(1-args.init_image_strength)) < 1)) and args.init_image:
+    if (args.init_image_strength == 1.0 or (int(args.steps*(1-args.init_image_strength)) < 1)) and args.init_image and (args.controlnet_path is None):
         latent = pil_img_to_latent(args.init_image, args, _device, pipe)
         if args.interpolator is not None:
             args.interpolator.latent_tracker.add_latent(0, pipe.scheduler.timesteps[-1], latent)
@@ -142,7 +142,7 @@ def generate(
     if args.controlnet_path is not None and args.controlnet_conditioning_scale > 0 and args.init_image is not None:
         args.init_image = preprocess_canny(args.init_image)
         args.upscale_f = 1.0 # disable upscaling with controlnet for now
-                         
+                   
         pipe_output = pipe(
             prompt = prompt,
             negative_prompt = negative_prompt, 

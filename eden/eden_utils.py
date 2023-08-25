@@ -489,7 +489,7 @@ def pil_img_to_latent(img, args, device, pipe, noise_seed = 0):
     return latent
 
 def load_image_with_orientation(path):
-    image = Image.open(path).convert('RGB')
+    image = Image.open(path)
 
     # Try to get the Exif orientation tag (0x0112), if it exists
     try:
@@ -515,10 +515,10 @@ def load_image_with_orientation(path):
         elif orientation == 8:
             image = image.rotate(90)
 
-    return image
+    return image.convert('RGB')
 
 
-def load_img(data, mode):
+def load_img(data, mode="RGB"):
     try:
         if data.startswith('http://') or data.startswith('https://'):
             image = load_image_with_orientation(requests.get(data, stream=True).raw)
