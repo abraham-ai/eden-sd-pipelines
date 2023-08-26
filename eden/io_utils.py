@@ -91,18 +91,21 @@ def download(url, folder, filepath = None):
                 f.write(chunk)
 
         return filepath
+
     except requests.exceptions.RequestException as e:
         print(f"Error downloading the file: {e}")
         return None
+
     except Exception as e:
         print(f"An error occurred: {e}")
         return None
+
 
 def is_zip_file(file_path):
     with open(file_path, 'rb') as file:
         return file.read(4) == b'\x50\x4b\x03\x04'
 
-def unzip_to_folder(zip_path, target_folder):
+def unzip_to_folder(zip_path, target_folder, remove_zip = True):
     """
     Unzip the .zip file to the target folder.
     """
@@ -114,6 +117,10 @@ def unzip_to_folder(zip_path, target_folder):
 
     with zipfile.ZipFile(zip_path, 'r') as zip_ref:
         zip_ref.extractall(target_folder)
+
+    if remove_zip:
+        # remove the zip file:
+        os.remove(zip_path)
 
 
 def load_image_with_orientation(path, mode = "RGB"):
@@ -184,7 +191,7 @@ def clean_and_prep_image(file_path, max_n_pixels = 2048*2048):
     try:
         image = load_image_with_orientation(file_path)
         if image.size[0] * image.size[1] > max_n_pixels:
-            image.thumbnail((2048, 2048), Image.ANTIALIAS)
+            image.thumbnail((2048, 2048), Image.LANCZOS)
 
         # Generate the save path
         directory, basename = os.path.dirname(file_path), os.path.basename(file_path)
@@ -219,18 +226,21 @@ def prep_img_dir(target_folder):
         print(f"An error occurred while prepping the image directory: {e}")
 
 
+def download_and_prep_training_data(lora_training_urls, data_dir):
+
+    for lora_url in lora_training_urls.split('|'):
+        download(lora_url, data_dir)
+
+    # Loop over all files in the data directory:
+    for filename in os.listdir(data_dir):
+        if filename.endswith('.zip'):
+            unzip_to_folder(os.path.join(data_dir, filename), data_dir, remove_zip=True)
+    
+    # Prep the image directory:
+    prep_img_dir(data_dir)
+
+
 
 if __name__ == '__main__':
-    zip_url = "https://storage.googleapis.com/public-assets-xander/Random/remove/test.zip"
-
-    # Download the zip file
-    zip_path = download(zip_url, "test_folder")
-    print("downloaded zip file to: ", zip_path)
-
-    # Unzip the file
-    unzip_to_folder(zip_path, "test_folder")
-    print("unzipped file to: ", "test_folder")
-
-    # prep img dir:
-    prep_img_dir("test_folder")
-    print("prepped images in: ", "test_folder")
+    zip_url = "https://storage.googleapis.com/public-assets-xander/Random/remove/test.zip|https://generations.krea.ai/images/3cd0b8a8-34e5-4647-9217-1dc03a886b6a.webp"
+    download_and_prep_training_data(zip_url, "test_folder")
