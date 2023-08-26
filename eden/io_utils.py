@@ -4,9 +4,7 @@ import subprocess
 import requests
 import zipfile
 import mimetypes
-from mimetypes import guess_extension
 from PIL import Image
-import eden_utils
 import signal
 import time
 
@@ -67,7 +65,7 @@ def download(url, folder, filepath = None):
             content_type = response.headers.get('Content-Type')
             
             # Guess file extension based on the content type
-            ext = guess_extension(content_type) or ''  # Default to empty string if extension not found
+            ext = mimetypes.guess_extension(content_type) or ''  # Default to empty string if extension not found
             # Parse the URL to get the filename and append the extension (if the file doesn't already have an extension)
             filename = url.split('/')[-1]
             if not filename.endswith(ext):  # To avoid doubling the extension if it already exists in the URL
@@ -166,7 +164,7 @@ def flatten_dir(root_dir):
                 # Separate filename and extension
                 base_name, ext = os.path.splitext(filename)
 
-                # To avoid overwriting a file in the root directory
+                # Avoid overwriting an existing file in the root directory
                 counter = 0
                 while os.path.exists(dst):
                     counter += 1
@@ -219,8 +217,6 @@ def prep_img_dir(target_folder):
 
     except Exception as e:
         print(f"An error occurred while prepping the image directory: {e}")
-
-
 
 
 
