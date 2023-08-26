@@ -173,11 +173,11 @@ class Predictor(BasePredictor):
         ),
         interpolation_init_images_min_strength: float = Input(
             description="Minimum init image strength for interpolation_init_images prompts (mode==interpolate)",
-            ge=0, le=0.75, default=0.25
+            ge=0, le=1.0, default=0.25
         ),
         interpolation_init_images_max_strength: float = Input(
             description="Maximum init image strength for interpolation_init_images prompts (mode==interpolate)",
-            ge=0.3, le=1.0, default=0.95
+            ge=0.0, le=1.0, default=0.95
         ),
         loop: bool = Input(
             description="Loops (mode==interpolate)",
