@@ -310,7 +310,7 @@ class Predictor(BasePredictor):
 
             for batch_i in range(n_samples):
                 batch_i_args = deepcopy(args)
-                batch_i_args.seed += 1
+                batch_i_args.seed += batch_i
                 frames = generation.make_images(batch_i_args)
                 for f, frame in enumerate(frames):
                     out_path = out_dir / f"frame_{f:04d}_{batch_i}.jpg"
