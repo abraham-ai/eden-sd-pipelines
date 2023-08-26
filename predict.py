@@ -39,7 +39,6 @@ checkpoint_options = [
 ]
 checkpoint_default = "sdxl-v1.0"
 
-
 class CogOutput(BaseModel):
     files: list[Path]
     name: Optional[str] = None
@@ -187,6 +186,7 @@ class Predictor(BasePredictor):
             description="Smooth (mode==interpolate)",
             default=True
         ),
+        # latent_blending_skip_f: List = field(default_factory=lambda: [0.07, 0.6]) 
         n_film: int = Input(
             description="Number of times to smooth final frames with FILM (default is 0) (mode==interpolate)",
             default=1, ge=0, le=2
@@ -324,6 +324,11 @@ class Predictor(BasePredictor):
                 yield CogOutput(files=out_paths, name=name, thumbnails=out_paths, attributes=attributes, isFinal=True, progress=1.0)
 
         else: # mode == "interpolate" or mode == "real2real" or mode == "blend"
+
+            loop = (args.loop and len(args.interpolation_seeds) == 2)
+
+            if loop:
+                args.n_frames = args.n_frames // 2
             
             generator = generation.make_interpolation(args)
             attributes = None
@@ -354,7 +359,6 @@ class Predictor(BasePredictor):
                 out_dir = Path(os.path.join(abs_out_dir_path, "interpolated_frames"))
 
             # save video
-            loop = (args.loop and len(args.interpolation_seeds) == 2)
             out_path = out_dir / "out.mp4"
             eden_utils.write_video(out_dir, str(out_path), loop=loop, fps=args.fps)
 

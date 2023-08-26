@@ -488,7 +488,7 @@ def pil_img_to_latent(img, args, device, pipe, noise_seed = 0):
 
     return latent
 
-def load_image_with_orientation(path):
+def load_image_with_orientation(path, mode = "RGB"):
     image = Image.open(path)
 
     # Try to get the Exif orientation tag (0x0112), if it exists
@@ -515,7 +515,7 @@ def load_image_with_orientation(path):
         elif orientation == 8:
             image = image.rotate(90)
 
-    return image.convert('RGB')
+    return image.convert(mode)
 
 
 def load_img(data, mode="RGB"):

@@ -3,11 +3,13 @@ from pathlib import Path
 import subprocess
 import requests
 import zipfile
+import mimetypes
 from mimetypes import guess_extension
 from PIL import Image
 import eden_utils
 import signal
 import time
+
 def run_and_kill_cmd(command, pipe_output=True):
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     time.sleep(0.25)
@@ -98,8 +100,6 @@ def download(url, folder, filepath = None):
         print(f"An error occurred: {e}")
         return None
 
-
-
 def is_zip_file(file_path):
     with open(file_path, 'rb') as file:
         return file.read(4) == b'\x50\x4b\x03\x04'
@@ -117,42 +117,124 @@ def unzip_to_folder(zip_path, target_folder):
     with zipfile.ZipFile(zip_path, 'r') as zip_ref:
         zip_ref.extractall(target_folder)
 
-def prep_img_dir(target_folder, extensions=['.jpg', '.png', '.jpeg', '.webm', '.JPG', '.PNG', '.JPEG', '.WEBM'], max_n_pixels = 2048*2048):
-    """
-    1. Move the images with given extensions to the root of target folder.
-    2. Remove all subfolders.
-    3. Open all images with PIL, fix their rotation, size and save them back to the same path as .jpg
-    """
-    try:
-        print(f"Prepping image directory {target_folder}...")
-        for foldername, subfolders, filenames in os.walk(target_folder):
-            for filename in filenames:
-                if any(filename.endswith(ext) for ext in extensions):
-                    source = os.path.join(foldername, filename)
-                    shutil.move(source, target_folder)
 
-        # Removing subfolders
-        for foldername, subfolders, _ in os.walk(target_folder, topdown=False):  # topdown=False for bottom-up traversal
+def load_image_with_orientation(path, mode = "RGB"):
+    image = Image.open(path)
+
+    # Try to get the Exif orientation tag (0x0112), if it exists
+    try:
+        exif_data = image._getexif()
+        orientation = exif_data.get(0x0112)
+    except (AttributeError, KeyError, IndexError):
+        orientation = None
+
+    # Apply the orientation, if it's present
+    if orientation:
+        if orientation == 2:
+            image = image.transpose(Image.FLIP_LEFT_RIGHT)
+        elif orientation == 3:
+            image = image.rotate(180)
+        elif orientation == 4:
+            image = image.transpose(Image.FLIP_TOP_BOTTOM)
+        elif orientation == 5:
+            image = image.rotate(-90).transpose(Image.FLIP_LEFT_RIGHT)
+        elif orientation == 6:
+            image = image.rotate(-90)
+        elif orientation == 7:
+            image = image.rotate(90).transpose(Image.FLIP_LEFT_RIGHT)
+        elif orientation == 8:
+            image = image.rotate(90)
+
+    return image.convert(mode)
+
+def is_image_file(file_path):
+    try:
+        with Image.open(file_path) as img:
+            img.verify()
+        return True
+    except:
+        return False
+
+def flatten_dir(root_dir):
+    try:
+        # Recursively find all files and move them to the root directory
+        for foldername, _, filenames in os.walk(root_dir):
+            for filename in filenames:
+                src = os.path.join(foldername, filename)
+                dst = os.path.join(root_dir, filename)
+                
+                # Separate filename and extension
+                base_name, ext = os.path.splitext(filename)
+
+                # To avoid overwriting a file in the root directory
+                counter = 0
+                while os.path.exists(dst):
+                    counter += 1
+                    dst = os.path.join(root_dir, f"{base_name}_{counter}{ext}")
+
+                shutil.move(src, dst)
+
+        # Remove all subdirectories
+        for foldername, subfolders, _ in os.walk(root_dir, topdown=False):
             for subfolder in subfolders:
                 shutil.rmtree(os.path.join(foldername, subfolder))
 
-        # Load all images with correct rotation and re-save as .jpg
-        final_imgs = 0
+    except Exception as e:
+        print(f"An error occurred while flattening the directory: {e}")
+
+def clean_and_prep_image(file_path, max_n_pixels = 2048*2048):
+    try:
+        image = load_image_with_orientation(file_path)
+        if image.size[0] * image.size[1] > max_n_pixels:
+            image.thumbnail((2048, 2048), Image.ANTIALIAS)
+
+        # Generate the save path
+        directory, basename = os.path.dirname(file_path), os.path.basename(file_path)
+        base_name, ext = os.path.splitext(basename)
+        save_path = os.path.join(directory, f"{base_name}.jpg")
+        image.save(save_path, quality=95)
+
+        if file_path != save_path:
+            os.remove(file_path) # remove the original file
+
+    except Exception as e:
+        print(f"An error occurred while prepping the image {file_path}: {e}")
+
+def prep_img_dir(target_folder):
+    try:
+        flatten_dir(target_folder)
+
+        # Process image files and remove all other files
+        n_final_imgs = 0
         for filename in os.listdir(target_folder):
-            load_path = os.path.join(target_folder, filename)
-            image = eden_utils.load_image_with_orientation(load_path)
+            file_path = os.path.join(target_folder, filename)
 
-            # optionally downsizing the image:
-            if image.size[0] * image.size[1] > max_n_pixels:
-                image.thumbnail((2048, 2048), Image.ANTIALIAS)
+            if not is_image_file(file_path):
+                os.remove(file_path)
+            else:
+                clean_and_prep_image(file_path)
+                n_final_imgs += 1
 
-            # Create save_path with .jpg extension:
-            save_path = os.path.join(target_folder, os.path.splitext(filename)[0] + '.jpg')
-            image.save(save_path, quality=95)
-            final_imgs += 1
-
-        print(f"Succesfully prepped {final_imgs} .jpg images in {target_folder}!")
+        print(f"Succesfully prepped {n_final_imgs} .jpg images in {target_folder}!")
 
     except Exception as e:
         print(f"An error occurred while prepping the image directory: {e}")
-        print("Trying to continue anyway...")
+
+
+
+
+
+if __name__ == '__main__':
+    zip_url = "https://storage.googleapis.com/public-assets-xander/Random/remove/test.zip"
+
+    # Download the zip file
+    zip_path = download(zip_url, "test_folder")
+    print("downloaded zip file to: ", zip_path)
+
+    # Unzip the file
+    unzip_to_folder(zip_path, "test_folder")
+    print("unzipped file to: ", "test_folder")
+
+    # prep img dir:
+    prep_img_dir("test_folder")
+    print("prepped images in: ", "test_folder")
