@@ -233,8 +233,9 @@ def download_and_prep_training_data(lora_training_urls, data_dir):
 
     # Loop over all files in the data directory:
     for filename in os.listdir(data_dir):
-        if filename.endswith('.zip'):
-            unzip_to_folder(os.path.join(data_dir, filename), data_dir, remove_zip=True)
+        filepath = os.path.join(data_dir, filename)
+        if is_zip_file(filepath):
+            unzip_to_folder(filepath, data_dir, remove_zip=True)
     
     # Prep the image directory:
     prep_img_dir(data_dir)
