@@ -6,7 +6,8 @@ import zipfile
 from mimetypes import guess_extension
 from PIL import Image
 import eden_utils
-
+import signal
+import time
 def run_and_kill_cmd(command, pipe_output=True):
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     time.sleep(0.25)
