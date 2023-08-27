@@ -28,12 +28,12 @@ def lerp(
         text_input = interpolation_texts[0],
         interpolation_texts = interpolation_texts,
         interpolation_seeds = interpolation_seeds if interpolation_seeds else [random.randint(1, 1e8) for i in range(n)],
-        n_frames = 12*n,
+        n_frames = 48*n,
         guidance_scale = random.choice([8]),
         loop = True,
         smooth = True,
-        latent_blending_skip_f = random.choice([[0.0, 0.75]]),
-        n_anchor_imgs = random.choice([4]),
+        latent_blending_skip_f = random.choice([[0.25, 0.75]]),
+        n_anchor_imgs = random.choice([3]),
         n_film = 0,
         fps = 12,
         steps = 50,
@@ -88,10 +88,10 @@ def lerp(
 
 if __name__ == "__main__":
 
-    outdir = "jeffrey_lerp_test_02"
+    outdir = "results"
     n = 3
 
-    for i in range(2):
+    for i in range(1):
         seed = np.random.randint(0, 1000)
         seed = i
 
