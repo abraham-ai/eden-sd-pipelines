@@ -40,7 +40,7 @@ checkpoint_options = [
 checkpoint_default = "sdxl-v1.0"
 
 class CogOutput(BaseModel):
-    files: list[Path]
+    files: Optional[list[Path]] = [None]
     name: Optional[str] = None
     thumbnails: Optional[list[Path]] = [None]
     attributes: Optional[dict] = None
@@ -186,10 +186,13 @@ class Predictor(BasePredictor):
             description="Smooth (mode==interpolate)",
             default=True
         ),
-        # latent_blending_skip_f: List = field(default_factory=lambda: [0.07, 0.6]) 
+        latent_blending_skip_f: str = Input(
+            description="What fraction of the denoising trajectory to skip at the start and end of each interpolation phase, two floats, separated by a pipe (|)",
+            default="0.1|0.6"
+        ),
         n_film: int = Input(
             description="Number of times to smooth final frames with FILM (default is 0) (mode==interpolate)",
-            default=1, ge=0, le=2
+            default=1, ge=0, le=3
         ),
         fps: int = Input(
             description="Frames per second (mode==interpolate)",
@@ -262,6 +265,8 @@ class Predictor(BasePredictor):
             interpolation_init_images_min_strength = interpolation_init_images_min_strength,
             interpolation_init_images_max_strength = interpolation_init_images_max_strength,
 
+            latent_blending_skip_f = [float(i) for i in latent_blending_skip_f.split('|')],
+
             n_frames = n_frames,
             loop = loop,
             smooth = smooth,
@@ -325,6 +330,10 @@ class Predictor(BasePredictor):
 
         else: # mode == "interpolate" or mode == "real2real" or mode == "blend"
 
+            # Make sure there's at least two init_images or prompts to interpolate:
+            if (mode == "interpolate" and len(args.interpolation_texts) < 2) or (mode == "real2real" and len(args.interpolation_init_images) < 2):
+                raise ValueError("Must have at least two init_images or prompts to interpolate!")
+
             loop = (args.loop and len(args.interpolation_seeds) == 2)
 
             if loop:
@@ -341,11 +350,11 @@ class Predictor(BasePredictor):
                 progress = f / args.n_frames
                 if not thumbnail:
                     thumbnail = out_path
+                
+                cog_output = CogOutput(attributes=attributes, progress=progress)
                 if stream and f % stream_every == 0:
-                    if DEBUG_MODE:
-                        yield out_path
-                    else:
-                        yield CogOutput(files=[out_path], thumbnails=[out_path], attributes=attributes, progress=progress)
+                    cog_output.files = [out_path]
+                yield cog_output
 
             # run FILM
             if args.n_film > 0:
