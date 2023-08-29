@@ -99,12 +99,12 @@ def generate_basic(
         text_input = text_input,
         text_input_2 = text_input_2,
         seed = seed,
-        n_samples = 4,
-        lora_path = None,
+        n_samples = 1,
+        #lora_path = None,
         #lora_path = lora_path,
         #lora_path = "/data/xander/Projects/cog/xander_eden_stuff/loras/diffusers/banny1/pytorch_lora_weights.bin",
-        #lora_path = "/data/xander/Projects/cog/diffusers/lora/lora_compare_diffusers/gene_single/checkpoint-400",
-        #lora_scale = random.choice([0.8]),
+        lora_path = "/data/xander/Projects/cog/diffusers/test_lora_out",
+        lora_scale = random.choice([0.8]),
         #init_image_data = "/data/xander/Projects/cog/eden-sd-pipelines/eden/templates/garden_inputs/a closeup portrait of a woman wrapped in_203_1691967507_0.jpg",
         #init_image_strength = random.choice([0.1, 0.15, 0.2, 0.25, 0.3, 0.35]),
     )
@@ -192,6 +192,8 @@ if __name__ == "__main__":
         #text_input = text_input.replace("TOK", "<s0><s1>")
         text_input = text_input.replace("TOK", "plantoid")
         #text_input = text_input.replace("TOK", "Banny")
+
+        text_input = "a cartoon of Banny"
 
         if n_modifiers > 0:
             text_input = text_input + ", " + ", ".join(random.sample(modifiers, n_modifiers))

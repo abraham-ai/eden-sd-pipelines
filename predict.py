@@ -325,8 +325,7 @@ class Predictor(BasePredictor):
             if DEBUG_MODE:
                 yield out_paths[0]
             else:
-                name = args.text_input[:120]
-                yield CogOutput(files=out_paths, name=name, thumbnails=out_paths, attributes=attributes, isFinal=True, progress=1.0)
+                yield CogOutput(files=out_paths, name=args.text_input, thumbnails=out_paths, attributes=attributes, isFinal=True, progress=1.0)
 
         else: # mode == "interpolate" or mode == "real2real" or mode == "blend"
 

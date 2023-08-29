@@ -107,7 +107,8 @@ def load_pipe(args):
 
         controlnet = ControlNetModel.from_pretrained(
             os.path.join(CONTROLNET_PATH, args.controlnet_path),
-            torch_dtype=torch.float16
+            torch_dtype=torch.float16,
+            use_safetensors = True if "depth" in args.controlnet_path else False,
         )
 
         pipe = StableDiffusionXLControlNetPipeline.from_pretrained(
