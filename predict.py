@@ -40,9 +40,9 @@ checkpoint_options = [
 checkpoint_default = "sdxl-v1.0"
 
 class CogOutput(BaseModel):
-    files: Optional[list[Path]] = [None]
+    files: Optional[list[Path]] = []
     name: Optional[str] = None
-    thumbnails: Optional[list[Path]] = [None]
+    thumbnails: Optional[list[Path]] = []
     attributes: Optional[dict] = None
     progress: Optional[float] = None
     isFinal: bool = False
