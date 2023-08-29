@@ -40,23 +40,23 @@ def real2real(
             interpolation_seeds = [random.randint(1, 1e8) for _ in range(n)],
             interpolation_texts = input_texts,
             interpolation_init_images = input_images,
-            interpolation_init_images_power = 3.5,
-            interpolation_init_images_min_strength = random.choice([0.25]),  # a higher value will make the video smoother, but allows less visual change / journey
+            interpolation_init_images_power = 2.0,
+            interpolation_init_images_min_strength = random.choice([0.15]),  # a higher value will make the video smoother, but allows less visual change / journey
             interpolation_init_images_max_strength = 0.95,
-            latent_blending_skip_f = random.choice([[0.1, 0.65], [0.0, 0.6]]),
+            latent_blending_skip_f = random.choice([[0.1, 0.7]]),
             compile_unet = False,
-            guidance_scale = random.choice([7]),
-            n_anchor_imgs = random.choice([3]),
+            guidance_scale = random.choice([8]),
+            n_anchor_imgs = random.choice([3,4]),
             sampler = "euler",
-            n_frames = 24*n,
+            n_frames = 48*n,
             loop = True,
             smooth = True,
             n_film = 0,
             fps = 12,
-            steps =  60,
+            steps =  45,
             seed = seed,
-            H = 1024,
-            W = 1024,
+            H = 1024+256,
+            W = 1024+256,
             upscale_f = 1.0,
             lora_path = None,
         )
@@ -201,10 +201,10 @@ if __name__ == "__main__":
     input_dir = "/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/img2img_inits/random2"
     init_imgs = [os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.endswith(".jpg")]
 
-    outdir = "results"
+    outdir = "results_no_rescaling"
     n = 3
 
-    for i in range(0,50):
+    for i in [2]:
         seed = np.random.randint(0, 1000)
         seed = i
 

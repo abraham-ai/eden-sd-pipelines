@@ -562,12 +562,6 @@ class LatentTracker():
                     torch.cuda.manual_seed_all(seed)
             return torch.randn(shape)
 
-        if 0:
-            print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-            print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-            print(f"Constructing noisy stack of latents at t={t_raw:.3f}...")
-            print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-            print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         # given the current denoising stack of latents for this frame,
         # construct the full stack all the way up to pure noise
         
@@ -582,39 +576,36 @@ class LatentTracker():
             print("---------- WARNING ----------")
             print("The last (denoised) latent in the latent stack is None, this should never happen!")
 
-        if 1: #easy way
+        if True: #easy way
 
             torch_fully_denoised_latent = torch.from_numpy(fully_denoised_latent).to(self.device).float()
             # Loop over all the timesteps and add the corresponding noise to the fully_denoised_latent:
 
-            # save the fully_denoised_latent to disk as .pt tensor:
-            #torch.save(torch_fully_denoised_latent, f"torch_fully_denoised_latent_{t_raw:.3f}.pt")
-
             if self.fixed_noise is None:
-                self.fixed_noise = sample_random_noise(self.init_noises[t_raw].shape, seed=123451).to(self.device).float()
+                self.fixed_noise = sample_random_noise(self.init_noises[t_raw].shape, seed=12345).to(self.device).float()
 
             fixed_noise = self.fixed_noise.clone()
+            #fixed_noise = sample_random_noise(self.init_noises[t_raw].shape, seed=int(time.time()*1000)).to(self.device).float()
 
-            if True: # This is a total hack, I dont know how else to fix this:
+            if True: # This is a bit of a hack, I dont know how else to fix this:
                 """
-                - the fully_denoised_latent is sometimes highly correlated with some fixed_noise vectors
-                - the histogram of the fully_denoised_latent looks totally normal 
-                - it is never correlated with self.init_noises[t_raw]
-
-                How the fuck is this possible???
+                - because we are adding noise to the init imgs and then diffusing,
+                - the fully_denoised_latent is sometimes highly correlated with the fixed_noise vector
+                - when adding that same fixed_noise vector back to the img_latent (in the next denoising stack of an adjacent frame),
+                  this causes the final noise_std to be too large, cause the diffusion process to break and produce oversaturated frames
+                - when this happens, simply resample the random noise vector until the correlation is low enough
 
                 """
-                # Ideally, the noise we are adding to the latent stack should be entirely uncorrelated
-                # to the latent itself:
+                # Ideally, the noise we are adding to the latent stack should be entirely uncorrelated to the latent itself:
                 rr = pearson_correlation_coefficient(torch_fully_denoised_latent, fixed_noise)
                 
                 resample_index = 1
-                while (np.abs(rr) > 0.03) and resample_index < 20:
+                while (np.abs(rr) > 0.01) and resample_index < 20:
                     prev_rr = rr
-                    fixed_noise = sample_random_noise(self.fixed_noise.shape, seed=123451 + resample_index).to(self.device).float()
+                    fixed_noise = sample_random_noise(self.fixed_noise.shape, seed=12345+resample_index).to(self.device).float()
                     rr = pearson_correlation_coefficient(torch_fully_denoised_latent, fixed_noise)
-                    print(f"WARNING: Noise-Latent correlation was {prev_rr:.3f}, resampled {resample_index}x to: {rr:.3f}")   
-                    resample_index += 1 
+                    #print(f"WARNING: Noise-Latent correlation was {prev_rr:.3f}, resampled {resample_index}x to: {rr:.3f}")   
+                    resample_index += 1
 
             for i in range(len(self.latents[t_raw])-1):
                 if args.never_overwrite_existing_latents:
@@ -627,10 +618,10 @@ class LatentTracker():
                 try:
                     # Slight hack to make sure we're at the right noise level:
                     std_diff = np.abs(np.std(latents) - noise_sigmas[i].cpu().item())
-                    if std_diff > 1.0:
-                        print("WARNING: std_diff > 1.0, ideally this shouldn't happen... Ask Xander")
-                        latents = latents / np.std(latents)
-                        latents = latents * (noise_sigmas[i].cpu().item())
+                    if std_diff > 2.0:
+                        print("WARNING: std_diff > 2.0, ideally this shouldn't happen (unless with init_imgs that have very high pixel-std)... Ask Xander")
+                        #latents = latents / np.std(latents)
+                        #latents = latents * (noise_sigmas[i].cpu().item())
                 except:
                     pass
 

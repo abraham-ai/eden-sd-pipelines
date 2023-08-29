@@ -137,8 +137,6 @@ def generate(
     # for now, use init_image_strength to control the strength of the conditioning
     args.controlnet_conditioning_scale = args.init_image_strength
 
-    print(args.text_input)
-
     if args.controlnet_path is not None and args.controlnet_conditioning_scale > 0 and args.init_image is not None:
         args.init_image = preprocess_canny(args.init_image)
         args.upscale_f = 1.0 # disable upscaling with controlnet for now
@@ -347,11 +345,13 @@ def make_interpolation(args, force_timepoints = None):
 
         #args.interpolator.latent_tracker.print_stack()
 
-        print(f"Interpolating frame {f+1}/{len(args.interpolator.ts)} (t_raw = {t_raw:.4f},\
-                init_strength: {args.init_image_strength:.2f},\
-                latent skip_f: {args.interpolator.latent_tracker.latent_blending_skip_f:.2f},\
-                splitting lpips_d: {args.interpolator.latent_tracker.frame_buffer.get_perceptual_distance_at_t(args.t_raw):.2f}),\
-                keyframe {keyframe_index+1}/{len(args.interpolation_texts) - 1}...")
+        print(f"Interpolating frame {f+1}/{len(args.interpolator.ts)} "
+            f"(t_raw = {t_raw:.3f}, "
+            f"init_strength: {args.init_image_strength:.2f}, "
+            f"latent skip_f: {args.interpolator.latent_tracker.latent_blending_skip_f:.2f}, "
+            f"lpips_d: {args.interpolator.latent_tracker.frame_buffer.get_perceptual_distance_at_t(args.t_raw):.2f})"
+        )
+
         
         _, pil_images = generate(args, do_callback = True)
 

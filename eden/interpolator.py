@@ -344,7 +344,7 @@ class Interpolator():
                 plt.legend(loc='upper left')
                 plt.title(f"Current distances / target density (interpolation step {self.interpolation_step}, fit_MSE = {best_fit_mse:.3f})")
                 plt.ylim([0,4])
-                #plt.savefig(os.path.join(os.path.join(self.args.frames_dir, "distances"), "distance_targets_%04d.png" %self.interpolation_step))
+                plt.savefig(os.path.join(os.path.join(self.args.frames_dir, "distances"), "distance_targets_%04d.png" %self.interpolation_step))
                 plt.savefig(os.path.join(os.path.join(self.args.frames_dir, "distances"), "all_distance_targets.png"))
                 plt.clf()
                 plt.close()
@@ -401,6 +401,25 @@ class Interpolator():
                 self.latent_tracker.frame_buffer.plot_distances(os.path.join(self.args.frames_dir, "distances"))
 
         else:
+
+            # plot the current distances / target perceptual curves:
+            perceptual_distances = self.latent_tracker.frame_buffer.distances.copy()
+
+            if self.args.save_distance_data:
+                os.makedirs(os.path.join(self.args.frames_dir, "distances"), exist_ok = True)
+                plt.figure(figsize = (12,6))
+                ts = np.linspace(0,len(perceptual_distances)/self.n_frames_between_two_prompts,len(perceptual_distances))
+                plt.bar(ts, perceptual_distances / np.mean(perceptual_distances), label = "lpips perceptual distances", edgecolor='black', width=1/self.n_frames_between_two_prompts)
+                plt.legend(loc='upper left')
+                plt.title(f"Perceptual distances between adjacent frames (interpolation step {self.interpolation_step} / {self.n_frames_between_two_prompts})")
+                plt.ylim([0,4])
+                plt.xlim(0,1)
+                plt.savefig(os.path.join(os.path.join(self.args.frames_dir, "distances"), "distance_targets_%04d.png" %self.interpolation_step))
+                plt.savefig(os.path.join(os.path.join(self.args.frames_dir, "distances"), "all_distance_targets.png"))
+                plt.clf()
+                plt.close()
+
+
             if t_raw is None:
                 t_raw = self.ts[self.interpolation_step]
 
