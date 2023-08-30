@@ -226,7 +226,8 @@ class Predictor(BasePredictor):
                 lora_trigger_prompt = lora_args['instance_prompt']
 
             # Prepend the lora_trigger_prompt to the text input:
-            text_input = lora_trigger_prompt + ", " + text_input if text_input else lora_trigger_prompt
+            if lora_trigger_prompt not in text_input:
+                text_input = lora_trigger_prompt + ", " + text_input if text_input else lora_trigger_prompt
 
 
         controlnet_options = {

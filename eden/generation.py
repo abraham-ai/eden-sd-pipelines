@@ -138,7 +138,7 @@ def generate(
     args.controlnet_conditioning_scale = args.init_image_strength
 
     if args.controlnet_path is not None and args.controlnet_conditioning_scale > 0 and args.init_image is not None:
-        args.init_image = preprocess_controlnet_init_image(args.init_image)
+        args.init_image = preprocess_controlnet_init_image(args.init_image, args)
         args.upscale_f = 1.0 # disable upscaling with controlnet for now
                    
         pipe_output = pipe(

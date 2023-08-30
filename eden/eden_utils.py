@@ -1182,7 +1182,7 @@ def preprocess_canny(pil_control_image, low_t = 100, high_t = 200):
     canny_img = np.concatenate([canny_img, canny_img, canny_img], axis=2)
     return  Image.fromarray(canny_img)
 
-def get_zoe_depth_map(image):
+def preprocess_zoe_depth(image):
     torch.cuda.empty_cache()
     torch.hub.help("intel-isl/MiDaS", "DPT_BEiT_L_384", force_reload=True)  # Triggers fresh download of MiDaS repo
     model_zoe_n = torch.hub.load("isl-org/ZoeDepth", "ZoeD_NK", pretrained=True).eval()

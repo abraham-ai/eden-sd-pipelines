@@ -93,7 +93,7 @@ def generate_basic(
         W = random.choice([1024]),
         H = random.choice([1024]),
         sampler = random.choice(["euler"]),
-        steps = 60,
+        steps = 40,
         guidance_scale = random.choice([6,8,10]),
         upscale_f = random.choice([1.0, 1.0]),
         text_input = text_input,
@@ -103,8 +103,8 @@ def generate_basic(
         #lora_path = None,
         #lora_path = lora_path,
         #lora_path = "/data/xander/Projects/cog/xander_eden_stuff/loras/diffusers/banny1/pytorch_lora_weights.bin",
-        lora_path = "/data/xander/Projects/cog/diffusers/test_lora_out",
-        lora_scale = random.choice([0.8]),
+        lora_path = "/data/xander/Projects/cog/diffusers/test_lora/output_dir",
+        lora_scale = random.choice([0.8, 1.0]),
         #init_image_data = "/data/xander/Projects/cog/eden-sd-pipelines/eden/templates/garden_inputs/a closeup portrait of a woman wrapped in_203_1691967507_0.jpg",
         #init_image_strength = random.choice([0.1, 0.15, 0.2, 0.25, 0.3, 0.35]),
     )
@@ -166,7 +166,7 @@ if __name__ == "__main__":
         #text_inputs = ['a photo of <s0><s1> as the commander of the starfleet enterprise']
 
     else:
-        outdir = "plantoid"
+        outdir = "results_good2"
         
         text_inputs = [
             "a cartoon of TOK as a superhero",
@@ -181,9 +181,9 @@ if __name__ == "__main__":
             ]
     
     for i in range(20):
-        n_modifiers = random.randint(0, 3)
-        #seed = random.randint(0, 100000)
-        seed = i
+        n_modifiers = random.randint(0, 0)
+        seed = random.randint(0, 100000)
+        #seed = i
 
         seed_everything(seed)
         #text_input = random.choice(text_inputs)
@@ -193,7 +193,8 @@ if __name__ == "__main__":
         text_input = text_input.replace("TOK", "plantoid")
         #text_input = text_input.replace("TOK", "Banny")
 
-        text_input = "a cartoon of Banny"
+        text_input = "a cartoon of sks bananaman on the moon"
+        text_input = "a photo of bananaman climbing Mount Everest"
 
         if n_modifiers > 0:
             text_input = text_input + ", " + ", ".join(random.sample(modifiers, n_modifiers))

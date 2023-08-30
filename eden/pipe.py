@@ -103,14 +103,16 @@ def load_pipe(args):
     if args.controlnet_path is not None: # Load controlnet sdxl
         #from diffusers import StableDiffusionControlNetImg2ImgPipeline
 
-        print("Loading SDXL controlnet-pipeline..")
+        full_controlnet_path = os.path.join(CONTROLNET_PATH, args.controlnet_path)
+
+        print(f"Loading SDXL controlnet-pipeline from {full_controlnet_path}")
 
         controlnet = ControlNetModel.from_pretrained(
-            os.path.join(CONTROLNET_PATH, args.controlnet_path),
+            full_controlnet_path,
             torch_dtype=torch.float16,
             use_safetensors = True if "depth" in args.controlnet_path else False,
         )
-
+        
         pipe = StableDiffusionXLControlNetPipeline.from_pretrained(
             location,
             controlnet=controlnet,
