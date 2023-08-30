@@ -96,7 +96,7 @@ if __name__ == "__main__":
         text_input = random.choice(text_inputs)
 
         print(text_input)
-        if 0:
+        if 1:
             generate_basic(text_input, outdir, seed = seed)
         else:
             try:

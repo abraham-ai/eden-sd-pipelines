@@ -194,7 +194,7 @@ if __name__ == "__main__":
         #text_input = text_input.replace("TOK", "Banny")
 
         text_input = "a cartoon of sks bananaman on the moon"
-        text_input = "a photo of bananaman climbing Mount Everest"
+        text_input = "a photo of Cate Blanchett as the commander of the starfleet enterprise"
 
         if n_modifiers > 0:
             text_input = text_input + ", " + ", ".join(random.sample(modifiers, n_modifiers))
