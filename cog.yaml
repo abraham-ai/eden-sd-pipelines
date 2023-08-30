@@ -30,7 +30,6 @@ build:
     - "wandb==0.13.10"       # Not found in the pip freeze output, so no change
     - "pandas==2.0.3"        # Updated from 1.5.3 to 2.0.3
     - "invisible-watermark>=0.2.0"
-    - timm
 
   pre_install:
    - git clone -b sdxl https://www.github.com/abraham-ai/diffusers
