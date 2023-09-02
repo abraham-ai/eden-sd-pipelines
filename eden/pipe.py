@@ -49,11 +49,9 @@ global pipe
 global last_checkpoint
 global last_lora_path
 global last_controlnet_path
-global last_lora_token_map
 pipe = None
 last_checkpoint = None
 last_lora_path = None
-last_lora_token_map = None
 last_controlnet_path = None
 
 global upscaling_pipe
@@ -190,9 +188,43 @@ from safetensors import safe_open
 from safetensors.torch import load_file
 from diffusers.models.attention_processor import LoRAAttnProcessor2_0
 from dataset_and_utils import TokenEmbeddingsHandler
+
+def prepare_prompt_for_lora(prompt, lora_path, verbose = True):
+    orig_prompt = prompt
+    with open(os.path.join(lora_path, "special_params.json"), "r") as f:
+        token_map = json.load(f)
+
+    with open(os.path.join(lora_path, "training_args.json"), "r") as f:
+        training_args = json.load(f)
+        trigger_text = training_args["trigger_text"]
+
+    if "<concept>" in prompt:
+        prompt = prompt.replace("<concept>", trigger_text)
+    else:
+        prompt = trigger_text + " " + prompt
+
+    for k, v in token_map.items():
+        if k in prompt:
+            prompt = prompt.replace(k, v)
+    
+    # fix some common mistakes:
+    prompt = prompt.replace(",,", ",")
+    prompt = prompt.replace("  ", " ")
+    prompt = prompt.replace(" .", ".")
+    prompt = prompt.replace(" ,", ",")
+
+    if verbose:
+        print('-------------------------')
+        print("Adjusted prompt for LORA:")
+        print(orig_prompt)
+        print('-- to:')
+        print(prompt)
+        print('-------------------------')
+
+    return prompt
+
 def update_pipe_with_lora(pipe, args):
     global last_lora_path
-    global last_lora_token_map
 
     if (args.lora_path == last_lora_path) or (not args.lora_path):
         return pipe
@@ -203,12 +235,10 @@ def update_pipe_with_lora(pipe, args):
         pipe.load_lora_weights(args.lora_path)
 
     else: # trained with closeofismo trainer
-        print("Loading LORA token mapping:")
-        with open(os.path.join(args.lora_path, "special_params.json"), "r") as f:
-            token_map = json.load(f)
-            print(json.dumps(token_map, indent=4, sort_keys=True))
-            args.token_map = token_map
-
+        with open(os.path.join(args.lora_path, "training_args.json"), "r") as f:
+            training_args = json.load(f)
+            lora_rank = training_args["lora_rank"]
+        
         unet = pipe.unet
         tensors = load_file(os.path.join(args.lora_path, "lora.safetensors"))
         unet_lora_attn_procs = {}
@@ -233,7 +263,7 @@ def update_pipe_with_lora(pipe, args):
             module = LoRAAttnProcessor2_0(
                 hidden_size=hidden_size,
                 cross_attention_dim=cross_attention_dim,
-                rank=4,
+                rank=lora_rank,
             )
             unet_lora_attn_procs[name] = module.to("cuda")
 

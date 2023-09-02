@@ -100,27 +100,35 @@ def download(url, folder, filepath = None):
         print(f"An error occurred: {e}")
         return None
 
+import tarfile
+
+
+
 
 def is_zip_file(file_path):
     with open(file_path, 'rb') as file:
         return file.read(4) == b'\x50\x4b\x03\x04'
 
-def unzip_to_folder(zip_path, target_folder, remove_zip = True):
+def extract_to_folder(file_path, target_folder, remove_archive = False):
     """
-    Unzip the .zip file to the target folder.
+    Extract either a .zip or .tar file to the target folder.
     """
 
-    if not is_zip_file(zip_path):
-        raise ValueError(f"The file {zip_path} is not a .zip file!")
-    
     os.makedirs(target_folder, exist_ok=True)
 
-    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-        zip_ref.extractall(target_folder)
+    if is_zip_file(file_path):
+        with zipfile.ZipFile(file_path, 'r') as zip_ref:
+            zip_ref.extractall(target_folder)
+    elif str(file_path).endswith('.tar'):
+        with tarfile.open(file_path, 'r') as tar_ref:
+            tar_ref.extractall(target_folder)
+    else:
+        raise ValueError(f"The file {file_path} is not a .zip / .tar file!")
+    
+    if remove_archive:
+        os.remove(file_path)
 
-    if remove_zip:
-        # remove the zip file:
-        os.remove(zip_path)
+    print(f"Extracted {file_path} to {target_folder}")
 
 
 def load_image_with_orientation(path, mode = "RGB"):

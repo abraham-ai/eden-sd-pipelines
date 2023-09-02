@@ -213,21 +213,14 @@ class Predictor(BasePredictor):
         lora_path = None
         if lora:
             lora_folder = Path('loras')
-
             lora_zip_path = download(lora, lora_folder)
-            #lora_zip_path = "/src/lora.zip"
-
             lora_path = os.path.join(lora_folder, os.path.splitext(os.path.basename(lora_zip_path))[0])
-            unzip_to_folder(lora_zip_path, lora_path)
+            extract_to_folder(lora_zip_path, lora_path)
 
-            # Load the lora args:
-            with open(os.path.join(lora_path, "args.json"), 'r') as f:
-                lora_args = json.load(f)
-                lora_trigger_prompt = lora_args['instance_prompt']
-
-            # Prepend the lora_trigger_prompt to the text input:
-            if lora_trigger_prompt not in text_input:
-                text_input = lora_trigger_prompt + ", " + text_input if text_input else lora_trigger_prompt
+            # Prepend the lora_trigger_prompt to the text input if it's not there:
+            if "<concept>" not in text_input:
+                print("WARNING: lora is on but <concept> is not in the text input, prepending <concept> to the text input")
+                text_input = "<concept>, " + text_input
 
 
         controlnet_options = {

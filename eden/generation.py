@@ -69,9 +69,8 @@ def generate(
     pipe = eden_pipe.get_pipe(args)
 
     # Map LORA tokens:
-    if args.token_map is not None:
-        for k, v in args.token_map.items():
-            args.text_input = args.text_input.replace(k, v)
+    if args.lora_path is not None:
+        args.text_input = eden_pipe.prepare_prompt_for_lora(args.text_input, args.lora_path, verbose = True)
 
     if args.text_input == "remix_this_image" and (args.init_image is not None): # hardcoded prompt hack to trigger clip_interrogator
         args.text_input = clip_interrogate(args.ckpt, args.init_image, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
@@ -274,10 +273,9 @@ def make_interpolation(args, force_timepoints = None):
     pipe = eden_pipe.get_pipe(args)
     
     # Map LORA tokens:
-    if args.token_map is not None:
+    if args.lora_path is not None:
         for i, _ in enumerate(args.interpolation_texts):
-            for k, v in args.token_map.items():
-                args.interpolation_texts[i] = args.interpolation_texts[i].replace(k, v)
+            args.interpolation_texts[i] = eden_pipe.prepare_prompt_for_lora(args.interpolation_texts[i], args.lora_path, verbose = True)
 
     # Release CLIP memory:
     del_clip_interrogator_models()

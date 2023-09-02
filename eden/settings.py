@@ -55,7 +55,6 @@ class StableDiffusionSettings:
     lora_path: str = None
     lora_scale: float = 0.0
     lora_paths: str = None # optional list of lora paths for each img seed for real2real
-    token_map: dict = None # optional token map for lora tokens
 
     #precision: str = 'autocast'
     compile_unet: bool = False  # use toch.compile() to speed things up

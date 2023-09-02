@@ -1,1 +1,2 @@
-cog predict -i mode=generate -i text_input="climbing mount everest" -i seed=15 -i width=768 -i height=768 -i steps=40 -i lora="https://storage.googleapis.com/public-assets-xander/A_workbox/lora.zip" -i lora_scale=1.0
+cog predict -i mode=generate -i text_input="<concept> climbing mount everest" -i seed=15 -i width=768 -i height=768 -i steps=40 -i lora="https://storage.googleapis.com/public-assets-xander/A_workbox/lora_training_sets/trained_model.tar" -i lora_scale=1.0
+cog predict -i mode=generate -i text_input="<concept> climbing mount everest" -i seed=15 -i width=768 -i height=768 -i steps=40 -i lora="https://storage.googleapis.com/public-assets-xander/A_workbox/lora_training_sets/trained_model.tar" -i lora_scale=1.0
