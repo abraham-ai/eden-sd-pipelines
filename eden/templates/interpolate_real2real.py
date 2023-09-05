@@ -43,22 +43,22 @@ def real2real(
             interpolation_init_images_power = 2.0,
             interpolation_init_images_min_strength = random.choice([0.15]),  # a higher value will make the video smoother, but allows less visual change / journey
             interpolation_init_images_max_strength = 0.95,
-            latent_blending_skip_f = random.choice([[0.1, 0.7]]),
+            latent_blending_skip_f = random.choice([[0.1, 0.65]]),
             compile_unet = False,
             guidance_scale = random.choice([8]),
-            n_anchor_imgs = random.choice([3,4]),
+            n_anchor_imgs = random.choice([3]),
             sampler = "euler",
-            n_frames = 48*n,
+            n_frames = 6*n,
             loop = True,
             smooth = True,
             n_film = 0,
             fps = 12,
-            steps =  45,
+            steps = 40,
             seed = seed,
-            H = 1024+256,
-            W = 1024+256,
+            H = 1024,
+            W = 1024,
             upscale_f = 1.0,
-            lora_path = None,
+            #lora_path = None,
         )
 
     # always make sure these args are properly set:
@@ -201,7 +201,14 @@ if __name__ == "__main__":
     input_dir = "/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/img2img_inits/random2"
     init_imgs = [os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.endswith(".jpg")]
 
-    outdir = "results_no_rescaling"
+
+    init_imgs = [
+            "/data/xander/Projects/cog/eden-sd-pipelines/eden/assets/0.jpg",
+            "/data/xander/Projects/cog/eden-sd-pipelines/eden/assets/1.jpg",
+            "/data/xander/Projects/cog/eden-sd-pipelines/eden/assets/2.jpg",
+        ]
+
+    outdir = "results_banny_real2real"
     n = 3
 
     for i in [2]:

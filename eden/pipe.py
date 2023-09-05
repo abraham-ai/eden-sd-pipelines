@@ -191,6 +191,10 @@ from dataset_and_utils import TokenEmbeddingsHandler
 
 def prepare_prompt_for_lora(prompt, lora_path, verbose = True):
     orig_prompt = prompt
+
+    if not os.path.exists(os.path.join(lora_path, "special_params.json")):
+        raise "This concept is from an old lora trainer that was deprecated, please retrain your concept for better results!"
+
     with open(os.path.join(lora_path, "special_params.json"), "r") as f:
         token_map = json.load(f)
 
@@ -201,7 +205,7 @@ def prepare_prompt_for_lora(prompt, lora_path, verbose = True):
     if "<concept>" in prompt:
         prompt = prompt.replace("<concept>", trigger_text)
     else:
-        prompt = trigger_text + " " + prompt
+        prompt = trigger_text + ", " + prompt
 
     for k, v in token_map.items():
         if k in prompt:

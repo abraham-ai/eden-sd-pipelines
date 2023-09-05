@@ -69,7 +69,7 @@ def generate(
     pipe = eden_pipe.get_pipe(args)
 
     # Map LORA tokens:
-    if args.lora_path is not None:
+    if (args.lora_path is not None) and (args.interpolator is None):
         args.text_input = eden_pipe.prepare_prompt_for_lora(args.text_input, args.lora_path, verbose = True)
 
     if args.text_input == "remix_this_image" and (args.init_image is not None): # hardcoded prompt hack to trigger clip_interrogator
@@ -341,23 +341,15 @@ def make_interpolation(args, force_timepoints = None):
         if args.planner is not None: # When audio modulation is active:
             args = args.planner.adjust_args(args, t_raw, force_timepoints=force_timepoints)
 
-        #args.interpolator.latent_tracker.print_stack()
-
         print(f"Interpolating frame {f+1}/{len(args.interpolator.ts)} "
             f"(t_raw = {t_raw:.3f}, "
             f"init_strength: {args.init_image_strength:.2f}, "
             f"latent skip_f: {args.interpolator.latent_tracker.latent_blending_skip_f:.2f}, "
             f"lpips_d: {args.interpolator.latent_tracker.frame_buffer.get_perceptual_distance_at_t(args.t_raw):.2f})"
         )
-
         
         _, pil_images = generate(args, do_callback = True)
-
-        #print("Post generate:")
-        #args.interpolator.latent_tracker.print_stack()
         args.interpolator.latent_tracker.construct_noised_latents(args, args.t_raw)
-        #print("Post construct:")
-        #args.interpolator.latent_tracker.print_stack()
 
         img_pil = pil_images[0]
         img_t = T.ToTensor()(img_pil).unsqueeze_(0).to(_device)

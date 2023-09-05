@@ -28,18 +28,19 @@ def lerp(
         text_input = interpolation_texts[0],
         interpolation_texts = interpolation_texts,
         interpolation_seeds = interpolation_seeds if interpolation_seeds else [random.randint(1, 1e8) for i in range(n)],
-        n_frames = 48*n,
+        n_frames = 5*n,
         guidance_scale = random.choice([8]),
         loop = True,
-        smooth = 0,
-        latent_blending_skip_f = random.choice([[0.8, 0.95]]),
+        smooth = True,
+        latent_blending_skip_f = random.choice([[0.15, 0.65]]),
         n_anchor_imgs = random.choice([3]),
         n_film = 0,
         fps = 12,
-        steps = 50,
+        steps = 40,
         seed = seed,
         H = 1024,
         W = 1024,
+        lora_path = "/data/xander/Projects/cog/GitHub_repos/cog-sdxl/lora_models_fin_init/final_sweep_025_7887/checkpoints/checkpoint-800"
     )
 
     # always make sure these args are properly set:
@@ -91,18 +92,24 @@ if __name__ == "__main__":
     outdir = "results"
     n = 3
 
-    for i in range(1):
+    for i in range(4):
         seed = np.random.randint(0, 1000)
         seed = i
 
         seed_everything(seed)
         interpolation_texts = random.sample(text_inputs, n)
 
+        interpolation_texts = [
+            "a photo of a massive <concept> statue in the middle of the city, high quality professional photography, nikon d850 50mm",
+            "<concept> as a character in a noir graphic novel, under a rain-soaked streetlamp",
+            "a photo of a <concept> sand sculpture at the beach",
+        ]
+
         for txt in interpolation_texts:
             print(txt)
             print("-----------------------")
         
-        if 0:
+        if 1:
             lerp(interpolation_texts, outdir, seed=seed, save_distance_data=True, interpolation_seeds=None)
         else:
             try:

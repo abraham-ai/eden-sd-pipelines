@@ -8,12 +8,6 @@ from generation import *
 from prompts import text_inputs, style_modifiers
 from eden_utils import *
 
-checkpoint_options = [
-    "runwayml/stable-diffusion-v1-5",
-    "prompthero/openjourney-v2",
-    "dreamlike-art/dreamlike-photoreal-2.0"
-]
-
 def generate_lora(text_input, outdir, 
     lora_path = None,
     seed = int(time.time()),
@@ -24,20 +18,19 @@ def generate_lora(text_input, outdir,
     print(text_input)
 
     args = StableDiffusionSettings(
-        ckpt = checkpoint_options[-1],
         lora_path = lora_path,
-        lora_scale = 0.9,
+        lora_scale = 0.8,
         mode = "generate",
-        W = 768,
-        H = 640,
+        W = 1024,
+        H = 1024,
         sampler = "euler",
         steps = 40,
-        guidance_scale = 12,
+        guidance_scale = 8,
         upscale_f = 1.0,
         text_input = text_input,
         init_image_data = init_image_data,
         seed = seed,
-        n_samples = 1
+        n_samples = 2,
     )
     
     name = f'{prefix}{args.text_input[:40]}_{args.seed}_{int(time.time())}{suffix}'
@@ -59,8 +52,8 @@ if __name__ == "__main__":
 
     outdir = "results"
     seed = 1
-    lora_path = "../assets/lora/final_lora.safetensors"
-    text_input = "a picture of <person1> drinking coca cola"
+    lora_path = "/data/xander/Projects/cog/GitHub_repos/cog-sdxl/lora_models_fin_init/final_sweep_021_7880/checkpoints/checkpoint-800"
+    text_input = "a picture of <concept> drinking coca cola"
     
     seed_everything(seed)
     generate_lora(text_input, outdir, lora_path, seed = seed)
