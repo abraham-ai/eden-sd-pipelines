@@ -275,7 +275,7 @@ def make_interpolation(args, force_timepoints = None):
     # Map LORA tokens:
     if args.lora_path is not None:
         for i, _ in enumerate(args.interpolation_texts):
-            args.interpolation_texts[i] = eden_pipe.prepare_prompt_for_lora(args.interpolation_texts[i], args.lora_path, verbose = True)
+            args.interpolation_texts[i] = eden_pipe.prepare_prompt_for_lora(args.interpolation_texts[i], args.lora_path, interpolation = True, verbose = True)
 
     # Release CLIP memory:
     del_clip_interrogator_models()

@@ -217,12 +217,6 @@ class Predictor(BasePredictor):
             lora_path = os.path.join(lora_folder, os.path.splitext(os.path.basename(lora_zip_path))[0])
             extract_to_folder(lora_zip_path, lora_path)
 
-            # Prepend the lora_trigger_prompt to the text input if it's not there:
-            if "<concept>" not in text_input:
-                print("WARNING: lora is on but <concept> is not in the text input, prepending <concept> to the text input")
-                text_input = "<concept>, " + text_input
-
-
         controlnet_options = {
             "off": None,
             "canny-edge": "controlnet-canny-sdxl-1.0"

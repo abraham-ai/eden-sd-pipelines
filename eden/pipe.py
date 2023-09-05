@@ -189,7 +189,7 @@ from safetensors.torch import load_file
 from diffusers.models.attention_processor import LoRAAttnProcessor2_0
 from dataset_and_utils import TokenEmbeddingsHandler
 
-def prepare_prompt_for_lora(prompt, lora_path, verbose = True):
+def prepare_prompt_for_lora(prompt, lora_path, interpolation = False, verbose = True):
     orig_prompt = prompt
 
     if not os.path.exists(os.path.join(lora_path, "special_params.json")):
@@ -200,18 +200,47 @@ def prepare_prompt_for_lora(prompt, lora_path, verbose = True):
 
     with open(os.path.join(lora_path, "training_args.json"), "r") as f:
         training_args = json.load(f)
+        lora_name = training_args["name"]
+        lora_name = "<" + str(lora_name) + ">"
         trigger_text = training_args["trigger_text"]
+        mode = training_args["mode"]
 
-    if "<concept>" in prompt:
-        prompt = prompt.replace("<concept>", trigger_text)
-    else:
-        prompt = trigger_text + ", " + prompt
+    ######### We're assuming the token should be <concept> or <lora_name> #########
+    
+    if mode != "style":
+        if "<concept>" in prompt:
+            prompt = prompt.replace("<concept>", trigger_text)
+        elif lora_name in prompt:
+            prompt = prompt.replace(lora_name, trigger_text)
+        else:
+            prompt = trigger_text + ", " + prompt
+    else: # mode == style
+        if "in the style of <concept>" in prompt:
+            prompt = prompt.replace("in the style of <concept>", "in the style of TOK")
+        elif f"in the style of {lora_name}" in prompt:
+            prompt = prompt.replace(f"in the style of {lora_name}", "in the style of TOK")
+        else:
+            prompt = prompt + ", in the style of TOK"
+
+        # Final cleanup, just in case:
+        if "<concept>" in prompt:
+            prompt = prompt.replace("<concept>", "TOK")
+        elif lora_name in prompt:
+            prompt = prompt.replace(lora_name, "TOK")
+
+    #### from here on, the token should be what's in the token map (usually TOK) ####
+
+    if interpolation: # This improves the slerping conditioning vectors with LORA interpolations
+        if mode != "style":
+            prompt = "TOK, " + prompt
+
+    #### finally, we actually replace TOK with the learned tokens <s0><s1> ####
 
     for k, v in token_map.items():
         if k in prompt:
             prompt = prompt.replace(k, v)
     
-    # fix some common mistakes:
+    # fix some common mistakes that could've occured:
     prompt = prompt.replace(",,", ",")
     prompt = prompt.replace("  ", " ")
     prompt = prompt.replace(" .", ".")

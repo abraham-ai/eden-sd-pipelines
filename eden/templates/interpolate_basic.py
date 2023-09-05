@@ -28,7 +28,7 @@ def lerp(
         text_input = interpolation_texts[0],
         interpolation_texts = interpolation_texts,
         interpolation_seeds = interpolation_seeds if interpolation_seeds else [random.randint(1, 1e8) for i in range(n)],
-        n_frames = 5*n,
+        n_frames = 8*n,
         guidance_scale = random.choice([8]),
         loop = True,
         smooth = True,
@@ -92,17 +92,17 @@ if __name__ == "__main__":
     outdir = "results"
     n = 3
 
-    for i in range(4):
+    for i in range(1):
         seed = np.random.randint(0, 1000)
-        seed = i
+        seed = 1
 
         seed_everything(seed)
         interpolation_texts = random.sample(text_inputs, n)
 
         interpolation_texts = [
-            "a photo of a massive <concept> statue in the middle of the city, high quality professional photography, nikon d850 50mm",
-            "<concept> as a character in a noir graphic novel, under a rain-soaked streetlamp",
-            "a photo of a <concept> sand sculpture at the beach",
+            "a photo of <concept> as a massive statue in the middle of the city, high quality professional photography, nikon d850 50mm",
+            "a photo of <concept> as a character in a noir graphic novel, under a rain-soaked streetlamp",
+            "a photo of <concept> as a sand sculpture at the beach",
         ]
 
         for txt in interpolation_texts:
