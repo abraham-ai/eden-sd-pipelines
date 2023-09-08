@@ -293,7 +293,7 @@ class Predictor(BasePredictor):
                 args.init_image_strength = 0.0
 
             attributes = None
-            print("Prompt:")
+            print("Input prompt:")
             print(args.text_input)
             out_paths = []
 
@@ -310,7 +310,7 @@ class Predictor(BasePredictor):
                     frame.save(out_path, format='JPEG', subsampling=0, quality=95)
                     out_paths.append(out_path)
             
-            if mode == "remix":
+            if (mode == "remix" or mode == "upscale") and (args.text_input is None):
                 attributes = {"interrogation": batch_i_args.text_input}
             
             if DEBUG_MODE:
