@@ -4,6 +4,7 @@ DEBUG_MODE = False
 from pathlib import Path
 import os
 import time
+import random
 import sys
 import json
 import tempfile
@@ -64,7 +65,7 @@ class Predictor(BasePredictor):
         # Universal args
         mode: str = Input(
             description="Mode", default="generate",
-            choices=["generate", "remix", "upscale", "interpolate", "real2real", "interrogate"]
+            choices=["generate", "remix", "upscale", "blend", "interpolate", "real2real", "interrogate"]
         ),
         stream: bool = Input(
             description="yield individual results if True", default=False
@@ -320,6 +321,20 @@ class Predictor(BasePredictor):
 
         else: # mode == "interpolate" or mode == "real2real" or mode == "blend"
 
+            if args.interpolation_seeds is None:
+                # create random seeds with the same length as the number of texts / images:
+                n_keyframes = len(args.interpolation_texts) if mode == "interpolate" else len(args.interpolation_init_images)
+                args.interpolation_seeds = [random.randint(0, 9999) for _ in range(n_keyframes)]
+
+            if mode == "blend":
+                assert len(args.interpolation_init_images) == 2, "Must have exactly two init_images to blend!"
+                args.n_frames = 3
+                args.n_film = 0
+                args.smooth = True
+                args.loop = False
+                args.interpolation_init_images_min_strength = 0.15
+                args.interpolation_init_images_max_strength = 1.0
+
             # Make sure there's at least two init_images or prompts to interpolate:
             if (mode == "interpolate" and len(args.interpolation_texts) < 2) or (mode == "real2real" and len(args.interpolation_init_images) < 2):
                 raise ValueError("Must have at least two init_images or prompts to interpolate!")
@@ -337,10 +352,15 @@ class Predictor(BasePredictor):
             for f, (frame, t_raw) in enumerate(generator):
                 out_path = out_dir / ("frame_%0.16f.jpg" % t_raw)
                 frame.save(out_path, format='JPEG', subsampling=0, quality=95)
-                progress = f / args.n_frames
+
                 if not thumbnail:
                     thumbnail = out_path
-                
+
+                if (mode == "blend") and (t_raw == 0.5):
+                    print("predict.py: blend mode, saving frame 0.5")
+                    break
+
+                progress = f / args.n_frames
                 cog_output = CogOutput(attributes=attributes, progress=progress)
                 if stream and f % stream_every == 0:
                     cog_output.files = [out_path]
@@ -357,18 +377,18 @@ class Predictor(BasePredictor):
                 print("predict.py: FILM done.")
                 out_dir = Path(os.path.join(abs_out_dir_path, "interpolated_frames"))
 
-            # save video
-            out_path = out_dir / "out.mp4"
-            eden_utils.write_video(out_dir, str(out_path), loop=loop, fps=args.fps)
+            if mode != "blend":
+                # save video
+                out_path = out_dir / "out.mp4"
+                eden_utils.write_video(out_dir, str(out_path), loop=loop, fps=args.fps)
 
-            if mode == "real2real":
-                attributes = {"interrogation": args.interpolation_texts}
-
-            name = " => ".join(args.interpolation_texts)
+                if mode == "real2real":
+                    attributes = {"interrogation": args.interpolation_texts}
 
             if DEBUG_MODE:
                 yield out_path
             else:
+                name = " => ".join(args.interpolation_texts)
                 yield CogOutput(files=[out_path], name=name, thumbnails=[thumbnail], attributes=attributes, isFinal=True, progress=1.0)
 
         t_end = time.time()

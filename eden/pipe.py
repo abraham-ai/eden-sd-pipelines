@@ -207,11 +207,15 @@ def prepare_prompt_for_lora(prompt, lora_path, interpolation = False, verbose = 
 
     ######### We're assuming the token should be <concept> or <lora_name> #########
 
+    print(f"lora mode: {mode}")
+
     if mode != "style":
         if "<concept>" in prompt:
             prompt = prompt.replace("<concept>", trigger_text)
         elif lora_name in prompt:
             prompt = prompt.replace(lora_name, trigger_text)
+        elif lora_name.lower() in prompt:
+            prompt = prompt.replace(lora_name.lower(), trigger_text)
         else:
             prompt = trigger_text + ", " + prompt
     else: # mode == style

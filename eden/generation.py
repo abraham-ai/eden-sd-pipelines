@@ -48,7 +48,7 @@ def generate(
     upscale = False,
     do_callback = False,
 ):
-    assert args.text_input is not None
+    #assert args.text_input is not None
 
     seed_everything(args.seed)
 
@@ -224,6 +224,9 @@ def make_interpolation(args, force_timepoints = None):
     args.upscale_f = 1.0
     args.controlnet_conditioning_scale = 0.0 # for now, disable controlnet for videos
     args.controlnet_path = None
+
+    print("Seeds:")
+    print(args.interpolation_seeds)
 
     if args.interpolation_init_images and all(args.interpolation_init_images):
         if not args.interpolation_texts: #len(args.interpolation_texts) == 0:
