@@ -206,7 +206,7 @@ def prepare_prompt_for_lora(prompt, lora_path, interpolation = False, verbose = 
         mode = training_args["mode"]
 
     ######### We're assuming the token should be <concept> or <lora_name> #########
-    
+
     if mode != "style":
         if "<concept>" in prompt:
             prompt = prompt.replace("<concept>", trigger_text)

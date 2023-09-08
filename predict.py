@@ -64,7 +64,7 @@ class Predictor(BasePredictor):
         # Universal args
         mode: str = Input(
             description="Mode", default="generate",
-            choices=["generate", "remix", "interpolate", "real2real", "interrogate"]
+            choices=["generate", "remix", "upscale", "interpolate", "real2real", "interrogate"]
         ),
         stream: bool = Input(
             description="yield individual results if True", default=False
@@ -284,15 +284,15 @@ class Predictor(BasePredictor):
             else:
                 yield CogOutput(files=[out_path], name=interrogation, thumbnails=[out_path], attributes=attributes, isFinal=True, progress=1.0)
 
-        elif mode == "generate" or mode == "remix" or mode == "controlnet":
+        elif mode == "generate" or mode == "remix" or mode == "controlnet" or mode == "upscale":
+
+            if (mode == "upscale" or mode == "remix") and (args.init_image_data is None):
+                raise ValueError("an init_image must be provided for mode = upscale/remix")
             
             if args.init_image_data is None:
                 args.init_image_strength = 0.0
 
             attributes = None
-            if mode == "remix":
-                attributes = {"interrogation": args.text_input}
-            
             print("Prompt:")
             print(args.text_input)
             out_paths = []
@@ -309,6 +309,9 @@ class Predictor(BasePredictor):
                     out_path = out_dir / f"frame_{f:04d}_{batch_i}.jpg"
                     frame.save(out_path, format='JPEG', subsampling=0, quality=95)
                     out_paths.append(out_path)
+            
+            if mode == "remix":
+                attributes = {"interrogation": batch_i_args.text_input}
             
             if DEBUG_MODE:
                 yield out_paths[0]

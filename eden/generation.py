@@ -68,7 +68,6 @@ def generate(
     global pipe
     pipe = eden_pipe.get_pipe(args)
 
-    # Map LORA tokens:
     if (args.lora_path is not None) and (args.interpolator is None):
         args.text_input = eden_pipe.prepare_prompt_for_lora(args.text_input, args.lora_path, verbose = True)
 
@@ -360,23 +359,19 @@ def make_interpolation(args, force_timepoints = None):
     # Flush the final metadata to disk if needed:
     args.interpolator.latent_tracker.reset_buffer()
 
-def make_images(args, enable_random_lr_flipping = True):
-    if args.mode == "remix":
+def make_images(args):
+    if args.mode == "remix" or args.mode == "upscale":
 
-        if args.init_image_data:
-            args.init_image = load_img(args.init_image_data, 'RGB')
-
-        assert args.init_image is not None, "Must provide an init image in order to remix it!"
+        assert args.init_image_data is not None, "Must provide an init image in order to remix/upscale it!"
         
-        if random.random() > 0.33 and enable_random_lr_flipping:
-            args.init_image = args.init_image.transpose(Image.FLIP_LEFT_RIGHT)
+        if args.text_input is None:
+            init_image = load_img(args.init_image_data, 'RGB')
+            args.text_input = clip_interrogate(args.ckpt, init_image, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
+            del_clip_interrogator_models()
+        else:
+            print(f"Performing {args.mode} with provided text input: {args.text_input}")
 
-        args.W, args.H = match_aspect_ratio(args.W * args.H, args.init_image)
-        args.text_input = clip_interrogate(args.ckpt, args.init_image, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
-
-        del_clip_interrogator_models()
-
-    assert args.text_input is not None, "No text input provided!"
+    assert (args.text_input is not None), "No text input provided!"
 
     _, images_pil = generate(args)
     return images_pil
