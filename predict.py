@@ -317,7 +317,7 @@ class Predictor(BasePredictor):
             if DEBUG_MODE:
                 yield out_paths[0]
             else:
-                yield CogOutput(files=out_paths, name=batch_i_args.text_input, thumbnails=out_paths, attributes=attributes, isFinal=True, progress=1.0)
+                yield CogOutput(files=out_paths, name=batch_i_args.name, thumbnails=out_paths, attributes=attributes, isFinal=True, progress=1.0)
 
         else: # mode == "interpolate" or mode == "real2real" or mode == "blend"
 
@@ -388,8 +388,7 @@ class Predictor(BasePredictor):
             if DEBUG_MODE:
                 yield out_path
             else:
-                name = " => ".join(args.interpolation_texts)
-                yield CogOutput(files=[out_path], name=name, thumbnails=[thumbnail], attributes=attributes, isFinal=True, progress=1.0)
+                yield CogOutput(files=[out_path], name=args.name, thumbnails=[thumbnail], attributes=attributes, isFinal=True, progress=1.0)
 
         t_end = time.time()
         print(f"predict.py: done in {t_end - t_start:.2f} seconds")

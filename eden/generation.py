@@ -68,12 +68,15 @@ def generate(
     global pipe
     pipe = eden_pipe.get_pipe(args)
 
+    if args.interpolator is None:
+        args.name = args.text_input # send this name back to the frontend
+
     if (args.lora_path is not None) and (args.interpolator is None):
         args.text_input = eden_pipe.prepare_prompt_for_lora(args.text_input, args.lora_path, verbose = True)
 
     if args.text_input == "remix_this_image" and (args.init_image is not None): # hardcoded prompt hack to trigger clip_interrogator
         args.text_input = clip_interrogate(args.ckpt, args.init_image, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
-
+    
     if args.interpolator is not None:
         args.interpolator.latent_tracker.create_new_denoising_trajectory(args, pipe)
     
@@ -274,6 +277,8 @@ def make_interpolation(args, force_timepoints = None):
     global pipe
     pipe = eden_pipe.get_pipe(args)
     
+    args.name = " => ".join(args.interpolation_texts) # send this name back to frontend
+
     # Map LORA tokens:
     if args.lora_path is not None:
         for i, _ in enumerate(args.interpolation_texts):

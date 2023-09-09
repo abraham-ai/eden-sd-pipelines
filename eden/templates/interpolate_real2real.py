@@ -31,29 +31,7 @@ def real2real(
     name = f"real2real_{name_str}_{int(time.time()*100)}_{seed}"
     frames_dir = os.path.join(outdir, name)
     os.makedirs(frames_dir, exist_ok=True)
-
-    args = StableDiffusionSettings(
-            interpolation_init_images = input_images,
-            interpolation_seeds = [random.randint(1, 1e8) for _ in range(n)],
-            interpolation_init_images_min_strength = 0.15,  # a higher value will make the video smoother, but allows less visual change / journey
-            interpolation_init_images_max_strength = 1.00,
-            latent_blending_skip_f = random.choice([[0.0, 0.65]]),
-            guidance_scale = random.choice([8]),
-            n_anchor_imgs = random.choice([3]),
-            sampler = "euler",
-            n_frames = 3*n,
-            loop = False,
-            smooth = True,
-            n_film = 0,
-            fps = 12,
-            steps = 40,
-            seed = seed,
-            H = 1024,
-            W = 1024,
-            upscale_f = 1.0,
-            #lora_path = None,
-        )
-
+    
     if args is None:
         args = StableDiffusionSettings(
             #watermark_path = "../assets/eden_logo.png",

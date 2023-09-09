@@ -111,6 +111,7 @@ class StableDiffusionSettings:
     # mask_contrast_adjust: float = 1.0
 
     # single generation
+    name: str = "" # prompt-name of the creation in the UI
     text_input: str = "hello world" 
     text_input_2: str = None  # optional, second prompt (for txt-encoder2 in SDXL)
     uc_text: str = "nude, naked, poorly drawn face, ugly, tiling, out of frame, extra limbs, disfigured, deformed body, blurry, blurred, watermark, text, grainy, signature, cut off, draft"  # negative prompting
