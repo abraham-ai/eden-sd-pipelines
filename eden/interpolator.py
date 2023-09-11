@@ -180,7 +180,10 @@ class Interpolator():
     
     def get_scale(self, t):
         ''' get the scale for the current frame '''
-        scale = (1-t)*self.scales[self.prompt_index] + t*self.scales[self.prompt_index+1]
+        try:
+            scale = (1-t)*self.scales[self.prompt_index] + t*self.scales[self.prompt_index+1]
+        except:
+            scale = self.scales[self.prompt_index]
         return scale
 
     def evaluate_new_t(self, new_t, distance_index, target_perceptual_distances, t_min_treshold, verbose = 1):
@@ -393,7 +396,7 @@ class Interpolator():
 
         if self.smooth:
             #self.frame_buffer.maybe_reset()
-            
+
             t, abort = self.find_next_t()
             t_raw = t + self.prompt_index
 
@@ -419,7 +422,6 @@ class Interpolator():
                 plt.clf()
                 plt.close()
 
-
             if t_raw is None:
                 t_raw = self.ts[self.interpolation_step]
 
@@ -432,7 +434,7 @@ class Interpolator():
         
         i = self.prompt_index
 
-        try: #sdx
+        try: #sdxl
             p_c   = lerp(t, self.prompt_embeds[i][0], self.prompt_embeds[(i + 1) % self.n][0])
             np_c  = lerp(t, self.prompt_embeds[i][1], self.prompt_embeds[(i + 1) % self.n][1])
             pp_c  = lerp(t, self.prompt_embeds[i][2], self.prompt_embeds[(i + 1) % self.n][2])

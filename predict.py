@@ -1,5 +1,6 @@
 # don't push DEBUG_MODE = True to Replicate!
 DEBUG_MODE = False
+#DEBUG_MODE = True
 
 from pathlib import Path
 import os
@@ -328,12 +329,16 @@ class Predictor(BasePredictor):
 
             if mode == "blend":
                 assert len(args.interpolation_init_images) == 2, "Must have exactly two init_images to blend!"
-                args.n_frames = 3
+                args.n_frames = 5
                 args.n_film = 0
                 args.smooth = True
                 args.loop = False
-                args.interpolation_init_images_min_strength = 0.15
                 args.interpolation_init_images_max_strength = 1.0
+                #force_timepoints = [0.0, 1.0, 0.25] # TODO enable weighted blending
+                force_timepoints = None
+
+            else:
+                force_timepoints = None
 
             # Make sure there's at least two init_images or prompts to interpolate:
             if (mode == "interpolate" and len(args.interpolation_texts) < 2) or (mode == "real2real" and len(args.interpolation_init_images) < 2):
@@ -344,7 +349,7 @@ class Predictor(BasePredictor):
             if loop:
                 args.n_frames = args.n_frames // 2
             
-            generator = generation.make_interpolation(args)
+            generator = generation.make_interpolation(args, force_timepoints=force_timepoints)
             attributes = None
             thumbnail = None
 
@@ -386,6 +391,7 @@ class Predictor(BasePredictor):
                     attributes = {"interrogation": args.interpolation_texts}
 
             if DEBUG_MODE:
+                shutil.copyfile(out_path, "/src/out.jpg")
                 yield out_path
             else:
                 yield CogOutput(files=[out_path], name=args.name, thumbnails=[thumbnail], attributes=attributes, isFinal=True, progress=1.0)
