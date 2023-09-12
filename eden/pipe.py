@@ -189,66 +189,74 @@ from safetensors.torch import load_file
 from diffusers.models.attention_processor import LoRAAttnProcessor2_0
 from dataset_and_utils import TokenEmbeddingsHandler
 
-def prepare_prompt_for_lora(prompt, lora_path, interpolation = False, verbose = True):
+def prepare_prompt_for_lora(prompt, lora_path, interpolation=False, verbose=True):
     orig_prompt = prompt
 
+    # Helper function to read JSON
+    def read_json_from_path(path):
+        with open(path, "r") as f:
+            return json.load(f)
+
+    # Check existence of "special_params.json"
     if not os.path.exists(os.path.join(lora_path, "special_params.json")):
-        raise "This concept is from an old lora trainer that was deprecated, please retrain your concept for better results!"
+        raise ValueError("This concept is from an old lora trainer that was deprecated. Please retrain your concept for better results!")
 
-    with open(os.path.join(lora_path, "special_params.json"), "r") as f:
-        token_map = json.load(f)
-
-    with open(os.path.join(lora_path, "training_args.json"), "r") as f:
-        training_args = json.load(f)
-        lora_name = training_args["name"]
-        lora_name = "<" + str(lora_name) + ">"
-        trigger_text = training_args["trigger_text"]
-        mode = training_args["mode"]
-
-    ######### We're assuming the token should be <concept> or <lora_name> #########
-
-    print(f"lora mode: {mode}")
-
-    if mode != "style":
-        if "<concept>" in prompt:
-            prompt = prompt.replace("<concept>", trigger_text)
-        elif lora_name in prompt:
-            prompt = prompt.replace(lora_name, trigger_text)
-        elif lora_name.lower() in prompt:
-            prompt = prompt.replace(lora_name.lower(), trigger_text)
-        else:
-            prompt = trigger_text + ", " + prompt
-    else: # mode == style
-        if "in the style of <concept>" in prompt:
-            prompt = prompt.replace("in the style of <concept>", "in the style of TOK")
-        elif f"in the style of {lora_name}" in prompt:
-            prompt = prompt.replace(f"in the style of {lora_name}", "in the style of TOK")
-        else:
-            prompt = prompt + ", in the style of TOK"
-
-        # Final cleanup, just in case:
-        if "<concept>" in prompt:
-            prompt = prompt.replace("<concept>", "TOK")
-        elif lora_name in prompt:
-            prompt = prompt.replace(lora_name, "TOK")
-
-    #### from here on, the token should be what's in the token map (usually TOK) ####
-
-    if interpolation: # This improves the slerping conditioning vectors with LORA interpolations
-        if mode != "style":
-            prompt = "TOK, " + prompt
-
-    #### finally, we actually replace TOK with the learned tokens <s0><s1> ####
-
-    for k, v in token_map.items():
-        if k in prompt:
-            prompt = prompt.replace(k, v)
+    token_map = read_json_from_path(os.path.join(lora_path, "special_params.json"))
+    training_args = read_json_from_path(os.path.join(lora_path, "training_args.json"))
     
-    # fix some common mistakes that could've occured:
-    prompt = prompt.replace(",,", ",")
-    prompt = prompt.replace("  ", " ")
-    prompt = prompt.replace(" .", ".")
-    prompt = prompt.replace(" ,", ",")
+    lora_name = str(training_args["name"])
+    lora_name_encapsulated = "<" + lora_name + ">"
+    trigger_text = training_args["trigger_text"]
+    mode = training_args["mode"]
+
+    # Helper function for multiple replacements
+    def replace_in_string(s, replacements):
+        for target, replacement in replacements.items():
+            s = s.replace(target, replacement)
+        return s
+
+    # Handle different modes
+    print(f"lora mode: {mode}")
+    if mode != "style":
+        replacements = {
+            "<concept>": trigger_text,
+            lora_name_encapsulated: trigger_text,
+            lora_name_encapsulated.lower(): trigger_text,
+            lora_name: trigger_text,
+            lora_name.lower(): trigger_text
+        }
+        prompt = replace_in_string(prompt, replacements)
+        if not any(key in prompt for key in replacements.keys()):
+            prompt = trigger_text + ", " + prompt
+    else:
+        style_replacements = {
+            "in the style of <concept>": "in the style of TOK",
+            f"in the style of {lora_name_encapsulated}": "in the style of TOK",
+            f"in the style of {lora_name_encapsulated.lower()}": "in the style of TOK",
+            f"in the style of {lora_name}": "in the style of TOK",
+            f"in the style of {lora_name.lower()}": "in the style of TOK"
+        }
+        prompt = replace_in_string(prompt, style_replacements)
+        if "in the style of" not in prompt:
+            prompt = prompt + ", in the style of TOK"
+        
+    # Final cleanup
+        prompt = replace_in_string(prompt, {"<concept>": "TOK", lora_name_encapsulated: "TOK"})
+
+    if interpolation and mode != "style":
+        prompt = "TOK, " + prompt
+
+    # Replace tokens based on token map
+    prompt = replace_in_string(prompt, token_map)
+
+    # Fix common mistakes
+    fix_replacements = {
+        ",,": ",",
+        "  ": " ",
+        " .": ".",
+        " ,": ","
+    }
+    prompt = replace_in_string(prompt, fix_replacements)
 
     if verbose:
         print('-------------------------')
@@ -259,6 +267,9 @@ def prepare_prompt_for_lora(prompt, lora_path, interpolation = False, verbose = 
         print('-------------------------')
 
     return prompt
+
+
+
 
 def update_pipe_with_lora(pipe, args):
     global last_lora_path

@@ -288,8 +288,8 @@ class Predictor(BasePredictor):
 
         elif mode == "generate" or mode == "remix" or mode == "controlnet" or mode == "upscale":
 
-            if (mode == "upscale" or mode == "remix") and (args.init_image_data is None):
-                raise ValueError("an init_image must be provided for mode = upscale/remix")
+            if (mode == "upscale" or mode == "remix" or mode == "controlnet") and (args.init_image_data is None):
+                raise ValueError(f"an init_image must be provided for mode = {mode}")
             
             if args.init_image_data is None:
                 args.init_image_strength = 0.0
@@ -324,7 +324,10 @@ class Predictor(BasePredictor):
 
             if args.interpolation_seeds is None:
                 # create random seeds with the same length as the number of texts / images:
-                n_keyframes = len(args.interpolation_texts) if mode == "interpolate" else len(args.interpolation_init_images)
+                if mode == "interpolate":
+                    n_keyframes = len(args.interpolation_texts)
+                else:
+                    n_keyframes = len(args.interpolation_init_images)
                 args.interpolation_seeds = [random.randint(0, 9999) for _ in range(n_keyframes)]
 
             if mode == "blend":
@@ -362,6 +365,7 @@ class Predictor(BasePredictor):
                     thumbnail = out_path
 
                 if (mode == "blend") and (t_raw == 0.5):
+                    thumbnail = out_path
                     print("predict.py: blend mode, saving frame 0.5")
                     break
 
