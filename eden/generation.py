@@ -351,8 +351,6 @@ def make_interpolation(args, force_timepoints = None):
         else:
             args.init_image = None
 
-        print(args.init_image_strength)
-
         # TODO, auto adjust min n_steps (needs to happend before latent blending stuff and reset after each frame render):
         #args.steps = max(args.steps, int(args.min_steps/(1-args.init_image_strength)))
         #pipe.scheduler.set_timesteps(args.steps, device=device)
