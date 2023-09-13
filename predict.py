@@ -1,6 +1,6 @@
 # don't push DEBUG_MODE = True to Replicate!
 DEBUG_MODE = False
-DEBUG_MODE = True
+#DEBUG_MODE = True
 
 from pathlib import Path
 import os
@@ -242,7 +242,7 @@ class Predictor(BasePredictor):
             init_image_strength = init_image_strength,
             adopt_aspect_from_init_img = adopt_aspect_from_init_img,
             controlnet_path = controlnet_options[controlnet_type],
-            
+
             text_input = text_input,
             uc_text = uc_text,
             seed = seed,
@@ -285,7 +285,7 @@ class Predictor(BasePredictor):
                 yield out_path
             else:
                 yield CogOutput(files=[out_path], name=interrogation, thumbnails=[out_path], attributes=attributes, isFinal=True, progress=1.0)
-
+        
         elif mode == "generate" or mode == "remix" or mode == "controlnet" or mode == "upscale":
 
             if (mode == "upscale" or mode == "remix" or mode == "controlnet") and (args.init_image_data is None):

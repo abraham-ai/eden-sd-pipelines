@@ -54,7 +54,7 @@ def generate(
     seed_everything(args.seed)
 
     # Load init image
-    if args.init_image_data:
+    if args.init_image_data and args.init_image is None:
         args.init_image = load_img(args.init_image_data, 'RGB')
 
     if args.init_image is not None:
@@ -75,14 +75,12 @@ def generate(
     if (args.lora_path is not None) and (args.interpolator is None):
         args.text_input = eden_pipe.prepare_prompt_for_lora(args.text_input, args.lora_path, verbose = True)
 
-    if args.text_input == "remix_this_image" and (args.init_image is not None): # hardcoded prompt hack to trigger clip_interrogator
-        args.text_input = clip_interrogate(args.ckpt, args.init_image, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
-    
     if args.interpolator is not None:
         args.interpolator.latent_tracker.create_new_denoising_trajectory(args, pipe)
     
     # if init image strength == 1, just return the initial image
     if (args.init_image_strength == 1.0 or (int(args.steps*(1-args.init_image_strength)) < 1)) and args.init_image and (args.controlnet_path is None):
+        print("Returning raw initial image!!")
         latent = pil_img_to_latent(args.init_image, args, _device, pipe)
         if args.interpolator is not None:
             args.interpolator.latent_tracker.add_latent(0, pipe.scheduler.timesteps[-1], latent)
@@ -141,7 +139,7 @@ def generate(
 
     if args.controlnet_path is not None and args.controlnet_conditioning_scale > 0 and args.init_image is not None:
         
-        # video-controlnet, currently disabled:
+        # video-controlnet frames, currently disabled:
         #controlnet_frame_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/controlnet_vids/kaleido_02"
         #controlnet_frames = sorted(glob.glob(os.path.join(controlnet_frame_dir, "*.jpg")))
         #args.init_image = controlnet_frames[args.interpolator.interpolation_step % len(controlnet_frames)]
@@ -235,15 +233,21 @@ def make_interpolation(args, force_timepoints = None):
     # Always disbale upscaling for videos (since it introduces frame jitter)
     args.upscale_f = 1.0
 
-    if args.controlnet_path is not None:
-        args.latent_blending_skip_f = None # Disable LatentBlending with ControlNet
-
-    print("Seeds:")
-    print(args.interpolation_seeds)
-
     if args.interpolation_init_images and all(args.interpolation_init_images):
+        mode = "real2real"
         if not args.interpolation_texts: #len(args.interpolation_texts) == 0:
             args.interpolation_texts = [None]*len(args.interpolation_init_images)
+    else:
+        mode = "lerp"
+
+
+    if mode == "real2real":
+        args.controlnet_path = None
+        args.init_image_data = None
+    else: # mode == "lerp"
+        if args.controlnet_path or args.init_image_data:
+            args.latent_blending_skip_f = None # Disable LatentBlending with ControlNet
+
 
     if not args.interpolation_init_images:
         args.interpolation_init_images = [None]
@@ -342,10 +346,12 @@ def make_interpolation(args, force_timepoints = None):
         args.guidance_scale = scale
         args.t_raw = t_raw
         
-        args.init_latent, args.init_image, new_init_image_strength = create_init_latent(args, t, interpolation_init_images, keyframe_index, init_noise, _device, pipe)
+        if args.init_image_data is None:
+            args.init_latent, args.init_image, args.init_image_strength = create_init_latent(args, t, interpolation_init_images, keyframe_index, init_noise, _device, pipe)
+        else:
+            args.init_image = None
 
-        if args.controlnet_path is None:
-            args.init_image_strength = new_init_image_strength
+        print(args.init_image_strength)
 
         # TODO, auto adjust min n_steps (needs to happend before latent blending stuff and reset after each frame render):
         #args.steps = max(args.steps, int(args.min_steps/(1-args.init_image_strength)))
@@ -382,9 +388,10 @@ def make_interpolation(args, force_timepoints = None):
     args.interpolator.latent_tracker.reset_buffer()
 
 def make_images(args):
-    if args.mode == "remix" or args.mode == "upscale":
+    if args.mode == "remix" or args.mode == "upscale" or args.mode == "controlnet":
 
-        assert args.init_image_data is not None, "Must provide an init image in order to remix/upscale it!"
+        if args.init_image_data is None:
+            raise ValueError(f"Must provide an init image in order to use {args.mode}!")
         
         if args.text_input is None:
             init_image = load_img(args.init_image_data, 'RGB')
@@ -396,7 +403,8 @@ def make_images(args):
         else:
             print(f"Performing {args.mode} with provided text input: {args.text_input}")
 
-    assert (args.text_input is not None), "No text input provided!"
+    if args.text_input is None:
+        raise ValueError("You must provide a text input!")
 
     _, images_pil = generate(args)
     return images_pil

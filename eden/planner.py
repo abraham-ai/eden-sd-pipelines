@@ -377,7 +377,7 @@ def blend_inits(init1, init2, t, args, real2real = True, anti_shinethrough_power
     return blended_init, init_image_strength
 
 
-def create_init_latent(args, t, interpolation_init_images, keyframe_index, init_noise, device, pipe):
+def create_init_latent(args, t, interpolation_init_images, keyframe_index, init_noise, device, pipe, verbose = 1):
 
     """
     This function is derived from the latent-blending idea:
@@ -393,6 +393,8 @@ def create_init_latent(args, t, interpolation_init_images, keyframe_index, init_
     if not real2real: # lerp
         if (len(args.interpolator.latent_tracker.frame_buffer.ts) < args.n_anchor_imgs) or (not args.smooth):
             # anchor_frames for lerp: only use the raw init_latent noise from interpolator (using the input seeds)
+            if verbose:
+                print("Making anchor frame...")
             pipe.scheduler.set_timesteps(args.steps, device=device)
             init_latent = init_noise * pipe.scheduler.init_noise_sigma
             init_image = None
@@ -413,10 +415,11 @@ def create_init_latent(args, t, interpolation_init_images, keyframe_index, init_
     init_image, init_latent, timestep  = None, None, None
     
     if (len(latent_tracker.t_raws) < args.n_anchor_imgs or (args.latent_blending_skip_f is None)) and 0:
-        #print("Simply alpha-blending the keyframe latents..")
+        if verbose:
+            print("Simply alpha-blending the keyframe latents..")
         # simply alpha-blend the keyframe latents using t:
         init_latent, init_image_strength = blend_inits(key_latent0, key_latent1, t, args, real2real = real2real)
-
+        
         if init_image_strength == 1: # first or last frame of the interpolation, just return raw image
             init_latent = None
             init_image = init_img0 if t < 0.5 else init_img1
@@ -424,13 +427,15 @@ def create_init_latent(args, t, interpolation_init_images, keyframe_index, init_
             pass
 
     elif (len(latent_tracker.t_raws) < args.n_anchor_imgs or (args.latent_blending_skip_f is None)) or (not args.smooth):
-        #print("Pixel blending...")
+        if verbose:
+            print("Pixel blending...")
         # apply linear blending of keyframe images in pixel space and then encode
         init_image, init_image_strength = blend_inits(init_img0, init_img1, t, args, real2real = real2real)
         init_latent = None
 
     else: # Apply Latent-Blending trick:
-        #print("Latent Blending...")
+        if verbose:
+            print("Latent Blending...")
         _, init_image_strength = blend_inits(key_latent0, key_latent1, t, args, real2real = real2real, only_need_init_strength = True)
         
         # apply latent_blending_skip_f to the init_image_strength:

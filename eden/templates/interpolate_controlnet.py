@@ -36,15 +36,14 @@ def lerp(
         n_anchor_imgs = random.choice([3]),
         n_film = 0,
         fps = 12,
-        steps = 30,
+        steps = 35,
         seed = seed,
-        H = 768,
-        W = 768,
+        H = 1024,
+        W = 1024,
         #lora_path = "/data/xander/Projects/cog/GitHub_repos/cog-sdxl/lora_models_fin_init/final_sweep_025_7887/checkpoints/checkpoint-800"
         init_image_data = "/data/xander/Projects/cog/eden-sd-pipelines/eden/assets/abraham_logo_hires.png",
-        init_image_strength = random.choice([0.55]),
-        #controlnet_path = "controlnet-zoe-depth-sdxl-1.0",
-        controlnet_path = "controlnet-canny-sdxl-1.0",
+        init_image_strength = random.choice([0.04]),
+        #controlnet_path = "controlnet-canny-sdxl-1.0",
     )
 
     # always make sure these args are properly set:

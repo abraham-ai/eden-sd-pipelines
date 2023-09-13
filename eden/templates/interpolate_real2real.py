@@ -41,7 +41,7 @@ def real2real(
             interpolation_texts = input_texts,
             interpolation_init_images = input_images,
             interpolation_init_images_power = 2.0,
-            interpolation_init_images_min_strength = random.choice([0.15]),  # a higher value will make the video smoother, but allows less visual change / journey
+            interpolation_init_images_min_strength = random.choice([0.1]),  # a higher value will make the video smoother, but allows less visual change / journey
             interpolation_init_images_max_strength = 0.95,
             latent_blending_skip_f = random.choice([[0.1, 0.65]]),
             compile_unet = False,
