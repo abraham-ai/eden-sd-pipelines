@@ -397,7 +397,6 @@ def create_init_latent(args, t, interpolation_init_images, keyframe_index, init_
             init_latent = init_noise * pipe.scheduler.init_noise_sigma
             init_image = None
             init_image_strength = 0.0
-
             return init_latent, init_image, init_image_strength
 
     latent_tracker = args.interpolator.latent_tracker

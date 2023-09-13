@@ -49,8 +49,8 @@ def generate_basic(
         lora_path = None,
         init_image_data = "/data/xander/Projects/cog/xander_eden_stuff/xander/assets/controlnet/garden/20230803_125517.jpg",
         init_image_strength = random.choice([0.9, 1.0]),
-        controlnet_path = "controlnet-zoe-depth-sdxl-1.0",
-        #controlnet_path = "controlnet-canny-sdxl-1.0",
+        #controlnet_path = "controlnet-zoe-depth-sdxl-1.0",
+        controlnet_path = "controlnet-canny-sdxl-1.0",
         low_t = random.choice([75, 100, 125]),
         high_t = random.choice([150, 200, 250]),
     )

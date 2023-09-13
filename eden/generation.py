@@ -1,4 +1,5 @@
 import os
+import glob
 import sys
 from pathlib import Path
 
@@ -68,7 +69,7 @@ def generate(
     global pipe
     pipe = eden_pipe.get_pipe(args)
 
-    if args.interpolator is None:
+    if args.interpolator is None and args.name is None:
         args.name = args.text_input # send this name back to the frontend
 
     if (args.lora_path is not None) and (args.interpolator is None):
@@ -139,6 +140,16 @@ def generate(
     args.controlnet_conditioning_scale = args.init_image_strength
 
     if args.controlnet_path is not None and args.controlnet_conditioning_scale > 0 and args.init_image is not None:
+        
+        # video-controlnet, currently disabled:
+        #controlnet_frame_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/controlnet_vids/kaleido_02"
+        #controlnet_frames = sorted(glob.glob(os.path.join(controlnet_frame_dir, "*.jpg")))
+        #args.init_image = controlnet_frames[args.interpolator.interpolation_step % len(controlnet_frames)]
+        #print("controlnet frame:", args.init_image)
+        #args.init_image = Image.open(args.init_image).convert("RGB")
+        #args.W, args.H  = match_aspect_ratio(args.W * args.H, args.init_image)
+        #args.init_image = args.init_image.resize((args.W, args.H), Image.LANCZOS)
+
         args.init_image = preprocess_controlnet_init_image(args.init_image, args)
         args.upscale_f = 1.0 # disable upscaling with controlnet for now
                    
@@ -221,12 +232,11 @@ def generate(
 
 @torch.no_grad()
 def make_interpolation(args, force_timepoints = None):
-    #print_gpu_info(args, "start of make_interpolation()")
-    
     # Always disbale upscaling for videos (since it introduces frame jitter)
     args.upscale_f = 1.0
-    args.controlnet_conditioning_scale = 0.0 # for now, disable controlnet for videos
-    args.controlnet_path = None
+
+    if args.controlnet_path is not None:
+        args.latent_blending_skip_f = None # Disable LatentBlending with ControlNet
 
     print("Seeds:")
     print(args.interpolation_seeds)
@@ -332,7 +342,10 @@ def make_interpolation(args, force_timepoints = None):
         args.guidance_scale = scale
         args.t_raw = t_raw
         
-        args.init_latent, args.init_image, args.init_image_strength = create_init_latent(args, t, interpolation_init_images, keyframe_index, init_noise, _device, pipe)
+        args.init_latent, args.init_image, new_init_image_strength = create_init_latent(args, t, interpolation_init_images, keyframe_index, init_noise, _device, pipe)
+
+        if args.controlnet_path is None:
+            args.init_image_strength = new_init_image_strength
 
         # TODO, auto adjust min n_steps (needs to happend before latent blending stuff and reset after each frame render):
         #args.steps = max(args.steps, int(args.min_steps/(1-args.init_image_strength)))
@@ -356,7 +369,8 @@ def make_interpolation(args, force_timepoints = None):
         )
         
         _, pil_images = generate(args, do_callback = True)
-        args.interpolator.latent_tracker.construct_noised_latents(args, args.t_raw)
+        if args.smooth:
+            args.interpolator.latent_tracker.construct_noised_latents(args, args.t_raw)
 
         img_pil = pil_images[0]
         img_t = T.ToTensor()(img_pil).unsqueeze_(0).to(_device)
@@ -376,6 +390,9 @@ def make_images(args):
             init_image = load_img(args.init_image_data, 'RGB')
             args.text_input = clip_interrogate(args.ckpt, init_image, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
             del_clip_interrogator_models()
+            print("Using clip-interrogate prompt:")
+            print(args.text_input)
+            args.name = args.text_input
         else:
             print(f"Performing {args.mode} with provided text input: {args.text_input}")
 

@@ -1,6 +1,6 @@
 # don't push DEBUG_MODE = True to Replicate!
 DEBUG_MODE = False
-#DEBUG_MODE = True
+DEBUG_MODE = True
 
 from pathlib import Path
 import os
@@ -242,7 +242,7 @@ class Predictor(BasePredictor):
             init_image_strength = init_image_strength,
             adopt_aspect_from_init_img = adopt_aspect_from_init_img,
             controlnet_path = controlnet_options[controlnet_type],
-
+            
             text_input = text_input,
             uc_text = uc_text,
             seed = seed,
