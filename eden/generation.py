@@ -69,7 +69,7 @@ def generate(
     global pipe
     pipe = eden_pipe.get_pipe(args)
 
-    if args.interpolator is None and args.name is None:
+    if (args.interpolator is None) and (len(args.name) == 0):
         args.name = args.text_input # send this name back to the frontend
 
     if (args.lora_path is not None) and (args.interpolator is None):
