@@ -66,7 +66,7 @@ class Predictor(BasePredictor):
         # Universal args
         mode: str = Input(
             description="Mode", default="generate",
-            choices=["generate", "remix", "upscale", "blend", "interpolate", "real2real", "interrogate"]
+            choices=["generate", "remix", "upscale", "blend", "controlnet", "interpolate", "real2real", "interrogate"]
         ),
         stream: bool = Input(
             description="yield individual results if True", default=False
