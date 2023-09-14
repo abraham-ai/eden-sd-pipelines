@@ -11,11 +11,32 @@ from audio import create_audio_features
 from eden_utils import pil_img_to_latent, slerp, create_seeded_noise, save_settings, sample_to_pil
 
 
+###### some minor helper functions ######
+
 def subtract_dc_value(signal):
     values, counts = np.unique(signal, return_counts=True)
     ind = np.argmax(counts)
     dc_value = values[ind]
     return signal - dc_value
+
+def pearson_correlation_coefficient(x, y):
+    try:
+        # Compute the means
+        mean_x = torch.mean(x)
+        mean_y = torch.mean(y)
+        
+        # Center the vectors
+        x_centered = x - mean_x
+        y_centered = y - mean_y
+        
+        # Compute the correlation coefficient
+        r = torch.sum(x_centered * y_centered) / (torch.sqrt(torch.sum(x_centered ** 2) * torch.sum(y_centered ** 2)))
+        
+        return r.item()
+    except:
+        return 0.0
+
+#######################################
 
 class Planner():
     """
@@ -544,21 +565,6 @@ class LatentTracker():
         return
 
     def construct_noised_latents(self, args, t_raw):
-
-        def pearson_correlation_coefficient(x, y):
-            # Compute the means
-            mean_x = torch.mean(x)
-            mean_y = torch.mean(y)
-            
-            # Center the vectors
-            x_centered = x - mean_x
-            y_centered = y - mean_y
-            
-            # Compute the correlation coefficient
-            r = torch.sum(x_centered * y_centered) / (torch.sqrt(torch.sum(x_centered ** 2) * torch.sum(y_centered ** 2)))
-            
-            return r.item()
-
         def sample_random_noise(shape, seed=None):
             if seed is not None:
                 torch.manual_seed(seed)

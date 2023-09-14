@@ -373,7 +373,7 @@ def make_interpolation(args, force_timepoints = None):
         )
         
         _, pil_images = generate(args, do_callback = True)
-        if args.smooth:
+        if args.smooth and args.latent_blending_skip_f:
             args.interpolator.latent_tracker.construct_noised_latents(args, args.t_raw)
 
         img_pil = pil_images[0]
