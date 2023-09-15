@@ -130,7 +130,7 @@ class Predictor(BasePredictor):
         controlnet_type: str = Input(
             description="Controlnet type",
             default="off",
-            choices=["off", "canny-edge"]
+            choices=["off", "canny-edge", "depth"]
         ),
         # Generate mode
         text_input: str = Input(
@@ -221,7 +221,8 @@ class Predictor(BasePredictor):
 
         controlnet_options = {
             "off": None,
-            "canny-edge": "controlnet-canny-sdxl-1.0"
+            "canny-edge": "controlnet-canny-sdxl-1.0-small",
+            "depth":      "controlnet-depth-sdxl-1.0-small"
         }
         
         args = StableDiffusionSettings(

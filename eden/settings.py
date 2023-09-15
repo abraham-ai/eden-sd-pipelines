@@ -42,7 +42,6 @@ class StableDiffusionSettings:
     uid: str = str(uuid.uuid4())
     
     # model settings
-    #ckpt: str = "eden:eden-v1"
     ckpt: str = "sdxl-v1.0"
 
     # controlnet
@@ -50,7 +49,6 @@ class StableDiffusionSettings:
     control_guidance_start: float = 0.0
     control_guidance_end: float   = 0.7
     controlnet_path: str = None
-
     low_t: float = 100.0   # low canny threshold
     high_t: float = 200.0  # high canny threshold
 
