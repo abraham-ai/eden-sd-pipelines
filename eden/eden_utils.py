@@ -133,7 +133,12 @@ def print_model_info(pipe, plot=0):
     except:
         pass
 
-    total_params_list = [sum(p.numel() for p in m.parameters() if p.requires_grad) for m in modules]
+    total_params_list = []
+    for m in modules:
+        if m is not None:
+            total_params_list.append(sum(p.numel() for p in m.parameters()))
+        else:
+            total_params_list.append(0)
 
     max_total_params = max(total_params_list)  # Get the maximum number of parameters
 
@@ -1182,16 +1187,38 @@ def preprocess_canny(pil_control_image, low_t = 100, high_t = 200):
     canny_img = np.concatenate([canny_img, canny_img, canny_img], axis=2)
     return  Image.fromarray(canny_img)
 
+
+from transformers import DPTFeatureExtractor, DPTForDepthEstimation
+from diffusers.utils import load_image
+
 def preprocess_zoe_depth(image):
+    width, height = image.size
+
     torch.cuda.empty_cache()
-    torch.hub.help("intel-isl/MiDaS", "DPT_BEiT_L_384", force_reload=True)  # Triggers fresh download of MiDaS repo
-    model_zoe_n = torch.hub.load("isl-org/ZoeDepth", "ZoeD_NK", pretrained=True).eval()
-    model_zoe_n = model_zoe_n.to("cuda")
 
-    with torch.autocast("cuda", enabled=True):
-        depth = model_zoe_n.infer_pil(image)
+    depth_estimator   = DPTForDepthEstimation.from_pretrained("Intel/dpt-hybrid-midas").to("cuda")
+    feature_extractor = DPTFeatureExtractor.from_pretrained("Intel/dpt-hybrid-midas")
 
-    depth = colorize(depth, cmap="gray_r")
+    image = feature_extractor(images=image, return_tensors="pt").pixel_values.to("cuda")
+    with torch.no_grad(), torch.autocast("cuda"):
+        depth_map = depth_estimator(image).predicted_depth
+    
+    depth_map = torch.nn.functional.interpolate(
+        depth_map.unsqueeze(1),
+        size=(height, width),
+        mode="bicubic",
+        align_corners=False,
+    )
+    depth_min = torch.amin(depth_map, dim=[1, 2, 3], keepdim=True)
+    depth_max = torch.amax(depth_map, dim=[1, 2, 3], keepdim=True)
+    depth_map = (depth_map - depth_min) / (depth_max - depth_min)
+    image = torch.cat([depth_map] * 3, dim=1)
+
+    image = image.permute(0, 2, 3, 1).cpu().numpy()[0]
+    image = Image.fromarray((image * 255.0).clip(0, 255).astype(np.uint8))
+    return image
+
+
 
     # delete the depth model and free the cuda memory:
     del model_zoe_n

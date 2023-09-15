@@ -103,7 +103,7 @@ class Predictor(BasePredictor):
         ),
         steps: int = Input(
             description="Diffusion steps", 
-            ge=10, le=100, default=45
+            ge=10, le=100, default=35
         ),
         guidance_scale: float = Input(
             description="Strength of text conditioning guidance", 
@@ -190,7 +190,7 @@ class Predictor(BasePredictor):
         ),
         latent_blending_skip_f: str = Input(
             description="What fraction of the denoising trajectory to skip at the start and end of each interpolation phase, two floats, separated by a pipe (|)",
-            default="0.2|0.7"
+            default="0.15|0.65"
         ),
         n_film: int = Input(
             description="Number of times to smooth final frames with FILM (default is 0) (mode==interpolate)",

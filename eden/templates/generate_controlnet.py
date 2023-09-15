@@ -36,10 +36,10 @@ def generate_basic(
     args = StableDiffusionSettings(
         #ckpt = random.choice(checkpoint_options),
         mode = "generate",
-        W = random.choice([1024]),
-        H = random.choice([1024]),
+        W = random.choice([1024+256]),
+        H = random.choice([1024+256]),
         sampler = random.choice(["euler"]),
-        steps = 40,
+        steps = 50,
         guidance_scale = random.choice([6,8,10]),
         upscale_f = random.choice([1.0, 1.0]),
         text_input = text_input,
@@ -47,10 +47,9 @@ def generate_basic(
         seed = seed,
         n_samples = 1,
         lora_path = None,
-        init_image_data = "/data/xander/Projects/cog/xander_eden_stuff/xander/assets/controlnet/garden/20230803_125517.jpg",
-        init_image_strength = random.choice([0.9, 1.0]),
-        #controlnet_path = "controlnet-zoe-depth-sdxl-1.0",
-        controlnet_path = "controlnet-canny-sdxl-1.0",
+        init_image_data = "/data/xander/Projects/cog/eden-sd-pipelines/eden/assets/abraham_logo_hires.png",
+        init_image_strength = random.choice([0.7, 0.9, 1.1]),
+        controlnet_path = random.choice(["controlnet-depth-sdxl-1.0-small","controlnet-canny-sdxl-1.0-small"]),
         low_t = random.choice([75, 100, 125]),
         high_t = random.choice([150, 200, 250]),
     )
@@ -81,14 +80,10 @@ def generate_basic(
 if __name__ == "__main__":
 
     
-    outdir = "controlnet_GARDEN"
+    outdir = "results_controlnet"
 
-    text_inputs = [
-        "A delicate tapestry of cherry blossom petals",
-        ]
-        
-
-    for i in range(2):
+    
+    for i in range(30):
         seed = random.randint(0, 100000)
         seed = i
         

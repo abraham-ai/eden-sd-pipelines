@@ -163,6 +163,8 @@ def generate(
             pooled_prompt_embeds = args.pc,
             negative_pooled_prompt_embeds= args.puc,
             controlnet_conditioning_scale = args.controlnet_conditioning_scale,
+            control_guidance_start = args.control_guidance_start,
+            control_guidance_end = args.control_guidance_end,
             generator = generator,
             callback = callback_,
             cross_attention_kwargs = cross_attention_kwargs,
@@ -419,7 +421,7 @@ def make_callback(
     return diffusers_callback
 
 def run_upscaler(args_, imgs, 
-        init_image_strength    = 0.45, 
+        init_image_strength    = 0.5, 
         upscale_guidance_scale = 5.0,
         min_upscale_steps      = 16,  # never do less than this many steps
         max_n_pixels           = 1600**2, # max number of pixels to avoid OOM
@@ -453,7 +455,7 @@ def run_upscaler(args_, imgs,
     if 0:
         # always upscale with SDXL-refiner by default:
         args.ckpt = "stabilityai/stable-diffusion-xl-refiner-1.0"
-        upscaling_pipe = eden_pipe.get_upscaling_pipe(args)
+        upscaling_pipe = eden_pipe.get_pipe(args)
     else:
         upscaling_pipe = eden_pipe.get_pipe(args)
 
