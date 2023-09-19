@@ -1191,6 +1191,21 @@ def preprocess_canny(pil_control_image, low_t = 100, high_t = 200):
 from transformers import DPTFeatureExtractor, DPTForDepthEstimation
 from diffusers.utils import load_image
 
+def prep_depth_map(image):
+    """
+    - convert the image to a single channel grayscale img
+    - rescale the given PIL image to the 0-1 range
+    - duplicate the grayscale image to 3 channels
+    """
+    image = image.convert("L")
+    image = np.array(image)
+
+    image = (image - image.min()) / (image.max() - image.min())
+    image = np.stack([image, image, image], axis=2)
+    
+    return Image.fromarray((image * 255.0).clip(0, 255).astype(np.uint8))
+
+
 def preprocess_zoe_depth(image):
     width, height = image.size
 

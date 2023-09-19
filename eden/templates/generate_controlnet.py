@@ -9,7 +9,7 @@ import moviepy.editor as mpy
 
 from settings import StableDiffusionSettings
 from generation import *
-from prompts import text_inputs, style_modifiers
+from prompts import text_inputs, text_inputs_v1, style_modifiers
 from eden_utils import *
 
 
@@ -33,11 +33,15 @@ def generate_basic(
     prefix = "",
     suffix = ""):
 
+    img_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/qr"
+    init_img = os.path.join(img_dir, random.sample(os.listdir(img_dir), 1)[0])
+
     args = StableDiffusionSettings(
-        #ckpt = random.choice(checkpoint_options),
+        ckpt = "/data/xander/Projects/cog/eden-sd-pipelines/models/checkpoints/eden:eden-v1",
+        #ckpt = "runwayml:stable-diffusion-v1-5",
         mode = "generate",
-        W = random.choice([1024+256]),
-        H = random.choice([1024+256]),
+        W = random.choice([1024, 1024+256, 1024+512]),
+        H = random.choice([1024, 1024+256, 1024+512]),
         sampler = random.choice(["euler"]),
         steps = 50,
         guidance_scale = random.choice([6,8,10]),
@@ -47,9 +51,10 @@ def generate_basic(
         seed = seed,
         n_samples = 1,
         lora_path = None,
-        init_image_data = "/data/xander/Projects/cog/eden-sd-pipelines/eden/assets/abraham_logo_hires.png",
+        init_image_data = init_img,
         init_image_strength = random.choice([0.7, 0.9, 1.1]),
-        controlnet_path = random.choice(["controlnet-depth-sdxl-1.0-small","controlnet-canny-sdxl-1.0-small"]),
+        #controlnet_path = random.choice(["controlnet-depth-sdxl-1.0-small","controlnet-canny-sdxl-1.0-small"]),
+        controlnet_path = "controlnet-monster-v2",
         low_t = random.choice([75, 100, 125]),
         high_t = random.choice([150, 200, 250]),
     )
@@ -63,14 +68,14 @@ def generate_basic(
     generator = make_images(args)
 
     os.makedirs(outdir, exist_ok = True)
-    save_control_img = False
+    save_control_img = True
 
     for i, img in enumerate(generator):
         frame = f'{name}_{i}.jpg'
         img.save(os.path.join(outdir, frame), quality=95)
-        #if save_control_img:
-        #    control_frame = f'{name}_{i}_cond.jpg'
-        #    controlnet_img.save(os.path.join(outdir, control_frame), quality=95)
+        if save_control_img:
+            control_frame = f'{name}_{i}_cond.jpg'
+            controlnet_img.save(os.path.join(outdir, control_frame), quality=95)
 
     # save settings
     settings_filename = f'{outdir}/{name}.json'
@@ -80,15 +85,15 @@ def generate_basic(
 if __name__ == "__main__":
 
     
-    outdir = "results_controlnet"
+    outdir = "results_controlnet_qr"
 
     
-    for i in range(30):
+    for i in range(40):
         seed = random.randint(0, 100000)
-        seed = i
+        #seed = i
         
         seed_everything(seed)
-        text_input = random.choice(text_inputs)
+        text_input = random.choice(text_inputs_v1)
 
         print(text_input)
         if 1:

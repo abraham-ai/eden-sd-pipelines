@@ -80,7 +80,6 @@ def generate(
     
     # if init image strength == 1, just return the initial image
     if (args.init_image_strength == 1.0 or (int(args.steps*(1-args.init_image_strength)) < 1)) and args.init_image and (args.controlnet_path is None):
-        print("Returning raw initial image!!")
         latent = pil_img_to_latent(args.init_image, args, _device, pipe)
         if args.interpolator is not None:
             args.interpolator.latent_tracker.add_latent(0, pipe.scheduler.timesteps[-1], latent)
@@ -136,58 +135,52 @@ def generate(
     
     # for now, use init_image_strength to control the strength of the conditioning
     args.controlnet_conditioning_scale = args.init_image_strength
+         
+    # Common SD arguments
+    fn_args = {
+        'prompt': prompt,
+        'negative_prompt': negative_prompt,
+        'image': args.init_image,
+        'num_inference_steps': args.steps,
+        'guidance_scale': args.guidance_scale,
+        'num_images_per_prompt': args.n_samples,
+        'generator': generator,
+        'callback': callback_,
+        'cross_attention_kwargs': cross_attention_kwargs,
+        'prompt_embeds': args.c,
+        'negative_prompt_embeds': args.uc,
+    }
 
-    if args.controlnet_path is not None and args.controlnet_conditioning_scale > 0 and args.init_image is not None:
-        
-        # video-controlnet frames, currently disabled:
-        #controlnet_frame_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/controlnet_vids/kaleido_02"
-        #controlnet_frames = sorted(glob.glob(os.path.join(controlnet_frame_dir, "*.jpg")))
-        #args.init_image = controlnet_frames[args.interpolator.interpolation_step % len(controlnet_frames)]
-        #print("controlnet frame:", args.init_image)
-        #args.init_image = Image.open(args.init_image).convert("RGB")
-        #args.W, args.H  = match_aspect_ratio(args.W * args.H, args.init_image)
-        #args.init_image = args.init_image.resize((args.W, args.H), Image.LANCZOS)
-
-        args.init_image = preprocess_controlnet_init_image(args.init_image, args)
-        args.upscale_f = 1.0 # disable upscaling with controlnet for now
-                   
-        pipe_output = pipe(
-            prompt = prompt,
-            negative_prompt = negative_prompt, 
-            image = args.init_image, 
-            num_inference_steps = args.steps,
-            guidance_scale = args.guidance_scale,
-            num_images_per_prompt = args.n_samples,
-            prompt_embeds = args.c,
-            negative_prompt_embeds = args.uc,
-            pooled_prompt_embeds = args.pc,
-            negative_pooled_prompt_embeds= args.puc,
-            controlnet_conditioning_scale = args.controlnet_conditioning_scale,
-            control_guidance_start = args.control_guidance_start,
-            control_guidance_end = args.control_guidance_end,
-            generator = generator,
-            callback = callback_,
-            cross_attention_kwargs = cross_attention_kwargs,
-        )
-
+    if "XL" in str(pipe.__class__.__name__):
+        fn_args.update({
+            'pooled_prompt_embeds': args.pc,
+            'negative_pooled_prompt_embeds': args.puc
+        })
     else:
-        pipe_output = pipe(
-            prompt = prompt,
-            negative_prompt = negative_prompt, 
-            image = args.init_image, 
-            strength = 1-args.init_image_strength, 
-            denoising_start = denoising_start,
-            num_inference_steps = args.steps,
-            guidance_scale = args.guidance_scale,
-            num_images_per_prompt = args.n_samples,
-            prompt_embeds = args.c,
-            negative_prompt_embeds = args.uc,
-            pooled_prompt_embeds = args.pc,
-            negative_pooled_prompt_embeds= args.puc,
-            generator = generator,
-            callback = callback_,
-            cross_attention_kwargs = cross_attention_kwargs,
-        )
+        fn_args.update({
+            'prompt_embeds': args.c.unsqueeze(0),
+            'negative_prompt_embeds': args.uc.unsqueeze(0)
+        })
+
+    # Conditionally add arguments if controlnet is used
+    if args.controlnet_path is not None and args.controlnet_conditioning_scale > 0 and args.init_image is not None:
+        args.init_image = preprocess_controlnet_init_image(args.init_image, args)
+        args.upscale_f = 1.0  # disable upscaling with controlnet for now
+        fn_args.update({
+            'controlnet_conditioning_scale': args.controlnet_conditioning_scale,
+            'control_guidance_start': args.control_guidance_start,
+            'control_guidance_end': args.control_guidance_end
+        })
+    else:
+        fn_args['strength'] = 1 - args.init_image_strength
+        
+        if "XL" in str(pipe.__class__.__name__):
+            fn_args.update({
+                'denoising_start': denoising_start,
+            })
+
+    # Call the pipe function to produce an image:
+    pipe_output = pipe(**fn_args)
     
     pil_images = pipe_output.images
     pt_images = [None]*len(pil_images)
@@ -421,12 +414,13 @@ def make_callback(
     return diffusers_callback
 
 def run_upscaler(args_, imgs, 
-        init_image_strength    = 0.5, 
+        init_image_strength    = 0.5,
         upscale_guidance_scale = 5.0,
         min_upscale_steps      = 16,  # never do less than this many steps
         max_n_pixels           = 1600**2, # max number of pixels to avoid OOM
     ):
     args = copy(args_)
+    args.lora_path = None
 
     if args.c is not None:
         assert args.uc is not None, "Must provide negative prompt conditioning if providing positive prompt conditioning"

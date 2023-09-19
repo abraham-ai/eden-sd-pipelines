@@ -26,7 +26,7 @@ import diffusers
 print("Importing diffusers from:")
 print(diffusers.__file__)
 from diffusers import DiffusionPipeline, StableDiffusionXLImg2ImgPipeline
-from diffusers import ControlNetModel, StableDiffusionXLControlNetPipeline, AutoencoderKL
+from diffusers import ControlNetModel, StableDiffusionXLControlNetPipeline, AutoencoderKL, StableDiffusionControlNetPipeline
 from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline, StableDiffusionDepth2ImgPipeline
 
 from diffusers import (
@@ -86,7 +86,48 @@ def set_sampler(sampler_name, pipe):
     pipe.scheduler = schedulers[sampler_name]
     return pipe
 
+def load_pipe_v1(args):
+    global pipe
+    start_time = time.time()
+    
+    if os.path.isdir(os.path.join(CHECKPOINTS_PATH, args.ckpt)):
+        location = os.path.join(CHECKPOINTS_PATH, args.ckpt)
+    else:
+        location = args.ckpt
+
+    print("#############################################")
+    print(f"Creating new StableDiffusionImg2ImgPipeline using {args.ckpt}")
+
+    if args.controlnet_path is not None:
+        full_controlnet_path = os.path.join(CONTROLNET_PATH, args.controlnet_path)
+        print(f"Loading SD controlnet-pipeline from {full_controlnet_path}")
+
+        controlnet = ControlNetModel.from_pretrained(
+            full_controlnet_path,
+            torch_dtype=torch.float16,
+            use_safetensors = True,
+        )
+        
+        pipe = StableDiffusionControlNetPipeline.from_pretrained(
+            location,
+            controlnet=controlnet,
+            torch_dtype=torch.float16, use_safetensors=True, variant="fp16"
+        )
+    else:
+        pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
+                    location, safety_checker=None, #local_files_only=_local_files_only,
+                    torch_dtype=torch.float16, use_safetensors=True, variant="fp16")
+
+    pipe.safety_checker = None
+    pipe = pipe.to(_device)
+    print(f"Created new pipe in {(time.time() - start_time):.2f} seconds")
+    print_model_info(pipe)
+    return pipe
+
+
 def load_pipe(args):
+    if 'eden' in args.ckpt:
+        return load_pipe_v1(args)
     global pipe
     start_time = time.time()
     

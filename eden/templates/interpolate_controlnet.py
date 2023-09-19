@@ -28,7 +28,7 @@ def lerp(
         text_input = interpolation_texts[0],
         interpolation_texts = interpolation_texts,
         interpolation_seeds = interpolation_seeds if interpolation_seeds else [random.randint(1, 1e8) for i in range(n)],
-        n_frames = 16*n,
+        n_frames = 24*n,
         guidance_scale = random.choice([8]),
         loop = True,
         smooth = True,
@@ -36,14 +36,15 @@ def lerp(
         n_anchor_imgs = random.choice([3]),
         n_film = 0,
         fps = 12,
-        steps = 35,
+        steps = 40,
         seed = seed,
         H = 1024,
         W = 1024,
-        #lora_path = "/data/xander/Projects/cog/GitHub_repos/cog-sdxl/lora_models_fin_init/final_sweep_025_7887/checkpoints/checkpoint-800"
         init_image_data = "/data/xander/Projects/cog/eden-sd-pipelines/eden/assets/abraham_logo_hires.png",
-        init_image_strength = random.choice([0.04]),
-        #controlnet_path = "controlnet-canny-sdxl-1.0",
+        init_image_strength = random.choice([0.7, 0.9, 1.1]),
+        controlnet_path = random.choice(["controlnet-depth-sdxl-1.0-small","controlnet-canny-sdxl-1.0-small"]),
+        low_t = random.choice([75, 100, 125]),
+        high_t = random.choice([150, 200, 250]),
     )
 
     # always make sure these args are properly set:
@@ -95,23 +96,11 @@ if __name__ == "__main__":
     outdir = "results"
     n = 3
 
-    for i in [5,6,7,8,9]:
+    for i in [18,19,12,9]:
         seed = np.random.randint(0, 1000)
         seed = i
-
+        
         seed_everything(seed)
-
-        interpolation_texts = [
-            "a photo of <concept> as a massive statue in the middle of the city, high quality professional photography, nikon d850 50mm",
-            "a photo of <concept> as a character in a noir graphic novel, under a rain-soaked streetlamp",
-            "a photo of <concept> as a sand sculpture at the beach",
-        ]
-
-        interpolation_texts = [
-            "A twisting creature of reflective dragonglass swirling above a scorched field amidst a large clearing in a dark forest, radiating beams of sunlight, high quality professional photography, nikon d850 50mm",
-            "Time crystals, incredible artwork, magical cyrstal forest made of glass",
-            "Twisting creatures of reflective glass swirling above the ground amidst a large clearing in the forest, fog, radiating beams of sunlight reflecting on the glass, high quality professional photography, nikon d850 50mm",
-        ]
 
         interpolation_texts = random.sample(text_inputs, n)
 

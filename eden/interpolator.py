@@ -173,8 +173,7 @@ class Interpolator():
                     do_classifier_free_guidance = self.args.guidance_scale > 1.0,
                     negative_prompt = self.args.uc_text
                 )
-
-
+            
             self.prompt_embeds.append(prompt_embeds)
             self.init_noises.append(create_seeded_noise(seed, self.args, self.device))
     

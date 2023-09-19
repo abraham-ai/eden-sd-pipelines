@@ -1,7 +1,7 @@
 
 
 
-text_inputs = [
+text_inputs_v1 = [
     "japanese style shrine on top of a misty mountain overgrown, hyper realistic, lush gnarly plants, 8 k, denoised, by greg rutkowski, tom bagshaw, james gurney cinematic lighting",
     "deep in a velvet pine forest at dusk, foggy, ground view, matte painting, stunning detail, 4k, hd, clean, full of detail, sharp focus, rule of thirds by Makoto Shinkai, thomas kinkade, Karol Bak, trending on artstation",
     "Hogwarts train by Tyler Edlin and Jean Delville and John Aktinson Grimshaw and Robert Hubert, german romanticism style, oil on canvas, cinematic lighting, vibrant, hdr, concept art, water reflections",

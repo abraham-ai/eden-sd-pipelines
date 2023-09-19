@@ -25,22 +25,22 @@ def lerp(
     os.makedirs(frames_dir, exist_ok=True)
     
     args = StableDiffusionSettings(
+        ckpt = "/data/xander/Projects/cog/eden-sd-pipelines/models/checkpoints/eden:eden-v1",
         text_input = interpolation_texts[0],
         interpolation_texts = interpolation_texts,
         interpolation_seeds = interpolation_seeds if interpolation_seeds else [random.randint(1, 1e8) for i in range(n)],
-        n_frames = 8*n,
-        guidance_scale = random.choice([8]),
+        n_frames = 24*n,
+        guidance_scale = random.choice([7]),
         loop = True,
         smooth = True,
         latent_blending_skip_f = random.choice([[0.15, 0.65]]),
         n_anchor_imgs = random.choice([3]),
         n_film = 0,
         fps = 12,
-        steps = 40,
+        steps = 35,
         seed = seed,
         H = 1024,
         W = 1024,
-        lora_path = "/data/xander/Projects/cog/GitHub_repos/cog-sdxl/lora_models_fin_init/final_sweep_025_7887/checkpoints/checkpoint-800"
     )
 
     # always make sure these args are properly set:
@@ -92,17 +92,19 @@ if __name__ == "__main__":
     outdir = "results"
     n = 3
 
-    for i in range(1):
+    for i in [1,2,3,4]:
         seed = np.random.randint(0, 1000)
-        seed = 1
+        seed = i
 
         seed_everything(seed)
         interpolation_texts = random.sample(text_inputs, n)
 
         interpolation_texts = [
-            "a photo of <concept> as a massive statue in the middle of the city, high quality professional photography, nikon d850 50mm",
-            "a photo of <concept> as a character in a noir graphic novel, under a rain-soaked streetlamp",
-            "a photo of <concept> as a sand sculpture at the beach",
+            "a photo of a single lone sprout grows in a barren desert, the horizon is visible in the background, low angle 8k HD nature photo",
+            "a photo of a lone sappling growing in a field of mud, realistic water colour",
+            "a photo of a huge, green tree in a forest, the tree is covered in moss, 8k HD nature photo",
+            "a photo of an old, crumbled Tree of life, intricate wood folds, 8K professional nature photography, HDR",
+        
         ]
 
         for txt in interpolation_texts:
