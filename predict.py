@@ -227,7 +227,7 @@ class Predictor(BasePredictor):
         
         args = StableDiffusionSettings(
             ckpt = checkpoint,
-            lora_path = str(lora_path) if lora_path else None,
+            lora_path = lora_path,
             lora_scale = lora_scale,
 
             mode = mode,

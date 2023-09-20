@@ -156,11 +156,6 @@ def generate(
             'pooled_prompt_embeds': args.pc,
             'negative_pooled_prompt_embeds': args.puc
         })
-    else:
-        fn_args.update({
-            'prompt_embeds': args.c.unsqueeze(0),
-            'negative_prompt_embeds': args.uc.unsqueeze(0)
-        })
 
     # Conditionally add arguments if controlnet is used
     if args.controlnet_path is not None and args.controlnet_conditioning_scale > 0 and args.init_image is not None:

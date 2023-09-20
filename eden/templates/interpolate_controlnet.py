@@ -39,10 +39,11 @@ def lerp(
         steps = 40,
         seed = seed,
         H = 1024,
-        W = 1024,
-        init_image_data = "/data/xander/Projects/cog/eden-sd-pipelines/eden/assets/abraham_logo_hires.png",
-        init_image_strength = random.choice([0.7, 0.9, 1.1]),
-        controlnet_path = random.choice(["controlnet-depth-sdxl-1.0-small","controlnet-canny-sdxl-1.0-small"]),
+        W = 1024+256,
+        init_image_data = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/controlnet_qr_best/01.jpg",
+        init_image_strength = random.choice([0.4]),
+        control_guidance_end = random.choice([0.5]),
+        controlnet_path = "/data/xander/Projects/cog/diffusers/examples/controlnet/luminance_controlnet_02_highlr/checkpoint-15000/controlnet",
         low_t = random.choice([75, 100, 125]),
         high_t = random.choice([150, 200, 250]),
     )
@@ -93,10 +94,10 @@ def lerp(
 
 if __name__ == "__main__":
 
-    outdir = "results"
+    outdir = "results_150000_01"
     n = 3
 
-    for i in [18,19,12,9]:
+    for i in range(10):
         seed = np.random.randint(0, 1000)
         seed = i
         

@@ -1176,6 +1176,46 @@ def preprocess_controlnet_init_image(pil_control_image, args):
     if "canny" in args.controlnet_path:
         return preprocess_canny(pil_control_image)
 
+    if "luminance" in args.controlnet_path:
+        return preprocess_luminance(pil_control_image)
+
+def compute_brightness_map(image):
+    """Compute the perceptual brightness map of an image."""
+    # Convert the image to the Lab color space
+    lab = cv2.cvtColor(image, cv2.COLOR_BGR2Lab)
+    # Extract the L channel (luminance)
+    l_channel = lab[:, :, 0]
+    return l_channel
+
+def resize_image(image, target_width):
+    """Resize the image to the target width while maintaining the aspect ratio."""
+    aspect_ratio = image.shape[1] / image.shape[0]
+    target_height = int(target_width / aspect_ratio)
+    resized_image = cv2.resize(image, (target_width, target_height), interpolation=cv2.INTER_LINEAR)
+    return resized_image
+
+def preprocess_luminance(pil_control_image, 
+        #threshold=False, 
+        threshold=True, 
+        target_width_range=[48,128],
+        #target_width_range=[512,512],
+        ):
+    # convert pil image to cv2 image:
+    image = np.array(pil_control_image)
+    brightness_map = compute_brightness_map(image)
+
+    if target_width_range is not None: # down- and up- size the brightness map (creates a box-blur effect)
+        target_width   = np.random.randint(target_width_range[0], target_width_range[1] + 1)
+        brightness_map = resize_image(brightness_map, target_width)
+        brightness_map = cv2.resize(brightness_map, (image.shape[1], image.shape[0]), interpolation=cv2.INTER_NEAREST)
+
+    if threshold: # threshold the brightness map
+        _, brightness_map = cv2.threshold(brightness_map, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+    # convert the brightness map to a PIL image
+    brightness_map = Image.fromarray(brightness_map)
+    return brightness_map
+
 def preprocess_canny(pil_control_image, low_t = 100, high_t = 200):
     """
     Takes a PIL image, computes the canny edge map

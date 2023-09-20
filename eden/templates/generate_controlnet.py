@@ -9,7 +9,7 @@ import moviepy.editor as mpy
 
 from settings import StableDiffusionSettings
 from generation import *
-from prompts import text_inputs, text_inputs_v1, style_modifiers
+from prompts import *
 from eden_utils import *
 
 
@@ -33,11 +33,12 @@ def generate_basic(
     prefix = "",
     suffix = ""):
 
-    img_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/qr"
+    img_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/controlnet_qr_best"
+    #img_dir = "/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/init_imgs/test"
     init_img = os.path.join(img_dir, random.sample(os.listdir(img_dir), 1)[0])
 
     args = StableDiffusionSettings(
-        ckpt = "/data/xander/Projects/cog/eden-sd-pipelines/models/checkpoints/eden:eden-v1",
+        #ckpt = "/data/xander/Projects/cog/eden-sd-pipelines/models/checkpoints/eden:eden-v1",
         #ckpt = "runwayml:stable-diffusion-v1-5",
         mode = "generate",
         W = random.choice([1024, 1024+256, 1024+512]),
@@ -52,9 +53,14 @@ def generate_basic(
         n_samples = 1,
         lora_path = None,
         init_image_data = init_img,
-        init_image_strength = random.choice([0.7, 0.9, 1.1]),
+        #init_image_strength = random.choice([0.3, 0.35, 0.4, 0.45, 0.5]),
+        #control_guidance_start = random.choice([0.0, 0.0, 0.05, 0.1]),
+        #control_guidance_end = random.choice([0.5, 0.6, 0.7]),
+        init_image_strength = random.choice([0.4, 0.5, 0.6, 0.7, 0.8]),
+        control_guidance_end = random.choice([0.5, 0.6, 0.7]),
         #controlnet_path = random.choice(["controlnet-depth-sdxl-1.0-small","controlnet-canny-sdxl-1.0-small"]),
-        controlnet_path = "controlnet-monster-v2",
+        #controlnet_path = "controlnet-monster-v2",
+        controlnet_path = "/data/xander/Projects/cog/diffusers/examples/controlnet/luminance_controlnet_03_blurred/checkpoint-10000/controlnet",
         low_t = random.choice([75, 100, 125]),
         high_t = random.choice([150, 200, 250]),
     )
@@ -85,15 +91,15 @@ def generate_basic(
 if __name__ == "__main__":
 
     
-    outdir = "results_controlnet_qr"
+    outdir = "results_controlnet_qr_blurred_10000"
 
     
-    for i in range(40):
+    for i in range(50):
         seed = random.randint(0, 100000)
         #seed = i
         
         seed_everything(seed)
-        text_input = random.choice(text_inputs_v1)
+        text_input = random.choice(sdxl_prompts)
 
         print(text_input)
         if 1:

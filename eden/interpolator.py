@@ -157,7 +157,7 @@ class Interpolator():
             seed   = self.seeds[index]
             self.update_aesthetic_target(index)
 
-            try:
+            try: # SDXL
                 prompt_embeds = self.pipe.encode_prompt(
                     prompt = prompt,
                     device = self.device,
@@ -173,7 +173,8 @@ class Interpolator():
                     do_classifier_free_guidance = self.args.guidance_scale > 1.0,
                     negative_prompt = self.args.uc_text
                 )
-            
+                prompt_embeds = [p.unsqueeze(0) for p in prompt_embeds]
+
             self.prompt_embeds.append(prompt_embeds)
             self.init_noises.append(create_seeded_noise(seed, self.args, self.device))
     
