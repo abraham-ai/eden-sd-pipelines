@@ -4,7 +4,7 @@ sys.path.append('..')
 from settings import StableDiffusionSettings
 from generation import *
 from eden_utils import *
-from prompts import text_inputs
+from prompts import *
 
 def lerp(
     interpolation_texts, 
@@ -23,12 +23,17 @@ def lerp(
     name = f"prompt2prompt_{int(time.time())}_seed_{seed}_{name_str}"
     frames_dir = os.path.join(outdir, name)
     os.makedirs(frames_dir, exist_ok=True)
+
+
+    img_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/controlnet_qr_best"
+    #img_dir = "/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/init_imgs/test"
+    init_img = os.path.join(img_dir, random.sample(os.listdir(img_dir), 1)[0])
     
     args = StableDiffusionSettings(
         text_input = interpolation_texts[0],
         interpolation_texts = interpolation_texts,
         interpolation_seeds = interpolation_seeds if interpolation_seeds else [random.randint(1, 1e8) for i in range(n)],
-        n_frames = 24*n,
+        n_frames = 32*n,
         guidance_scale = random.choice([8]),
         loop = True,
         smooth = True,
@@ -39,13 +44,13 @@ def lerp(
         steps = 40,
         seed = seed,
         H = 1024,
-        W = 1024+256,
-        init_image_data = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/controlnet_qr_best/01.jpg",
-        init_image_strength = random.choice([0.4]),
-        control_guidance_end = random.choice([0.5]),
-        controlnet_path = "/data/xander/Projects/cog/diffusers/examples/controlnet/luminance_controlnet_02_highlr/checkpoint-15000/controlnet",
-        low_t = random.choice([75, 100, 125]),
-        high_t = random.choice([150, 200, 250]),
+        W = 1024,
+        init_image_data = init_img,
+        init_image_strength = random.choice([0.3]),
+        control_guidance_end = random.choice([0.7]),
+        #controlnet_path = random.choice(["controlnet-canny-sdxl-1.0-small"]),
+        controlnet_path = "/data/xander/Projects/cog/diffusers/examples/controlnet/luminance_controlnet_03_blurred/checkpoint-15000/controlnet",
+    
     )
 
     # always make sure these args are properly set:
@@ -94,12 +99,14 @@ def lerp(
 
 if __name__ == "__main__":
 
-    outdir = "results_150000_01"
+    outdir = "results_controlnet_video"
     n = 3
 
-    for i in range(10):
+    text_inputs = list(set(get_prompts_from_json_dir("/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/good_controlnet_jsons")))
+
+    for i in range(50):
         seed = np.random.randint(0, 1000)
-        seed = i
+        seed = i+20
         
         seed_everything(seed)
 

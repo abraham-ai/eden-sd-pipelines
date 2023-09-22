@@ -1177,7 +1177,13 @@ def preprocess_controlnet_init_image(pil_control_image, args):
         return preprocess_canny(pil_control_image)
 
     if "luminance" in args.controlnet_path:
-        return preprocess_luminance(pil_control_image)
+        if args.interpolator is not None: # video
+            threshold = False
+            target_width_range = [512,512]
+        else: # image
+            threshold = False
+            target_width_range = [64,64]
+        return preprocess_luminance(pil_control_image, threshold = threshold, target_width_range=target_width_range)
 
 def compute_brightness_map(image):
     """Compute the perceptual brightness map of an image."""
@@ -1195,10 +1201,8 @@ def resize_image(image, target_width):
     return resized_image
 
 def preprocess_luminance(pil_control_image, 
-        #threshold=False, 
-        threshold=True, 
-        target_width_range=[48,128],
-        #target_width_range=[512,512],
+        threshold=False, 
+        target_width_range = None,
         ):
     # convert pil image to cv2 image:
     image = np.array(pil_control_image)

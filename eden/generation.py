@@ -160,7 +160,7 @@ def generate(
     # Conditionally add arguments if controlnet is used
     if args.controlnet_path is not None and args.controlnet_conditioning_scale > 0 and args.init_image is not None:
         args.init_image = preprocess_controlnet_init_image(args.init_image, args)
-        args.upscale_f = 1.0  # disable upscaling with controlnet for now
+        #args.upscale_f = 1.0  # disable upscaling with controlnet for now
         fn_args.update({
             'controlnet_conditioning_scale': args.controlnet_conditioning_scale,
             'control_guidance_start': args.control_guidance_start,
@@ -186,7 +186,7 @@ def generate(
 
     pil_images = maybe_apply_watermark(args, pil_images)
 
-    if args.c is None or args.uc is None:
+    if ((args.c is None) or (args.uc is None)) and (pipe is not None):
         try: # SD v1/v2
             prompt_embeds = pipe._encode_prompt(
                     prompt = prompt,
@@ -213,7 +213,10 @@ def generate(
             prompt_embeds_dict['pooled_prompt_embeds'] = torch.cat([negative_pooled_prompt_embeds, pooled_prompt_embeds], dim=0)
             prompt_embeds = prompt_embeds_dict
     else:
-        prompt_embeds = torch.cat([args.uc, args.c])
+        try:
+            prompt_embeds = torch.cat([args.uc, args.c])
+        except:
+            prompt_embeds = None
 
     return prompt_embeds, pil_images
 
@@ -409,13 +412,16 @@ def make_callback(
     return diffusers_callback
 
 def run_upscaler(args_, imgs, 
-        init_image_strength    = 0.5,
+        init_image_strength    = 0.55,
         upscale_guidance_scale = 5.0,
         min_upscale_steps      = 16,  # never do less than this many steps
         max_n_pixels           = 1600**2, # max number of pixels to avoid OOM
     ):
     args = copy(args_)
+
+    # Disable all modifiers, just upscale with base model:
     args.lora_path = None
+    args.controlnet_path = None
 
     if args.c is not None:
         assert args.uc is not None, "Must provide negative prompt conditioning if providing positive prompt conditioning"
@@ -441,12 +447,17 @@ def run_upscaler(args_, imgs,
     # Load the upscaling model:
     global upscaling_pipe
 
-    if 0:
-        # always upscale with SDXL-refiner by default:
+    if 0: # Use SDXL refiner model:
+        global pipe
+        del pipe
+        pipe = None
+        torch.cuda.empty_cache()
         args.ckpt = "stabilityai/stable-diffusion-xl-refiner-1.0"
         upscaling_pipe = eden_pipe.get_pipe(args)
+        remove_pipe_after_upscaling = True
     else:
         upscaling_pipe = eden_pipe.get_pipe(args)
+        remove_pipe_after_upscaling = False
 
     # Avoid doing too little steps when init_image_strength is very high:
     upscale_steps = int(max(args.steps * (1-init_image_strength), min_upscale_steps) / (1-init_image_strength))+1
@@ -468,7 +479,10 @@ def run_upscaler(args_, imgs,
         x_samples_upscaled.extend([])
         x_images_upscaled.extend([image])
 
-    #print_gpu_info(args, "end of run_upscaler()")
+    if remove_pipe_after_upscaling:
+        del upscaling_pipe
+        torch.cuda.empty_cache()
+        upscaling_pipe = None
 
     return x_samples_upscaled, x_images_upscaled
 

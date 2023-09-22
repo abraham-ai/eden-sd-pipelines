@@ -33,8 +33,7 @@ def generate_basic(
     prefix = "",
     suffix = ""):
 
-    img_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/controlnet_qr_best"
-    #img_dir = "/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/init_imgs/test"
+    img_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/eden_black_white"
     init_img = os.path.join(img_dir, random.sample(os.listdir(img_dir), 1)[0])
 
     args = StableDiffusionSettings(
@@ -42,11 +41,11 @@ def generate_basic(
         #ckpt = "runwayml:stable-diffusion-v1-5",
         mode = "generate",
         W = random.choice([1024, 1024+256, 1024+512]),
-        H = random.choice([1024, 1024+256, 1024+512]),
-        sampler = random.choice(["euler"]),
-        steps = 50,
-        guidance_scale = random.choice([6,8,10]),
-        upscale_f = random.choice([1.0, 1.0]),
+        H = random.choice([1024, 1024+256]),
+        sampler = random.choice(["euler", "euler_ancestral"]),
+        steps = 60,
+        guidance_scale = random.choice([6,8,10,12]),
+        upscale_f = random.choice([1.25, 1.5]),
         text_input = text_input,
         text_input_2 = text_input_2,
         seed = seed,
@@ -56,13 +55,11 @@ def generate_basic(
         #init_image_strength = random.choice([0.3, 0.35, 0.4, 0.45, 0.5]),
         #control_guidance_start = random.choice([0.0, 0.0, 0.05, 0.1]),
         #control_guidance_end = random.choice([0.5, 0.6, 0.7]),
-        init_image_strength = random.choice([0.4, 0.5, 0.6, 0.7, 0.8]),
-        control_guidance_end = random.choice([0.5, 0.6, 0.7]),
+        init_image_strength = random.choice([0.6, 0.7, 0.8]),
+        control_guidance_end = random.choice([0.65]),
         #controlnet_path = random.choice(["controlnet-depth-sdxl-1.0-small","controlnet-canny-sdxl-1.0-small"]),
         #controlnet_path = "controlnet-monster-v2",
-        controlnet_path = "/data/xander/Projects/cog/diffusers/examples/controlnet/luminance_controlnet_03_blurred/checkpoint-10000/controlnet",
-        low_t = random.choice([75, 100, 125]),
-        high_t = random.choice([150, 200, 250]),
+        controlnet_path = "controlnet-luminance-sdxl-1.0",
     )
 
     controlnet_img = load_img(args.init_image_data, "RGB")
@@ -91,15 +88,27 @@ def generate_basic(
 if __name__ == "__main__":
 
     
-    outdir = "results_controlnet_qr_blurred_10000"
+    outdir = "results_controlnet_qr_threshold_25000_upscale_f"
 
-    
     for i in range(50):
-        seed = random.randint(0, 100000)
-        #seed = i
+        seed = int(time.time())
+        #seed = 100+i
         
         seed_everything(seed)
-        text_input = random.choice(sdxl_prompts)
+
+        p2 = list(set(get_prompts_from_json_dir("/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/good_controlnet_jsons")))
+        all_p = list(set(text_inputs + sdxl_prompts + p2))
+
+        all_p = [
+            "incredible photo of a medieval village scene with busy streets, buildings, rooftops, clouds in the sky, castle in the distance",
+            "incredible photo of a medieval village scene with busy streets, buildings, rooftops, clouds in the sky, castle in the distance",
+            "incredible photo of a medieval village scene with busy streets, buildings, rooftops, clouds in the sky, castle in the distance",
+        ]
+        text_input = random.choice(all_p)
+
+        #text_input = "entirely dark room with a tiny speck of light in the corner"
+
+
 
         print(text_input)
         if 1:

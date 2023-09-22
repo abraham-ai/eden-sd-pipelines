@@ -1,6 +1,9 @@
+.huggingface/hub/models--stabilityai--stable-diffusion-xl-refiner-1.0
+.huggingface/hub/models--stabilityai--sd-vae-ft-mse
 models/checkpoints/eden:eden-v1
 models/checkpoints/gordon-berger:gordon-berger-figurative
 models/checkpoints/dreamshaper.safetensors
+models/controlnets/controlnet-monster-v2
 eden/templates
 eden/xander
 tests/logs

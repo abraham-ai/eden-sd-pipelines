@@ -86,6 +86,11 @@ def set_sampler(sampler_name, pipe):
     pipe.scheduler = schedulers[sampler_name]
     return pipe
 
+
+class NoWatermark:
+    def apply_watermark(self, img):
+        return img
+
 def load_pipe_v1(args):
     global pipe
     start_time = time.time()
@@ -144,10 +149,16 @@ def load_pipe(args):
         full_controlnet_path = os.path.join(CONTROLNET_PATH, args.controlnet_path)
         print(f"Loading SDXL controlnet-pipeline from {full_controlnet_path}")
 
+        # check if "diffusion_pytorch_model.safetensors" is inside full_controlnet_path dir:
+        if os.path.isfile(os.path.join(full_controlnet_path, "diffusion_pytorch_model.safetensors")):
+            use_safetensors = True
+        else:
+            use_safetensors = False
+
         controlnet = ControlNetModel.from_pretrained(
             full_controlnet_path,
             torch_dtype=torch.float16,
-            use_safetensors = full_controlnet_path.endswith(".safetensors"),
+            use_safetensors = use_safetensors,
         )
         
         pipe = StableDiffusionXLControlNetPipeline.from_pretrained(
@@ -160,22 +171,9 @@ def load_pipe(args):
     else:
         print(f"Creating new StableDiffusionXLImg2ImgPipeline using {args.ckpt}")
 
-        if args.ckpt == "dreamshaper": #dreamshaper
-            location = "/data/xander/Projects/cog/eden-sd-pipelines/models/checkpoints/dreamshaper.safetensors"
-            pipe = StableDiffusionXLImg2ImgPipeline.from_single_file(location, safety_checker=None, torch_dtype=torch.float16, use_safetensors=True, variant="fp16")
-            pipe = StableDiffusionXLImg2ImgPipeline(
-                vae = pipe.vae,
-                text_encoder = pipe.text_encoder,
-                text_encoder_2 = pipe.text_encoder_2,
-                tokenizer = pipe.tokenizer,
-                tokenizer_2 = pipe.tokenizer_2,
-                unet = pipe.unet,
-                scheduler = pipe.scheduler)
-
-        else: #SDXL 1.0
-            pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
-                location, safety_checker=None, #local_files_only=_local_files_only,
-                torch_dtype=torch.float16, use_safetensors=True, variant="fp16")
+        pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
+            location, safety_checker=None, #local_files_only=_local_files_only,
+            torch_dtype=torch.float16, use_safetensors=True, variant="fp16")
 
     pipe.safety_checker = None
     pipe = pipe.to(_device)
@@ -183,6 +181,9 @@ def load_pipe(args):
 
     if args.compile_unet:
         pipe.unet = torch.compile(pipe.unet, mode="reduce-overhead", fullgraph=True)
+
+    # Disable watermarking (causes red dot artifacts for SDXL pipelines)
+    pipe.watermark = NoWatermark()
 
     print(f"Created new pipe in {(time.time() - start_time):.2f} seconds")
     print_model_info(pipe)
@@ -193,7 +194,6 @@ def get_pipe(args, force_reload = False):
     global last_checkpoint
     global last_lora_path
     global last_controlnet_path
-    # create a persistent, global pipe object:
 
     if args.ckpt != last_checkpoint:
         force_reload = True
