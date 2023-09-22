@@ -51,15 +51,15 @@ def generate_basic(
         seed = seed,
         n_samples = 1,
         lora_path = None,
-        init_image_data = init_img,
+        #init_image_data = init_img,
         #init_image_strength = random.choice([0.3, 0.35, 0.4, 0.45, 0.5]),
         #control_guidance_start = random.choice([0.0, 0.0, 0.05, 0.1]),
         #control_guidance_end = random.choice([0.5, 0.6, 0.7]),
-        init_image_strength = random.choice([0.6, 0.7, 0.8]),
-        control_guidance_end = random.choice([0.65]),
+        #init_image_strength = random.choice([0.6, 0.7, 0.8]),
+        #control_guidance_end = random.choice([0.65]),
         #controlnet_path = random.choice(["controlnet-depth-sdxl-1.0-small","controlnet-canny-sdxl-1.0-small"]),
         #controlnet_path = "controlnet-monster-v2",
-        controlnet_path = "controlnet-luminance-sdxl-1.0",
+        #controlnet_path = "controlnet-luminance-sdxl-1.0",
     )
 
     controlnet_img = load_img(args.init_image_data, "RGB")
@@ -88,7 +88,7 @@ def generate_basic(
 if __name__ == "__main__":
 
     
-    outdir = "results_controlnet_qr_threshold_25000_upscale_f"
+    outdir = "results"
 
     for i in range(50):
         seed = int(time.time())
@@ -99,16 +99,7 @@ if __name__ == "__main__":
         p2 = list(set(get_prompts_from_json_dir("/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/good_controlnet_jsons")))
         all_p = list(set(text_inputs + sdxl_prompts + p2))
 
-        all_p = [
-            "incredible photo of a medieval village scene with busy streets, buildings, rooftops, clouds in the sky, castle in the distance",
-            "incredible photo of a medieval village scene with busy streets, buildings, rooftops, clouds in the sky, castle in the distance",
-            "incredible photo of a medieval village scene with busy streets, buildings, rooftops, clouds in the sky, castle in the distance",
-        ]
         text_input = random.choice(all_p)
-
-        #text_input = "entirely dark room with a tiny speck of light in the corner"
-
-
 
         print(text_input)
         if 1:

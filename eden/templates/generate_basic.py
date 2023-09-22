@@ -91,7 +91,7 @@ def generate_basic(
     init_image_data = None,
     lora_path = None,
     prefix = "",
-    suffix = ""):
+    suffix = "_base_refine"):
 
 
     init_imgs = [None]
@@ -99,14 +99,13 @@ def generate_basic(
     init_img_path = random.choice(get_all_img_files(init_img_dir))
 
     args = StableDiffusionSettings(
-        #ckpt = "/data/xander/Projects/cog/eden-sd-pipelines/models/checkpoints/eden:eden-v1",
         mode = "generate",
-        W = random.choice([1024]),
+        W = random.choice([1024+256]),
         H = random.choice([1024]),
-        sampler = random.choice(["euler_ancestral", "euler"]),
-        steps = 30,
+        sampler = random.choice(["euler"]),
+        steps = 40,
         guidance_scale = random.choice([6, 8, 12]),
-        upscale_f = 1.0,
+        upscale_f = 1.4,
         text_input = text_input,
         text_input_2 = text_input_2,
         seed = seed,
@@ -131,15 +130,15 @@ def generate_basic(
 
 if __name__ == "__main__":
     
-    outdir = "results_flip_0.7"
+    outdir = "results"
     
     # remove the output directory
-    if os.path.exists(outdir) and 1:
+    if os.path.exists(outdir) and 0:
         os.system(f"rm -rf {outdir}")
 
-    for i in range(20,40):
+    for i in range(40):
         seed = random.randint(0, 100000)
-        seed = i+1
+        seed = i
 
         seed_everything(seed)
         text_input = random.choice(text_inputs)

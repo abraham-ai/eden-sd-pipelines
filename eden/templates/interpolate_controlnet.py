@@ -25,7 +25,7 @@ def lerp(
     os.makedirs(frames_dir, exist_ok=True)
 
 
-    img_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/controlnet_qr_best"
+    img_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/eden_black_white"
     #img_dir = "/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/init_imgs/test"
     init_img = os.path.join(img_dir, random.sample(os.listdir(img_dir), 1)[0])
     
@@ -41,15 +41,15 @@ def lerp(
         n_anchor_imgs = random.choice([3]),
         n_film = 0,
         fps = 12,
-        steps = 40,
+        steps = 50,
         seed = seed,
-        H = 1024,
-        W = 1024,
+        H = 1024 + 256,
+        W = 1024 +256,
         init_image_data = init_img,
-        init_image_strength = random.choice([0.3]),
-        control_guidance_end = random.choice([0.7]),
+        init_image_strength = random.choice([0.45, 0.5, 0.55]),
+        #control_guidance_end = random.choice([0.7]),
         #controlnet_path = random.choice(["controlnet-canny-sdxl-1.0-small"]),
-        controlnet_path = "/data/xander/Projects/cog/diffusers/examples/controlnet/luminance_controlnet_03_blurred/checkpoint-15000/controlnet",
+        controlnet_path = "controlnet-luminance-sdxl-1.0",
     
     )
 
@@ -99,18 +99,25 @@ def lerp(
 
 if __name__ == "__main__":
 
-    outdir = "results_controlnet_video"
+    outdir = "results_controlnet_video_test"
     n = 3
 
     text_inputs = list(set(get_prompts_from_json_dir("/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/good_controlnet_jsons")))
 
-    for i in range(50):
+    text_inputs = [
+            "incredible photo of a medieval village scene with busy streets, buildings, rooftops, clouds in the sky, castle in the distance",
+            "A twisting creature of reflective dragonglass swirling above a scorched field amidst a large clearing in a dark forest, radiating with beams of firelight, high quality professional photography, nikon d850 50mm",
+            "Title: \"Eternal Renewal\" Description: A large, circular tapestry featuring a majestic oak tree at its center, its branches reaching up towards a glowing sun. The surrounding fabric blends intricate patterns of autumn leaves, rippling water, and delicate flowers. The colors transition from vibrant reds and oranges to muted browns and grays, symbol",
+        ]
+
+    for i in range(10):
         seed = np.random.randint(0, 1000)
-        seed = i+20
+        seed = i
         
         seed_everything(seed)
 
         interpolation_texts = random.sample(text_inputs, n)
+        # = text_inputs
 
         for txt in interpolation_texts:
             print(txt)

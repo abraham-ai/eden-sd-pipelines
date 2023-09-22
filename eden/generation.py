@@ -446,18 +446,22 @@ def run_upscaler(args_, imgs,
 
     # Load the upscaling model:
     global upscaling_pipe
+    remove_pipe_after_upscaling = False
 
     if 0: # Use SDXL refiner model:
-        global pipe
-        del pipe
-        pipe = None
-        torch.cuda.empty_cache()
-        args.ckpt = "stabilityai/stable-diffusion-xl-refiner-1.0"
+        free_memory, tot_mem = torch.cuda.mem_get_info(device=0)
+        # if we have less than 20Gb of free memory, clear the current model:
+        if free_memory < 20e9:
+            global pipe
+            del pipe
+            pipe = None
+            torch.cuda.empty_cache()
+            remove_pipe_after_upscaling = True
+
+        args.ckpt = "sdxl-refiner-v1.0"
         upscaling_pipe = eden_pipe.get_pipe(args)
-        remove_pipe_after_upscaling = True
-    else:
-        upscaling_pipe = eden_pipe.get_pipe(args)
-        remove_pipe_after_upscaling = False
+    
+    upscaling_pipe = eden_pipe.get_pipe(args)
 
     # Avoid doing too little steps when init_image_strength is very high:
     upscale_steps = int(max(args.steps * (1-init_image_strength), min_upscale_steps) / (1-init_image_strength))+1

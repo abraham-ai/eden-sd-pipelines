@@ -159,8 +159,9 @@ def load_pipe(args):
             full_controlnet_path,
             torch_dtype=torch.float16,
             use_safetensors = use_safetensors,
-        )
-        
+        )   
+
+        # ControlNet:
         pipe = StableDiffusionXLControlNetPipeline.from_pretrained(
             location,
             controlnet=controlnet,
@@ -168,12 +169,23 @@ def load_pipe(args):
         )
         #pipe.enable_model_cpu_offload()
 
-    else:
+    else: # Load normal sdxl base ckpt (no controlnet)
         print(f"Creating new StableDiffusionXLImg2ImgPipeline using {args.ckpt}")
 
-        pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
-            location, safety_checker=None, #local_files_only=_local_files_only,
-            torch_dtype=torch.float16, use_safetensors=True, variant="fp16")
+        #pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
+        #    location, safety_checker=None, #local_files_only=_local_files_only,
+        #    torch_dtype=torch.float16, use_safetensors=True)
+
+        # find the .safetensors file in location:
+        for file in os.listdir(location):
+            if file.endswith(".safetensors"):
+                sdxl_filepath = os.path.join(location, file)
+                print(f"Loading SDXL pipeline from {sdxl_filepath}")
+                break
+
+        pipe = StableDiffusionXLImg2ImgPipeline.from_single_file(
+            sdxl_filepath, safety_checker=None, #local_files_only=_local_files_only,
+            torch_dtype=torch.float16, use_safetensors=True)
 
     pipe.safety_checker = None
     pipe = pipe.to(_device)
