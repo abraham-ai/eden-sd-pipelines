@@ -1182,7 +1182,7 @@ def preprocess_controlnet_init_image(pil_control_image, args):
             target_width_range = [512,512]
         else: # image
             threshold = False
-            target_width_range = [64,64]
+            target_width_range = [128,128]
         return preprocess_luminance(pil_control_image, threshold = threshold, target_width_range=target_width_range)
 
 def compute_brightness_map(image):
@@ -1197,7 +1197,7 @@ def resize_image(image, target_width):
     """Resize the image to the target width while maintaining the aspect ratio."""
     aspect_ratio = image.shape[1] / image.shape[0]
     target_height = int(target_width / aspect_ratio)
-    resized_image = cv2.resize(image, (target_width, target_height), interpolation=cv2.INTER_LINEAR)
+    resized_image = cv2.resize(image, (target_width, target_height), interpolation=cv2.INTER_CUBIC)
     return resized_image
 
 def preprocess_luminance(pil_control_image, 
@@ -1211,6 +1211,7 @@ def preprocess_luminance(pil_control_image,
     if target_width_range is not None: # down- and up- size the brightness map (creates a box-blur effect)
         target_width   = np.random.randint(target_width_range[0], target_width_range[1] + 1)
         brightness_map = resize_image(brightness_map, target_width)
+        #brightness_map = cv2.resize(brightness_map, (image.shape[1], image.shape[0]), interpolation=cv2.INTER_CUBIC)
         brightness_map = cv2.resize(brightness_map, (image.shape[1], image.shape[0]), interpolation=cv2.INTER_NEAREST)
 
     if threshold: # threshold the brightness map
@@ -1220,16 +1221,28 @@ def preprocess_luminance(pil_control_image,
     brightness_map = Image.fromarray(brightness_map)
     return brightness_map
 
-def preprocess_canny(pil_control_image, low_t = 100, high_t = 200):
+from PIL import Image, ImageEnhance, ImageFilter
+def preprocess_canny(pil_control_image):
     """
     Takes a PIL image, computes the canny edge map
     and returns a canny edge map PIL image to use in the control net
     """
 
-    control_input_img = pil_control_image.convert("RGB")
-    canny_img = cv2.Canny(np.array(control_input_img), low_t, high_t)[:, :, None]
-    canny_img = np.concatenate([canny_img, canny_img, canny_img], axis=2)
-    return  Image.fromarray(canny_img)
+    image = pil_control_image.convert("RGB")
+
+    if 0:
+        # Contrast enhancement: Increase the contrast by 1.5x
+        enhancer = ImageEnhance.Contrast(image)
+        image = enhancer.enhance(1.5)
+
+        # Sharpening: Apply a sharpening filter
+        sharpening_kernel = ImageFilter.Kernel((3, 3), [0, -1, 0, -1, 5, -1, 0, -1, 0])
+        image = image.filter(sharpening_kernel)
+
+    image = np.array(image)
+    image = cv2.Canny(image, 100, 200)[:, :, None]
+    image = np.concatenate([image, image, image], axis=2)
+    return  Image.fromarray(image)
 
 
 from transformers import DPTFeatureExtractor, DPTForDepthEstimation
@@ -1259,6 +1272,7 @@ def preprocess_zoe_depth(image):
     feature_extractor = DPTFeatureExtractor.from_pretrained("Intel/dpt-hybrid-midas")
 
     image = feature_extractor(images=image, return_tensors="pt").pixel_values.to("cuda")
+    print("Predicting depth...")
     with torch.no_grad(), torch.autocast("cuda"):
         depth_map = depth_estimator(image).predicted_depth
     

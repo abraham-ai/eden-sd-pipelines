@@ -5,6 +5,9 @@ models/checkpoints/eden:eden-v1
 models/checkpoints/gordon-berger:gordon-berger-figurative
 models/checkpoints/dreamshaper.safetensors
 models/checkpoints/sdxl-refiner-v1.0
+models/checkpoints/stable-diffusion-xl-base-1.0
+
+models/controlnets/controlnet-canny-sdxl-1.0
 models/controlnets/controlnet-monster-v2
 
 eden/templates

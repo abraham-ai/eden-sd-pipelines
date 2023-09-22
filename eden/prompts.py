@@ -239,7 +239,12 @@ style_modifiers = [
 
 
 sdxl_prompts = [
-
+    "Title: Rebirth, Description: A piercing gaze. A solitary figure adorned in tattered garments stands defiantly amidst the deserted remnants of an abandoned industrial factory. Bathed in the ethereal glow of a setting sun, their face, etched with lines of hardship, becomes a haunting symphony of resilience and vulnerability. Shadows dance across their weathered skin, reflecting the scars of a life once",
+    "Tenderness Amidst Stones, an imposing sculpture of robot-like child enveloped in real concrete and barbed wire, reaching out in hope through stark decay, illustratively depicts urban isolation with raw, violent grace.",
+    "Ethereal Connections, In the heart of a desolate city, a colossal sculpture of a desperate human figure stands alone, its outstretched arms covered with thick layers of cracked concrete and intertwining barbed wire. Time and isolation have rusted the metal skeleton beneath, as vibrant ivy twists around the figure in a desperate effort to reconnect with life. A soft",
+    "Lunar Metamorphosis: an iridescent moth, crafted of Bhutanese silk, cyclically blooms and withers amidst a Kashmir wool forest, intertwining seasons through labyrinthine textile techniques and brazen colors true-to-nature.",
+    "a naked woman lying down on the forest floor, looking up, under the rain, wet leaves and eart around her",
+    "Resurrection, a luminescent phoenix woven from radiant saffron silks, rises amidst monochrome textile ashes, flourishing in juxtaposition with a meticulously quilted, desolate paper-white winter terrain. A symbol of life, birthed in a landscape of death.",
     "Title: Embers of the Soul, Description: In a dimly lit room, a solitary figure stands at the center, illuminated by a soft spotlight. The figure is made entirely of transparent glass, meticulously crafted to depict a delicate network of nerves, veins, and synapses. Inside this glass form, vibrant, pulsating lights of various hues",
     "A twisting creature of reflective dragonglass swirling above a scorched field amidst a large clearing in a dark forest, radiating with beams of firelight, high quality professional photography, nikon d850 50mm",
     "Twisting creature of reflective glass swirling above the ground amidst a large clearing in the forest, fog, radiating beams of sunlight reflecting on the glass, high quality professional photography, nikon d850 50mm",

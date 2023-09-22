@@ -91,101 +91,83 @@ class NoWatermark:
     def apply_watermark(self, img):
         return img
 
-def load_pipe_v1(args):
-    global pipe
-    start_time = time.time()
-    
-    if os.path.isdir(os.path.join(CHECKPOINTS_PATH, args.ckpt)):
-        location = os.path.join(CHECKPOINTS_PATH, args.ckpt)
-    else:
-        location = args.ckpt
-
-    print("#############################################")
-    print(f"Creating new StableDiffusionImg2ImgPipeline using {args.ckpt}")
-
-    if args.controlnet_path is not None:
-        full_controlnet_path = os.path.join(CONTROLNET_PATH, args.controlnet_path)
-        print(f"Loading SD controlnet-pipeline from {full_controlnet_path}")
-
-        controlnet = ControlNetModel.from_pretrained(
-            full_controlnet_path,
-            torch_dtype=torch.float16,
-            use_safetensors = True,
-        )
-        
-        pipe = StableDiffusionControlNetPipeline.from_pretrained(
-            location,
-            controlnet=controlnet,
-            torch_dtype=torch.float16, use_safetensors=True, variant="fp16"
-        )
-    else:
-        pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
-                    location, safety_checker=None, #local_files_only=_local_files_only,
-                    torch_dtype=torch.float16, use_safetensors=True, variant="fp16")
-
-    pipe.safety_checker = None
-    pipe = pipe.to(_device)
-    print(f"Created new pipe in {(time.time() - start_time):.2f} seconds")
-    print_model_info(pipe)
-    return pipe
-
 
 def load_pipe(args):
     if 'eden' in args.ckpt:
         return load_pipe_v1(args)
+
     global pipe
     start_time = time.time()
-    
+
+    location = args.ckpt
     if os.path.isdir(os.path.join(CHECKPOINTS_PATH, args.ckpt)):
         location = os.path.join(CHECKPOINTS_PATH, args.ckpt)
-    else:
-        location = args.ckpt
+        safetensor_files = [f for f in os.listdir(location) if f.endswith(".safetensors")]
+        if len(safetensor_files) == 1:
+            load_from_single_file = True
+            location = os.path.join(location, safetensor_files[0])
+        else:
+            load_from_single_file = False
 
     print("#############################################")
-    print("Loading new SD pipeline..")
+    print(f"Loading new SD pipeline from {location}..")
 
     if args.controlnet_path is not None: # Load controlnet sdxl
         #from diffusers import StableDiffusionControlNetImg2ImgPipeline
         full_controlnet_path = os.path.join(CONTROLNET_PATH, args.controlnet_path)
         print(f"Loading SDXL controlnet-pipeline from {full_controlnet_path}")
 
-        # check if "diffusion_pytorch_model.safetensors" is inside full_controlnet_path dir:
-        if os.path.isfile(os.path.join(full_controlnet_path, "diffusion_pytorch_model.safetensors")):
-            use_safetensors = True
-        else:
-            use_safetensors = False
+        # check if any "*.safetensors" file is inside full_controlnet_path dir:
+        use_safetensors = False
+        for file in os.listdir(full_controlnet_path):
+            if file.endswith(".safetensors"):
+                use_safetensors = True
+                break
 
         controlnet = ControlNetModel.from_pretrained(
             full_controlnet_path,
             torch_dtype=torch.float16,
-            use_safetensors = use_safetensors,
-        )   
-
-        # ControlNet:
-        pipe = StableDiffusionXLControlNetPipeline.from_pretrained(
-            location,
-            controlnet=controlnet,
-            torch_dtype=torch.float16, use_safetensors=True, variant="fp16"
+            use_safetensors = use_safetensors
         )
-        #pipe.enable_model_cpu_offload()
+        
+        if load_from_single_file:
+            print("Loading from single file...")
+            pipe = StableDiffusionXLImg2ImgPipeline.from_single_file(
+                location, safety_checker=None,
+                torch_dtype=torch.float16, use_safetensors=True)
+
+            pipe = StableDiffusionXLControlNetPipeline(
+                vae = pipe.vae,
+                text_encoder = pipe.text_encoder,
+                text_encoder_2 = pipe.text_encoder_2,
+                tokenizer = pipe.tokenizer,
+                tokenizer_2 = pipe.tokenizer_2,
+                unet = pipe.unet,
+                controlnet = controlnet,
+                scheduler = pipe.scheduler,
+            )
+
+        else:
+            pipe = StableDiffusionXLControlNetPipeline.from_pretrained(
+                location,
+                controlnet=controlnet,
+                torch_dtype=torch.float16, use_safetensors=True, 
+                #variant="fp16"
+            )
+            
 
     else: # Load normal sdxl base ckpt (no controlnet)
         print(f"Creating new StableDiffusionXLImg2ImgPipeline using {args.ckpt}")
 
-        #pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
-        #    location, safety_checker=None, #local_files_only=_local_files_only,
-        #    torch_dtype=torch.float16, use_safetensors=True)
-
-        # find the .safetensors file in location:
-        for file in os.listdir(location):
-            if file.endswith(".safetensors"):
-                sdxl_filepath = os.path.join(location, file)
-                print(f"Loading SDXL pipeline from {sdxl_filepath}")
-                break
-
-        pipe = StableDiffusionXLImg2ImgPipeline.from_single_file(
-            sdxl_filepath, safety_checker=None, #local_files_only=_local_files_only,
-            torch_dtype=torch.float16, use_safetensors=True)
+        if load_from_single_file:
+            pipe = StableDiffusionXLImg2ImgPipeline.from_single_file(
+                location,
+                torch_dtype=torch.float16, use_safetensors=True)
+        else:
+            pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
+                location, 
+                torch_dtype=torch.float16, use_safetensors=True, variant="fp16"
+            )
 
     pipe.safety_checker = None
     pipe = pipe.to(_device)
@@ -230,7 +212,7 @@ def get_pipe(args, force_reload = False):
     # Potentially update the pipe:
     pipe = set_sampler(args.sampler, pipe)
     pipe = update_pipe_with_lora(pipe, args)
-
+    
     last_lora_path = args.lora_path
 
     return pipe
@@ -374,75 +356,48 @@ def update_pipe_with_lora(pipe, args):
                 [pipe.text_encoder, pipe.text_encoder_2], [pipe.tokenizer, pipe.tokenizer_2]
             )
         handler.load_embeddings(os.path.join(args.lora_path, "embeddings.pti"))
-
     
     print(f" ---> Updated pipe in {(time.time() - start_time):.2f}s using lora from {args.lora_path} with scale = {args.lora_scale:.2f}")
 
     return pipe
 
 
-"""
-same as the above, but specifically for img2img pipes (upscaler)
-"""
+###################################################
 
-def load_upscaling_pipe(args):
-    global upscaling_pipe
+
+def load_pipe_v1(args):
+    global pipe
     start_time = time.time()
-
-    if os.path.isdir(os.path.join(CHECKPOINTS_PATH, args.ckpt)):
-        load_path = os.path.join(CHECKPOINTS_PATH, args.ckpt)
-    else:
-        load_path = args.ckpt
-
-    try:
-        upscaling_pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
-            load_path, 
-            local_files_only = _local_files_only, 
-            torch_dtype=torch.float16 if args.half_precision else torch.float32
-        )
-    except:
-        upscaling_pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
-            load_path, 
-            local_files_only = _local_files_only, 
-            torch_dtype=torch.float16 if args.half_precision else torch.float32
-        )
-
-    upscaling_pipe = upscaling_pipe.to(_device)
-    print(f"Created new img2img pipe from {load_path} in {(time.time() - start_time):.2f} seconds")
-    return upscaling_pipe
-
-def get_upscaling_pipe(args, force_reload = False):
-    global upscaling_pipe
-    global upscaling_last_checkpoint
-    global upscaling_last_lora_path
-
-    # create a persistent, global upscaling_pipe object:
-
-    if args.ckpt != upscaling_last_checkpoint:
-        force_reload = True
-        upscaling_last_checkpoint = args.ckpt
-
-    if not args.lora_path and upscaling_last_lora_path:
-        force_reload = True
-
-    if (upscaling_pipe is None) or force_reload:
-        del upscaling_pipe
-        torch.cuda.empty_cache()
-
-        if args.activate_tileable_textures:
-            patch_conv(padding_mode='circular')
-
-        upscaling_pipe = load_upscaling_pipe(args)
-
-    # Potentially update the pipe:
-    upscaling_pipe = set_sampler(args.sampler, upscaling_pipe)
-    upscaling_pipe = update_pipe_with_lora(upscaling_pipe, args)
     
-    if args.lora_path is not None:
-        tune_lora_scale(upscaling_pipe.unet, args.lora_scale)
-        tune_lora_scale(upscaling_pipe.text_encoder, args.lora_scale)
+    if os.path.isdir(os.path.join(CHECKPOINTS_PATH, args.ckpt)):
+        location = os.path.join(CHECKPOINTS_PATH, args.ckpt)
+    else:
+        location = args.ckpt
 
-    upscaling_last_lora_path = args.lora_path
-    #set_sampler("euler", upscaling_pipe)
+    print("#############################################")
+    print(f"Creating new StableDiffusionImg2ImgPipeline using {args.ckpt}")
 
-    return upscaling_pipe
+    if args.controlnet_path is not None:
+        full_controlnet_path = os.path.join(CONTROLNET_PATH, args.controlnet_path)
+        print(f"Loading SD controlnet-pipeline from {full_controlnet_path}")
+
+        controlnet = ControlNetModel.from_pretrained(
+            full_controlnet_path,
+            torch_dtype=torch.float16,
+            use_safetensors = True,
+        )     
+        pipe = StableDiffusionControlNetPipeline.from_pretrained(
+            location,
+            controlnet=controlnet,
+            torch_dtype=torch.float16, use_safetensors=True, variant="fp16"
+        )
+    else:
+        pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
+                    location, safety_checker=None, #local_files_only=_local_files_only,
+                    torch_dtype=torch.float16, use_safetensors=True, variant="fp16")
+
+    pipe.safety_checker = None
+    pipe = pipe.to(_device)
+    print(f"Created new pipe in {(time.time() - start_time):.2f} seconds")
+    print_model_info(pipe)
+    return pipe

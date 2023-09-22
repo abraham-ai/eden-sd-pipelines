@@ -99,8 +99,9 @@ def generate_basic(
     init_img_path = random.choice(get_all_img_files(init_img_dir))
 
     args = StableDiffusionSettings(
+        ckpt = "stable-diffusion-xl-base-1.0",
         mode = "generate",
-        W = random.choice([1024+256]),
+        W = random.choice([1024]),
         H = random.choice([1024]),
         sampler = random.choice(["euler"]),
         steps = 40,

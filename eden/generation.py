@@ -22,8 +22,8 @@ import torch
 import torchvision.transforms as T
 import torchvision.transforms.functional as TF
 
-import pipe as eden_pipe
 from settings import _device
+import pipe as eden_pipe
 from eden_utils import *
 from interpolator import *
 from clip_tools import *
@@ -52,6 +52,8 @@ def generate(
     #assert args.text_input is not None
 
     seed_everything(args.seed)
+
+    args.init_image_strength = float(args.init_image_strength)
 
     # Load init image
     if args.init_image_data and args.init_image is None:
@@ -148,7 +150,7 @@ def generate(
         'callback': callback_,
         'cross_attention_kwargs': cross_attention_kwargs,
         'prompt_embeds': args.c,
-        'negative_prompt_embeds': args.uc,
+        'negative_prompt_embeds': args.uc
     }
 
     if "XL" in str(pipe.__class__.__name__):
@@ -160,6 +162,7 @@ def generate(
     # Conditionally add arguments if controlnet is used
     if args.controlnet_path is not None and args.controlnet_conditioning_scale > 0 and args.init_image is not None:
         args.init_image = preprocess_controlnet_init_image(args.init_image, args)
+        #args.init_image.save("init_image.png")
         #args.upscale_f = 1.0  # disable upscaling with controlnet for now
         fn_args.update({
             'controlnet_conditioning_scale': args.controlnet_conditioning_scale,
@@ -412,14 +415,14 @@ def make_callback(
     return diffusers_callback
 
 def run_upscaler(args_, imgs, 
-        init_image_strength    = 0.55,
-        upscale_guidance_scale = 5.0,
+        init_image_strength    = 0.6,
+        upscale_guidance_scale = 7.0,
         min_upscale_steps      = 16,  # never do less than this many steps
         max_n_pixels           = 1600**2, # max number of pixels to avoid OOM
     ):
     args = copy(args_)
 
-    # Disable all modifiers, just upscale with base model:
+    # Disable all modifiers, just upscale with base SDXL model:
     args.lora_path = None
     args.controlnet_path = None
 
@@ -442,24 +445,20 @@ def run_upscaler(args_, imgs,
 
     x_samples_upscaled, x_images_upscaled = [], []
 
-    # TODO: maybe clear our the existing pipe to avoid OOM?
-
     # Load the upscaling model:
-    global upscaling_pipe
+    args.ckpt = "sdxl-refiner-v1.0" # Use SDXL refiner model
+
+    free_memory, tot_mem = torch.cuda.mem_get_info(device=_device)
     remove_pipe_after_upscaling = False
+    print("Free memory:", free_memory / 1e9, "GB")
 
-    if 0: # Use SDXL refiner model:
-        free_memory, tot_mem = torch.cuda.mem_get_info(device=0)
-        # if we have less than 20Gb of free memory, clear the current model:
-        if free_memory < 20e9:
-            global pipe
-            del pipe
-            pipe = None
-            torch.cuda.empty_cache()
-            remove_pipe_after_upscaling = True
-
-        args.ckpt = "sdxl-refiner-v1.0"
-        upscaling_pipe = eden_pipe.get_pipe(args)
+    if free_memory < 20e9:
+        print("Free memory is low, removing pipe to free up memory...")
+        global pipe
+        del pipe
+        pipe = None
+        torch.cuda.empty_cache()
+        remove_pipe_after_upscaling = True
     
     upscaling_pipe = eden_pipe.get_pipe(args)
 

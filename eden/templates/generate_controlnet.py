@@ -7,7 +7,7 @@ import random
 from PIL import Image
 import moviepy.editor as mpy
 
-from settings import StableDiffusionSettings
+from settings import *
 from generation import *
 from prompts import *
 from eden_utils import *
@@ -19,47 +19,42 @@ checkpoint_options = [
     "eden:eden-v1"
 ]
 
-#checkpoint_options = ["eden:eden-v1"]
-checkpoint_options = ["stabilityai/stable-diffusion-xl-base-1.0"]
-
 def generate_basic(
     text_input, 
     outdir, 
-    steps_per_update = None, # None to disable intermediate frames
-    text_input_2 = None,
     seed = int(time.time()),
     debug = False,
     init_image_data = None,
     prefix = "",
     suffix = ""):
 
-    img_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/eden_black_white"
-    init_img = os.path.join(img_dir, random.sample(os.listdir(img_dir), 1)[0])
+    img_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/controlnet_inputs/neww"
+    #img_dir = "/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/init_imgs/test"
+    img_paths = [f for f in os.listdir(img_dir) if f.endswith(".jpg") or f.endswith(".png")]
+    init_img = os.path.join(img_dir, random.sample(img_paths, 1)[0])
 
     args = StableDiffusionSettings(
-        #ckpt = "/data/xander/Projects/cog/eden-sd-pipelines/models/checkpoints/eden:eden-v1",
-        #ckpt = "runwayml:stable-diffusion-v1-5",
+        #ckpt = "stable-diffusion-xl-base-1.0",
         mode = "generate",
-        W = random.choice([1024, 1024+256, 1024+512]),
-        H = random.choice([1024, 1024+256]),
+        W = random.choice([1024+256]),
+        H = random.choice([1024+256]),
         sampler = random.choice(["euler", "euler_ancestral"]),
-        steps = 60,
+        steps = 45,
         guidance_scale = random.choice([6,8,10,12]),
-        upscale_f = random.choice([1.25, 1.5]),
+        upscale_f = random.choice([1.0, 1.25]),
         text_input = text_input,
-        text_input_2 = text_input_2,
         seed = seed,
         n_samples = 1,
         lora_path = None,
-        #init_image_data = init_img,
-        #init_image_strength = random.choice([0.3, 0.35, 0.4, 0.45, 0.5]),
+        init_image_data = init_img,
+        init_image_strength = random.choice([0.45, 0.5, 0.55, 0.6, 0.65]),
         #control_guidance_start = random.choice([0.0, 0.0, 0.05, 0.1]),
         #control_guidance_end = random.choice([0.5, 0.6, 0.7]),
-        #init_image_strength = random.choice([0.6, 0.7, 0.8]),
         #control_guidance_end = random.choice([0.65]),
-        #controlnet_path = random.choice(["controlnet-depth-sdxl-1.0-small","controlnet-canny-sdxl-1.0-small"]),
-        #controlnet_path = "controlnet-monster-v2",
-        #controlnet_path = "controlnet-luminance-sdxl-1.0",
+        controlnet_path = "controlnet-luminance-sdxl-1.0",
+        #controlnet_path = "controlnet-depth-sdxl-1.0-small",
+        #controlnet_path = "controlnet-canny-sdxl-1.0-small",
+        #controlnet_path = "controlnet-canny-sdxl-1.0",
     )
 
     controlnet_img = load_img(args.init_image_data, "RGB")
@@ -88,9 +83,9 @@ def generate_basic(
 if __name__ == "__main__":
 
     
-    outdir = "results"
+    outdir = "results_controlnet_candy"
 
-    for i in range(50):
+    for i in range(200):
         seed = int(time.time())
         #seed = 100+i
         
@@ -98,7 +93,6 @@ if __name__ == "__main__":
 
         p2 = list(set(get_prompts_from_json_dir("/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/good_controlnet_jsons")))
         all_p = list(set(text_inputs + sdxl_prompts + p2))
-
         text_input = random.choice(all_p)
 
         print(text_input)
