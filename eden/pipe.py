@@ -19,6 +19,9 @@ LORA_DIFFUSION_PATH = os.path.join(LORA_PATH, 'lora_diffusion')
 sys.path.append(LORA_PATH)
 sys.path.append(LORA_DIFFUSION_PATH)
 
+# https://github.com/lyn-rgb/FreeU_Diffusers
+from free_lunch_utils import register_free_upblock2d, register_free_crossattn_upblock2d
+
 import time
 import torch
 from safetensors.torch import safe_open, save_file
@@ -168,6 +171,14 @@ def load_pipe(args):
                 location, 
                 torch_dtype=torch.float16, use_safetensors=True, variant="fp16"
             )
+
+    # -------- freeu block registration (https://github.com/ChenyangSi/FreeU)
+    # TODO perform big hyperparameter search for these values using automatic img scoring
+    # apply very mild reweighting:
+    s1, s2, b1, b2 = 0.9, 0.9, 1.05, 1.05
+    register_free_upblock2d(pipe, b1=b1, b2=b2, s1=s1, s2=s2)
+    register_free_crossattn_upblock2d(pipe, b1=b1, b2=b2, s1=s1, s2=s2)
+    # -------- freeu block registration
 
     pipe.safety_checker = None
     pipe = pipe.to(_device)

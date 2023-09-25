@@ -28,9 +28,9 @@ def generate_basic(
     prefix = "",
     suffix = ""):
 
-    img_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/controlnet_inputs/neww"
+    img_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/controlnet_qr_best"
     #img_dir = "/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/init_imgs/test"
-    img_paths = [f for f in os.listdir(img_dir) if f.endswith(".jpg") or f.endswith(".png")]
+    img_paths = [f for f in os.listdir(img_dir) if f.endswith(".jpg") or f.endswith(".png") or f.endswith(".jpeg")]
     init_img = os.path.join(img_dir, random.sample(img_paths, 1)[0])
 
     args = StableDiffusionSettings(
@@ -40,8 +40,8 @@ def generate_basic(
         H = random.choice([1024+256]),
         sampler = random.choice(["euler", "euler_ancestral"]),
         steps = 45,
-        guidance_scale = random.choice([6,8,10,12]),
-        upscale_f = random.choice([1.0, 1.25]),
+        guidance_scale = random.choice([8,10,12]),
+        upscale_f = random.choice([1.0]),
         text_input = text_input,
         seed = seed,
         n_samples = 1,
@@ -83,17 +83,17 @@ def generate_basic(
 if __name__ == "__main__":
 
     
-    outdir = "results_controlnet_candy"
+    outdir = "results_controlnet_candy_freeU"
 
     for i in range(200):
         seed = int(time.time())
-        #seed = 100+i
+        seed = i
         
         seed_everything(seed)
 
         p2 = list(set(get_prompts_from_json_dir("/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/good_controlnet_jsons")))
-        all_p = list(set(text_inputs + sdxl_prompts + p2))
-        text_input = random.choice(all_p)
+        #all_p = list(set(text_inputs + sdxl_prompts + p2))
+        text_input = random.choice(p2)
 
         print(text_input)
         if 1:

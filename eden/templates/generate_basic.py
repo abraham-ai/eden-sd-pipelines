@@ -91,7 +91,7 @@ def generate_basic(
     init_image_data = None,
     lora_path = None,
     prefix = "",
-    suffix = "_base_refine"):
+    suffix = "_freeU_mild3"):
 
 
     init_imgs = [None]
@@ -106,7 +106,7 @@ def generate_basic(
         sampler = random.choice(["euler"]),
         steps = 40,
         guidance_scale = random.choice([6, 8, 12]),
-        upscale_f = 1.4,
+        upscale_f = 1.0,
         text_input = text_input,
         text_input_2 = text_input_2,
         seed = seed,
@@ -131,13 +131,13 @@ def generate_basic(
 
 if __name__ == "__main__":
     
-    outdir = "results"
+    outdir = "results_freeU"
     
     # remove the output directory
     if os.path.exists(outdir) and 0:
         os.system(f"rm -rf {outdir}")
 
-    for i in range(40):
+    for i in range(20):
         seed = random.randint(0, 100000)
         seed = i
 
