@@ -95,7 +95,7 @@ class Interpolator():
 
         # Figure out the number of frames per prompt:
         self.n_frames = n_frames_target
-        self.n_frames_between_two_prompts = int((self.n_frames - self.n)/(self.n-1))
+        self.n_frames_between_two_prompts = max(1, int((self.n_frames - self.n)/(self.n-1)))
         self.n_frames = int(np.ceil(self.n_frames_between_two_prompts*(self.n-1)+self.n))
         print(f"Rendering {self.n_frames} total frames ({self.n_frames_between_two_prompts} frames between every two prompts)")
 

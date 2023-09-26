@@ -341,7 +341,6 @@ class Predictor(BasePredictor):
                 args.interpolation_init_images_max_strength = 1.0
                 #force_timepoints = [0.0, 1.0, 0.25] # TODO enable weighted blending
                 force_timepoints = None
-
             else:
                 force_timepoints = None
 
@@ -386,7 +385,13 @@ class Predictor(BasePredictor):
                 
                 run_and_kill_cmd(command)
                 print("predict.py: FILM done.")
-                out_dir = Path(os.path.join(abs_out_dir_path, "interpolated_frames"))
+                film_out_dir = Path(os.path.join(abs_out_dir_path, "interpolated_frames"))
+
+                # check if film_out_dir exists and contains at least 3 .jpg files:
+                if os.path.exists(film_out_dir) and len(list(film_out_dir.glob("*.jpg"))) > 3:
+                    out_dir = film_out_dir
+                else:
+                    print("Something went wrong with FILM, using original frames instead.")
 
             if mode != "blend":
                 # save video
