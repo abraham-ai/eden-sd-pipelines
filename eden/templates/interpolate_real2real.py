@@ -1,12 +1,58 @@
 import os, time, random, sys, shutil, subprocess
 sys.path.append('..')
 
-if 0:
-    os.environ["TORCH_HOME"] = "/src/.torch"
-    os.environ["TRANSFORMERS_CACHE"] = "/src/.huggingface/"
-    os.environ["DIFFUSERS_CACHE"] = "/src/.huggingface/"
-    os.environ["HF_HOME"] = "/src/.huggingface/"
-    os.environ["LPIPS_HOME"] = "/src/models/lpips/"
+def sample_from_dir(dirpath, n, use_json_prompt_prob = 1.0, shuffle = False, extensions = [".jpg", ".png", ".jpeg", "webp"]):
+    
+    interpolation_texts = []
+    # find all images in this dir:
+    all_files = sorted(os.listdir(dirpath))
+    img_paths = [os.path.join(dirpath,f) for f in all_files if any(f.endswith(ext) for ext in extensions)]
+
+    if shuffle:
+        random.shuffle(img_paths)
+    else:
+        if n < len(img_paths):
+            print("Warning: only using first %d images from a directory with %d images" % (n, len(img_paths)))
+
+    #n = len(img_paths)
+    img_paths = img_paths[:n]
+
+    for i in range(n):
+        img_path = img_paths[i]
+        extension = os.path.splitext(img_path)[1]
+
+        json_path = img_path.replace(extension, ".json")
+        json_path = os.path.join(dirpath, json_path)
+
+        json_path2 = img_path.replace("_0" + extension, ".json")
+        json_path2 = os.path.join(dirpath, json_path2)
+
+        txt_path = img_path.replace(extension, ".txt")
+        txt_path = os.path.join(dirpath, txt_path)
+
+        interpolation_text = None
+
+        if (random.random() < use_json_prompt_prob):
+            try:
+                if os.path.exists(json_path):
+                    with open(json_path, "r") as f:
+                        interpolation_text = json.load(f)["text_input"]
+                elif os.path.exists(json_path2):
+                    with open(json_path2, "r") as f:
+                        interpolation_text = json.load(f)["text_input"]
+                elif os.path.exists(txt_path):
+                    with open(txt_path, "r") as f:
+                        interpolation_text = f.read()
+            except:
+                pass
+        
+        interpolation_texts.append(interpolation_text)
+
+    print("Using imgs:")
+    for img_p in img_paths:
+        print(img_p)
+
+    return img_paths, interpolation_texts
 
 from settings import StableDiffusionSettings
 from generation import *
@@ -22,7 +68,7 @@ def real2real(
     save_video = True,
     remove_frames_dir = 0,
     save_phase_data = False,  # save condition vectors and scale for each frame (used for later upscaling)
-    save_distance_data = 1,  # save distance plots to disk
+    save_distance_data = 0,  # save distance plots to disk
     debug = 0):
 
     random.seed(seed)
@@ -35,20 +81,18 @@ def real2real(
     if args is None:
         args = StableDiffusionSettings(
             #watermark_path = "../assets/eden_logo.png",
-            ckpt = random.choice(["sdxl-v1.0"]),
             text_input = "real2real",  # text_input is also the title, but has no effect on interpolations
             interpolation_seeds = [random.randint(1, 1e8) for _ in range(n)],
             interpolation_texts = input_texts,
             interpolation_init_images = input_images,
-            interpolation_init_images_power = 2.0,
-            interpolation_init_images_min_strength = random.choice([0.1]),  # a higher value will make the video smoother, but allows less visual change / journey
+            interpolation_init_images_min_strength = 0.0,  # a higher value will make the video smoother, but allows less visual change / journey
             interpolation_init_images_max_strength = 0.95,
             latent_blending_skip_f = random.choice([[0.1, 0.65]]),
             compile_unet = False,
-            guidance_scale = random.choice([8]),
+            guidance_scale = random.choice([6]),
             n_anchor_imgs = random.choice([3]),
             sampler = "euler",
-            n_frames = 3*n,
+            n_frames = 12*n,
             loop = True,
             smooth = True,
             n_film = 0,
@@ -57,7 +101,6 @@ def real2real(
             seed = seed,
             H = 1024,
             W = 1024,
-            upscale_f = 1.0,
             #lora_path = None,
         )
 
@@ -124,62 +167,6 @@ def real2real(
     return video_filename, frames_dir, timepoints
 
     
-
-def sample_from_dir(dirpath, n, use_json_prompt_prob = 1.0, shuffle = False, extensions = [".jpg", ".png", ".jpeg", "webp"]):
-    
-    interpolation_texts = []
-    # find all images in this dir:
-    all_files = sorted(os.listdir(dirpath))
-    img_paths = [os.path.join(dirpath,f) for f in all_files if any(f.endswith(ext) for ext in extensions)]
-
-    if shuffle:
-        random.shuffle(img_paths)
-    else:
-        if n < len(img_paths):
-            print("Warning: only using first %d images from a directory with %d images" % (n, len(img_paths)))
-
-    #n = len(img_paths)
-    img_paths = img_paths[:n]
-
-    for i in range(n):
-        img_path = img_paths[i]
-        extension = os.path.splitext(img_path)[1]
-
-        json_path = img_path.replace(extension, ".json")
-        json_path = os.path.join(dirpath, json_path)
-
-        json_path2 = img_path.replace("_0" + extension, ".json")
-        json_path2 = os.path.join(dirpath, json_path2)
-
-        txt_path = img_path.replace(extension, ".txt")
-        txt_path = os.path.join(dirpath, txt_path)
-
-        interpolation_text = None
-
-        if (random.random() < use_json_prompt_prob):
-            try:
-                if os.path.exists(json_path):
-                    with open(json_path, "r") as f:
-                        interpolation_text = json.load(f)["text_input"]
-                elif os.path.exists(json_path2):
-                    with open(json_path2, "r") as f:
-                        interpolation_text = json.load(f)["text_input"]
-                elif os.path.exists(txt_path):
-                    with open(txt_path, "r") as f:
-                        interpolation_text = f.read()
-            except:
-                pass
-        
-        interpolation_texts.append(interpolation_text)
-
-    print("Using imgs:")
-    for img_p in img_paths:
-        print(img_p)
-
-    return img_paths, interpolation_texts
-
-
-
 if __name__ == "__main__":
 
     init_imgs = [
@@ -189,28 +176,15 @@ if __name__ == "__main__":
         ]
 
     init_imgs = [
-        "../assets/01.jpg",
-        "../assets/02.jpg",
-    ]
-    init_imgs = [
             "https://generations.krea.ai/images/3cd0b8a8-34e5-4647-9217-1dc03a886b6a.webp",
             "https://generations.krea.ai/images/928271c8-5a8e-4861-bd57-d1398e8d9e7a.webp",
             "https://generations.krea.ai/images/865142e2-8963-47fb-bbe9-fbe260271e00.webp"
         ]
 
-    input_dir = "/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/img2img_inits/random2"
-    init_imgs = [os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.endswith(".jpg")]
-
-
-    init_imgs = [
-            "../assets/01.jpg",
-            "../assets/02.jpg",
-        ]
-
-    outdir = "results_blend"
+    outdir = "results"
     n = 2
 
-    for i in [2]:
+    for i in [0]:
         seed = np.random.randint(0, 1000)
         seed = i
 
@@ -225,7 +199,7 @@ if __name__ == "__main__":
                 real2real(input_images, outdir, seed = seed)
             except KeyboardInterrupt:
                 print("Interrupted by user")
-                exit()  # or sys.exit()
+                exit()
             except Exception as e:
                 print(f"Error: {e}")  # Optionally print the error
                 continue

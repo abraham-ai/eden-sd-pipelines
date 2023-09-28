@@ -5,6 +5,8 @@ import torchvision
 import os, time, math, random
 from PIL import Image
 
+from scipy.signal import butter, filtfilt
+
 import matplotlib.pyplot as plt
 from generation import *
 from einops import rearrange, repeat
@@ -32,6 +34,28 @@ def resize(img, target_w, mode = "bilinear"):
     resized = torch.nn.functional.interpolate(img, size=(target_h, target_w), mode=mode)
     return resized
 
+def butter_lowpass(cutoff, fs, order=5):
+    nyquist = 0.5 * fs
+    normal_cutoff = cutoff / nyquist
+    b, a = butter(order, normal_cutoff, btype='low', analog=False)
+    return b, a
+
+def filter_signal(signal, f_cutoff, dt, plot=False):
+    if np.all(signal == signal[0]):
+        return signal
+
+    fs = 1 / dt
+    b, a = butter_lowpass(f_cutoff, fs)
+    y = filtfilt(b, a, signal)
+    
+    if plot:
+        plt.figure(figsize=(12, 6))
+        plt.plot(np.arange(0, len(signal)*dt, dt), signal, label="Original", alpha=0.5)
+        plt.plot(np.arange(0, len(y)*dt, dt), y, label="Filtered", alpha=0.5)
+        plt.legend()
+        plt.savefig("filtered_signal.png")
+        
+    return y
 
 @torch.no_grad()
 def perceptual_distance(img1, img2, 
@@ -302,9 +326,14 @@ class Interpolator():
             perceptual_distances = self.latent_tracker.frame_buffer.distances.copy()
 
             if self.args.planner is not None:
-                print("###### Using planner to get audio push curve! ######")
+                #print("###### Using planner to get audio push curve! ######")
                 perceptual_target_curve, high_fps_target_curve = self.args.planner.get_audio_push_curve(len(perceptual_distances)+1, self.prompt_index, self.n_frames_between_two_prompts, max_n_samples = self.n_frames_between_two_prompts)
                 perceptual_target_curve = high_fps_target_curve
+
+                # filter out high frequencies:
+                dt = 1.0 / self.args.fps
+                f_cutoff = self.args.fps / 4
+                perceptual_target_curve = filter_signal(perceptual_target_curve, f_cutoff, dt)
             else:
                 perceptual_target_curve = np.ones(len(perceptual_distances)+1)
 
@@ -337,7 +366,7 @@ class Interpolator():
             next_t, best_estimated_perceptual_density_curve = t_data
 
             # plot the current distances / target perceptual curves:
-            if self.args.save_distance_data:
+            if self.args.save_distance_data and ((self.latent_tracker.get_n_frames() == self.n_frames_between_two_prompts-1) or (self.latent_tracker.get_n_frames() == 10)):
                 os.makedirs(os.path.join(self.args.frames_dir, "distances"), exist_ok = True)
                 plt.figure(figsize = (12,6))
                 ts = np.linspace(0,1,len(perceptual_distances))
@@ -347,13 +376,13 @@ class Interpolator():
                 plt.legend(loc='upper left')
                 plt.title(f"Current distances / target density (interpolation step {self.interpolation_step}, fit_MSE = {best_fit_mse:.3f})")
                 plt.ylim([0,4])
-                plt.savefig(os.path.join(os.path.join(self.args.frames_dir, "distances"), "distance_targets_%04d.png" %self.interpolation_step))
+                #plt.savefig(os.path.join(os.path.join(self.args.frames_dir, "distances"), "distance_targets_%04d.png" %self.interpolation_step))
                 plt.savefig(os.path.join(os.path.join(self.args.frames_dir, "distances"), "all_distance_targets.png"))
+                plt.close('all')
                 plt.clf()
-                plt.close()
 
-                if best_fit_mse > 0.5:
-                    stop = True
+                #if best_fit_mse > 0.5:
+                #    stop = True
 
             return next_t, stop
 
@@ -395,32 +424,12 @@ class Interpolator():
                 self.prev_prompt_index = self.prompt_index
 
         if self.smooth:
-            #self.frame_buffer.maybe_reset()
-
             t, abort = self.find_next_t()
             t_raw = t + self.prompt_index
 
-            if self.args.save_distance_data is not None and 0: #deprecated
-                self.latent_tracker.frame_buffer.plot_distances(os.path.join(self.args.frames_dir, "distances"))
-
         else:
-
             # plot the current distances / target perceptual curves:
             perceptual_distances = self.latent_tracker.frame_buffer.distances.copy()
-
-            if self.args.save_distance_data:
-                os.makedirs(os.path.join(self.args.frames_dir, "distances"), exist_ok = True)
-                plt.figure(figsize = (12,6))
-                ts = np.linspace(0,len(perceptual_distances)/self.n_frames_between_two_prompts,len(perceptual_distances))
-                plt.bar(ts, perceptual_distances / np.mean(perceptual_distances), label = "lpips perceptual distances", edgecolor='black', width=1/self.n_frames_between_two_prompts)
-                plt.legend(loc='upper left')
-                plt.title(f"Perceptual distances between adjacent frames (interpolation step {self.interpolation_step} / {self.n_frames_between_two_prompts})")
-                plt.ylim([0,4])
-                plt.xlim(0,1)
-                plt.savefig(os.path.join(os.path.join(self.args.frames_dir, "distances"), "distance_targets_%04d.png" %self.interpolation_step))
-                plt.savefig(os.path.join(os.path.join(self.args.frames_dir, "distances"), "all_distance_targets.png"))
-                plt.clf()
-                plt.close()
 
             if t_raw is None:
                 t_raw = self.ts[self.interpolation_step]

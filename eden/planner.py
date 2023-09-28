@@ -398,7 +398,7 @@ def blend_inits(init1, init2, t, args, real2real = True, anti_shinethrough_power
     return blended_init, init_image_strength
 
 
-def create_init_latent(args, t, interpolation_init_images, keyframe_index, init_noise, device, pipe, verbose = 1):
+def create_init_latent(args, t, interpolation_init_images, keyframe_index, init_noise, device, pipe, verbose = 0):
 
     """
     This function is derived from the latent-blending idea:

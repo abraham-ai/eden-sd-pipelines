@@ -47,17 +47,18 @@ if __name__ == "__main__":
     ##############################################################################
     
     # main render settings (eg specified by the user)
-    H,W          = 768, 768
+    H,W          = 1024+256, 1024
     inter_frames = 120      # number of frames to interpolate between each pair of input images
     output_fps   = 12       # final fps will be twice this when n_film = 1
-    n_steps      = 36       # n_diffusion steps per frame
+    n_steps      = 40       # n_diffusion steps per frame
 
     # audio_path is either a path of a .zip file, or a tuple of (audio_features_pickle, audio_mp3_path)
     audio_path = ("path_to_features.pkl", "path_to_audio.mp3")
+    audio_path = ("/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/tmp_unzip/features.pkl", "/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/tmp_unzip/music.mp3")
     
     # Get random images from a directory: (this should be replaced with timeline imgs in WZRD)
-    n_imgs = 6
-    input_dir = "path_to_img_dir"
+    n_imgs = 8
+    input_dir = "/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/img2img_inits/random2"
 
     seed      = 0        # different seeds will give different results
     outdir    = 'results/real2real_audioreactive'
@@ -78,17 +79,15 @@ if __name__ == "__main__":
         H = H,
         W = W,
         n_frames = inter_frames*(n-1) + n,
-        guidance_scale = 7,
+        guidance_scale = 6,
         text_input = "real2real",  # text_input is also the title, but has no effect on interpolations
         interpolation_texts = None,
-        uc_text = "watermark, nude, text, ugly, tiling, out of frame, blurry, grainy, signature, cut off, draft",  # negative prompting
         interpolation_seeds = [random.randint(1, 1e8) for _ in range(n)],
         interpolation_init_images = img_paths,
-        interpolation_init_images_power = random.choice([3.0]),
-        interpolation_init_images_min_strength = random.choice([0.275]),
-        interpolation_init_images_max_strength = 0.925,
+        interpolation_init_images_min_strength = random.choice([0.0]),
+        interpolation_init_images_max_strength = 0.95,
         n_anchor_imgs = 5,
-        latent_blending_skip_f = [0.05, 0.75],
+        latent_blending_skip_f = [0.10, 0.85],
         loop = True,
         n_film = 0,
         fps = output_fps,

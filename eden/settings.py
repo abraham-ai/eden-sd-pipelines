@@ -74,11 +74,8 @@ class StableDiffusionSettings:
     min_steps: int = 7  # low_n steps often give artifacts, so adopt a min-n-steps
     guidance_scale: float = 7.5
     
-    # ddim_eta: float = 0.0
     C: int = 4
     f: int = 8   
-    #dynamic_threshold: float = None
-    #static_threshold: float = None
     upscale_f: float = 1.0   # when != 1.0, perform two stage generation (generate first, then upscale)
 
     # Watermark
@@ -89,7 +86,7 @@ class StableDiffusionSettings:
     init_image_data: str = None
     init_image_strength: float = 0.0
     adopt_aspect_from_init_img: bool = True
-    #init_image_inpaint_mode: str = None # ["mean_fill", "edge_pad", "cv2_telea", "cv2_ns"]
+    
     init_sample: str = None
     init_latent: str = None
     start_timestep: str = None # used to start at a specific timestep in the denoising loop (LatentBlending)
@@ -102,18 +99,12 @@ class StableDiffusionSettings:
     pooled_prompt_embeds: str = None  # force a specific pooled prompt conditioning vector
     negative_pooled_prompt_embeds: str = None  # force a specific pooled negative prompt conditioning vector
 
-    # mask
-    # mask_image: Image = None
-    # mask_image_data: str = None
-    # mask_invert: bool = False
-    # mask_brightness_adjust: float = 1.0
-    # mask_contrast_adjust: float = 1.0
-
     # single generation
     name: str = "" # prompt-name of the creation in the UI
     text_input: str = "hello world" 
     text_input_2: str = None  # optional, second prompt (for txt-encoder2 in SDXL)
-    uc_text: str = "nude, naked, poorly drawn face, ugly, tiling, out of frame, extra limbs, disfigured, deformed body, blurry, blurred, watermark, text, grainy, signature, cut off, draft"  # negative prompting
+    #uc_text: str = "nude, naked, poorly drawn face, ugly, tiling, out of frame, extra limbs, disfigured, deformed body, blurry, blurred, watermark, text, grainy, signature, cut off, draft"  # negative prompting
+    uc_text: str = "nude, naked, text, watermark, low-quality, signature, moiré pattern, downsampling, aliasing, distorted, blurry, blur, jpeg artifacts, compression artifacts, poorly drawn, low-resolution, bad, grainy, duplicate, error, fake, bad-contrast"
     seed: int = 0
     n_samples: int = 1
 
@@ -122,31 +113,16 @@ class StableDiffusionSettings:
     loop: bool = False
     smooth: bool = True  
     n_film: int = 0
-    fps: int = 9
+    fps: int = 12
     
     # interpolations
     interpolation_texts: List = field(default_factory=lambda: [])
     interpolation_seeds: List = field(default_factory=lambda: [])
     interpolation_init_images: List = field(default_factory=lambda: [])
-    #interpolation_init_images_top_k: int = 1
     interpolation_init_images_power: float = 2.0
-    interpolation_init_images_min_strength: float = 0.25
-    interpolation_init_images_max_strength: float = 0.90
+    interpolation_init_images_min_strength: float = 0.00 # SDXL is very sensitive to init_imgs
+    interpolation_init_images_max_strength: float = 0.95
     save_distances_to_dir: str = None
-
-    # # video feedback (not compatible with interpolations)
-    # animation_mode: str = None  # ['2D', '3D', 'Video Input']
-    # color_coherence: str = 'Match Frame 0 LAB' # [None, 'Match Frame 0 HSV', 'Match Frame 0 LAB', 'Match Frame 0 RGB']
-    # init_video: str = None
-    # extract_nth_frame: int = 1
-    # turbo_steps: int = 3
-    # previous_frame_strength: float = 0.65
-    # previous_frame_noise: float = 0.02
-    # contrast: float = 1.0
-    # angle: float = 0
-    # zoom: float = 0
-    # translation: List = field(default_factory=lambda: [0, 0, 0])
-    # rotation: List = field(default_factory=lambda: [0, 0, 0])
 
     # personalized aesthetic gradients:
     aesthetic_target: List = field(default_factory=lambda: None)   # either a path to a .pt file, or a list of PIL.Image objects
@@ -163,7 +139,7 @@ class StableDiffusionSettings:
     # Latent Tracking:
     interpolator: str = None
     n_anchor_imgs: int = 3  # number of anchor images to render before starting latent blending
-    latent_blending_skip_f: List = field(default_factory=lambda: [0.2, 0.7])  # What fraction of the denoising trajectory to skip ahead when using LatentBlending Trick (start and end values for each frame)
+    latent_blending_skip_f: List = field(default_factory=lambda: [0.1, 0.65])  # What fraction of the denoising trajectory to skip ahead when using LatentBlending Trick (start and end values for each frame)
     never_overwrite_existing_latents: bool = True # if True, will never overwrite real, existing latents in the tracker
 
     # disk folder interaction:
