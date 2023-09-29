@@ -67,6 +67,12 @@ def generate(
     args.W = round_to_nearest_multiple(args.W, 8)
     args.H = round_to_nearest_multiple(args.H, 8)
 
+    if args.text_input == "remix_this_image":
+        args.text_input = clip_interrogate(args.ckpt, args.init_image, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
+        del_clip_interrogator_models()
+        print("Using clip-interrogate prompt:")
+        print(args.text_input)
+
     # Load model
     global pipe
     pipe = eden_pipe.get_pipe(args)
@@ -387,7 +393,7 @@ def make_images(args):
         if args.init_image_data is None:
             raise ValueError(f"Must provide an init image in order to use {args.mode}!")
         
-        if args.text_input is None:
+        if args.text_input is None or args.text_input == "":
             init_image = load_img(args.init_image_data, 'RGB')
             args.text_input = clip_interrogate(args.ckpt, init_image, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
             del_clip_interrogator_models()
@@ -446,7 +452,7 @@ def run_upscaler(args_, imgs,
     x_samples_upscaled, x_images_upscaled = [], []
 
     # Load the upscaling model:
-    args.ckpt = "sdxl-refiner-v1.0" # Use SDXL refiner model
+    #args.ckpt = "sdxl-refiner-v1.0" # Use SDXL refiner model
 
     free_memory, tot_mem = torch.cuda.mem_get_info(device=_device)
     remove_pipe_after_upscaling = False

@@ -1183,6 +1183,7 @@ def preprocess_controlnet_init_image(pil_control_image, args):
         else: # image
             threshold = False
             target_width_range = [128,128]
+            #target_width_range = [48,264]
         return preprocess_luminance(pil_control_image, threshold = threshold, target_width_range=target_width_range)
 
 def compute_brightness_map(image):
