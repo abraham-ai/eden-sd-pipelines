@@ -249,6 +249,7 @@ def prepare_prompt_for_lora(prompt, lora_path, interpolation=False, verbose=True
     training_args = read_json_from_path(os.path.join(lora_path, "training_args.json"))
     
     lora_name = str(training_args["name"])
+    print(f"lora name: {lora_name}")
     lora_name_encapsulated = "<" + lora_name + ">"
     trigger_text = training_args["trigger_text"]
     mode = training_args["mode"]
@@ -264,13 +265,14 @@ def prepare_prompt_for_lora(prompt, lora_path, interpolation=False, verbose=True
     if mode != "style":
         replacements = {
             "<concept>": trigger_text,
+            "<concepts>": trigger_text + "'s",
             lora_name_encapsulated: trigger_text,
             lora_name_encapsulated.lower(): trigger_text,
             lora_name: trigger_text,
-            lora_name.lower(): trigger_text
+            lora_name.lower(): trigger_text,
         }
         prompt = replace_in_string(prompt, replacements)
-        if not any(key in prompt for key in replacements.keys()):
+        if trigger_text not in prompt:
             prompt = trigger_text + ", " + prompt
     else:
         style_replacements = {
@@ -281,7 +283,7 @@ def prepare_prompt_for_lora(prompt, lora_path, interpolation=False, verbose=True
             f"in the style of {lora_name.lower()}": "in the style of TOK"
         }
         prompt = replace_in_string(prompt, style_replacements)
-        if "in the style of" not in prompt:
+        if "in the style of TOK" not in prompt:
             prompt = prompt + ", in the style of TOK"
         
     # Final cleanup
