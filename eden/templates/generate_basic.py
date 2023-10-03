@@ -99,21 +99,20 @@ def generate_basic(
     init_img_path = random.choice(get_all_img_files(init_img_dir))
 
     args = StableDiffusionSettings(
-        ckpt = "stable-diffusion-xl-base-1.0",
         mode = "generate",
         W = random.choice([1024]),
         H = random.choice([1024]),
         sampler = random.choice(["euler"]),
-        steps = 40,
-        guidance_scale = random.choice([6, 8, 12]),
-        upscale_f = 1.3,
+        steps = 30,
+        guidance_scale = random.choice([8]),
+        upscale_f = 1.0,
         text_input = text_input,
         text_input_2 = text_input_2,
         seed = seed,
         n_samples = 1,
         #init_image_data = random.choice([None, None, init_img_path]),
         #init_image_strength = random.choice([0.05, 0.1, 0.15, 0.2, 0.25]),
-        lora_path = "/data/xander/Projects/cog/GitHub_repos/cog-sdxl/lora_models_saved/koji_color/checkpoints/checkpoint-804"
+        #lora_path = "/data/xander/Projects/cog/GitHub_repos/cog-sdxl/lora_models_saved/koji_color/checkpoints/checkpoint-804"
     )
 
     name = f'{prefix}{args.text_input[:80]}_{args.seed}_{int(time.time())}{suffix}'

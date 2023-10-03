@@ -96,7 +96,7 @@ class NoWatermark:
 
 
 def load_pipe(args):
-    if 'eden' in args.ckpt:
+    if 'eden' in os.path.basename(args.ckpt):
         return load_pipe_v1(args)
 
     global pipe
@@ -114,6 +114,7 @@ def load_pipe(args):
 
     print("#############################################")
     print(f"Loading new SD pipeline from {location}..")
+    print("#############################################")
 
     if args.controlnet_path is not None: # Load controlnet sdxl
         #from diffusers import StableDiffusionControlNetImg2ImgPipeline
@@ -163,10 +164,12 @@ def load_pipe(args):
         print(f"Creating new StableDiffusionXLImg2ImgPipeline using {args.ckpt}")
 
         if load_from_single_file:
+            print("Loading from single file...")
             pipe = StableDiffusionXLImg2ImgPipeline.from_single_file(
                 location,
                 torch_dtype=torch.float16, use_safetensors=True)
         else:
+            print("Loading from pretrained...")
             pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
                 location, 
                 torch_dtype=torch.float16, use_safetensors=True, variant="fp16"
