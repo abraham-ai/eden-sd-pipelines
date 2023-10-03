@@ -9,7 +9,7 @@ import cv2
 import hashlib
 from io import BytesIO
 import PIL
-from PIL import Image
+from PIL import Image, ExifTags
 import torch
 from einops import rearrange, repeat
 import moviepy.editor as mpy
@@ -494,33 +494,28 @@ def pil_img_to_latent(img, args, device, pipe, noise_seed = 0):
     return latent
 
 def load_image_with_orientation(path, mode = "RGB"):
-    image = Image.open(path)
+    img = Image.open(path)
 
-    # Try to get the Exif orientation tag (0x0112), if it exists
     try:
-        exif_data = image._getexif()
-        orientation = exif_data.get(0x0112)
+        # Get orientation tag (if available)
+        for orientation in ExifTags.TAGS.keys():
+            if ExifTags.TAGS[orientation] == 'Orientation':
+                break
+        exif = img._getexif()
+        orientation_value = exif.get(orientation)
+
+        # Apply rotation based on orientation
+        if orientation_value == 3:
+            img = img.rotate(180, expand=True)
+        elif orientation_value == 6:
+            img = img.rotate(270, expand=True)
+        elif orientation_value == 8:
+            img = img.rotate(90, expand=True)
     except (AttributeError, KeyError, IndexError):
-        orientation = None
+        # No EXIF data or invalid orientation value; do nothing
+        pass
 
-    # Apply the orientation, if it's present
-    if orientation:
-        if orientation == 2:
-            image = image.transpose(Image.FLIP_LEFT_RIGHT)
-        elif orientation == 3:
-            image = image.rotate(180)
-        elif orientation == 4:
-            image = image.transpose(Image.FLIP_TOP_BOTTOM)
-        elif orientation == 5:
-            image = image.rotate(-90).transpose(Image.FLIP_LEFT_RIGHT)
-        elif orientation == 6:
-            image = image.rotate(-90)
-        elif orientation == 7:
-            image = image.rotate(90).transpose(Image.FLIP_LEFT_RIGHT)
-        elif orientation == 8:
-            image = image.rotate(90)
-
-    return image.convert(mode)
+    return img.convert(mode)
 
 
 def load_img(data, mode="RGB"):
