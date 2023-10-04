@@ -8,7 +8,7 @@ build:
     - "libglib2.0-0"
 
   python_packages:
-    - "torch==2.0.0"         # No change
+    - "torch==2.0.0+cu118"   # No change
     - "ftfy==6.1.1"          # No change
     - "scipy==1.11.1"        # Updated from 1.9.2 to 1.11.1
     - "transformers==4.30.2" # Updated from 4.26.1 to 4.30.2
@@ -21,7 +21,7 @@ build:
     - "safetensors==0.3.1"   # Updated from 0.2.8 to 0.3.1
     - "mediapipe==0.9.1.0"   # Not found in the pip freeze output, so no change
     - "scikit-image==0.19.3" # Not found in the pip freeze output, so no change
-    - "open_clip_torch==2.20.0" # Updated from 2.7.0 to 2.20.0
+    - "open-clip-torch==2.20.0" # Updated from 2.7.0 to 2.20.0
     - "tokenizers==0.13.3"   # Updated from 0.13.2 to 0.13.3
     - "triton==2.0.0"        # No change
     - "apache-beam==2.45.0"  # Not found in the pip freeze output, so no change
@@ -31,7 +31,7 @@ build:
     - "pandas==2.0.3"        # Updated from 1.5.3 to 2.0.3
     - "invisible-watermark>=0.2.0"
     - "timm==0.9.6"           # needed for ZoeDepth model (depth controlnet)
-    - omegaconf              # needed to load .safetensors config files
+    - "omegaconf==2.3.0"      # needed to load .safetensors config files
 
   pre_install:
    - git clone -b sdxl https://www.github.com/abraham-ai/diffusers
