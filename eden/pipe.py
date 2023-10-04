@@ -136,9 +136,15 @@ def load_pipe(args):
         
         if load_from_single_file:
             print("Loading from single file...")
-            pipe = StableDiffusionXLImg2ImgPipeline.from_single_file(
-                location, safety_checker=None,
-                torch_dtype=torch.float16, use_safetensors=True)
+
+            if 0:
+                pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
+                    "stabilityai/stable-diffusion-xl-base-1.0",
+                    torch_dtype=torch.float16)
+            else:
+                pipe = StableDiffusionXLImg2ImgPipeline.from_single_file(
+                    location, safety_checker=None,
+                    torch_dtype=torch.float16, use_safetensors=True)
 
             pipe = StableDiffusionXLControlNetPipeline(
                 vae = pipe.vae,
@@ -164,12 +170,12 @@ def load_pipe(args):
         print(f"Creating new StableDiffusionXLImg2ImgPipeline using {args.ckpt}")
 
         if load_from_single_file:
-            print("Loading from single file...")
+            print(f"Loading from single file: {location}...")
             pipe = StableDiffusionXLImg2ImgPipeline.from_single_file(
                 location,
                 torch_dtype=torch.float16, use_safetensors=True)
         else:
-            print("Loading from pretrained...")
+            print(f"Loading from pretrained: {location}...")
             pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
                 location, 
                 torch_dtype=torch.float16, use_safetensors=True, variant="fp16"
