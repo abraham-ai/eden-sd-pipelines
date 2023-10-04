@@ -8,6 +8,11 @@ from PIL import Image
 import signal
 import time
 
+from pathlib import Path
+import requests
+import os
+import mimetypes
+
 def run_and_kill_cmd(command, pipe_output=True):
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     time.sleep(0.25)
@@ -43,7 +48,7 @@ def run_and_kill_cmd(command, pipe_output=True):
             print("cmd done, stderr:")
             print(stderr)
 
-def download(url, folder, filepath = None):
+def download(url, folder, filepath=None):    
     """
     Robustly download a file from a given URL to the specified folder, automatically infering the file extension.
     
@@ -60,50 +65,44 @@ def download(url, folder, filepath = None):
         folder_path = Path(folder)
         
         if filepath is None:
-            # Make a preliminary request to the URL to get the content type without downloading the file
-            response = requests.head(url, allow_redirects=True)
-            content_type = response.headers.get('Content-Type')
+            # Guess file extension from URL itself
+            parsed_url_path = Path(url.split('/')[-1])
+            ext = parsed_url_path.suffix
             
-            # Guess file extension based on the content type
-            ext = mimetypes.guess_extension(content_type) or ''  # Default to empty string if extension not found
-            # Parse the URL to get the filename and append the extension (if the file doesn't already have an extension)
-            filename = url.split('/')[-1]
-            if not filename.endswith(ext):  # To avoid doubling the extension if it already exists in the URL
-                filename += ext
+            # If extension is not in URL, then use Content-Type
+            if not ext:
+                response = requests.head(url, allow_redirects=True)
+                content_type = response.headers.get('Content-Type')
+                ext = mimetypes.guess_extension(content_type) or ''
+            
+            filename = parsed_url_path.stem + ext  # Append extension only if needed
             filepath = folder_path / filename
         
-        # Create the folder if it does not exist
         os.makedirs(folder_path, exist_ok=True)
         
-        # Check if the file already exists
         if filepath.exists():
             print(f"{filepath} already exists, skipping download..")
             return filepath
         
-        # Make a request to the URL and check for errors
         print(f"Downloading {url} to {filepath}...")
         response = requests.get(url, stream=True, timeout=600)
-        response.raise_for_status()  # Raise an exception if the request was unsuccessful
+        response.raise_for_status()
         
-        # Write the content to the file
         with open(filepath, 'wb') as f:
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
-
+        
         return filepath
 
     except requests.exceptions.RequestException as e:
         print(f"Error downloading the file: {e}")
         return None
-
     except Exception as e:
         print(f"An error occurred: {e}")
         return None
 
+
 import tarfile
-
-
-
 
 def is_zip_file(file_path):
     with open(file_path, 'rb') as file:
