@@ -92,6 +92,9 @@ class StableDiffusionSettings:
     start_timestep: str = None # used to start at a specific timestep in the denoising loop (LatentBlending)
     
     # conditioning vectors:
+    activate_ip_adapter: bool = False
+    ip_image_strength: float = 0.6     # 1.0 will only use the image prompt, 0.0 will only use the text prompt
+
     c: str = None   # force a specific prompt conditioning vector
     uc: str = None  # force a specific negative prompt conditioning vector
     pc: str = None  # force 
@@ -104,10 +107,10 @@ class StableDiffusionSettings:
     text_input: str = "hello world" 
     text_input_2: str = None  # optional, second prompt (for txt-encoder2 in SDXL)
     #uc_text: str = "nude, naked, poorly drawn face, ugly, tiling, out of frame, extra limbs, disfigured, deformed body, blurry, blurred, watermark, text, grainy, signature, cut off, draft"  # negative prompting
-    uc_text: str = "nude, naked, text, watermark, low-quality, signature, moiré pattern, downsampling, aliasing, distorted, blurry, blur, jpeg artifacts, compression artifacts, poorly drawn, low-resolution, bad, grainy, duplicate, error, fake, bad-contrast"
+    uc_text: str = "nude, naked, text, watermark, low-quality, signature, white borders, padded border, moiré pattern, downsampling, aliasing, distorted, blurry, blur, jpeg artifacts, compression artifacts, poorly drawn, low-resolution, bad, grainy, duplicate, error, fake, bad-contrast"
     seed: int = 0
     n_samples: int = 1
-
+    
     # if mode is interpolate or animate (video)
     n_frames: int = 1
     loop: bool = False

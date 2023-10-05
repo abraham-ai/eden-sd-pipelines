@@ -13,6 +13,8 @@ from einops import rearrange, repeat
 from eden_utils import seed_everything, slerp, lerp, create_seeded_noise
 from settings import _device
 
+from ip_adapter.ip_adapter import IPAdapterXL
+
 import lpips
 lpips_perceptor = lpips.LPIPS(net='alex').eval().to(_device)    # lpips model options: 'squeeze', 'vgg', 'alex'
 
@@ -104,6 +106,7 @@ class Interpolator():
     '''
 
     def __init__(self, pipe, prompts, n_frames_target, args, device, 
+        images = None,
         smooth = True, 
         seeds = None, 
         scales = None, 
@@ -114,6 +117,14 @@ class Interpolator():
         self.args = args
         self.device = device
         self.prompts, self.seeds, self.scales = prompts, seeds, scales
+        if images is not None:
+            assert len(images) == len(prompts), "Number of given images must match number of prompts!"
+            self.images = images
+            self.ip_adapter = IPAdapterXL(pipe, eden_pipe.IP_ADAPTER_IMG_ENCODER_PATH, eden_pipe.IP_ADAPTER_PATH, _device)
+        else:
+            self.images = [None] * len(prompts)
+            self.ip_adapter = None
+
         self.n = len(self.prompts)        
         self.smooth = smooth
 
@@ -145,23 +156,6 @@ class Interpolator():
         self.phase_index = 0
         self.setup_next_creation_conditions(self.phase_index)
 
-    def update_aesthetic_target(self, i):
-        """
-        Update the aesthetic_target image(s) to finetune the conditioning vector for the current prompt i
-        the actual finetuning of the CLIP Text encoder is triggered in ../ldm/modules/encoders/modules.py
-
-        the passed images (self.args.aesthetic_target[i]) should be loaded PIL.Images
-        """
-
-        aesthetic_gradients_are_active = (self.args.aesthetic_target is not None) and (self.args.aesthetic_steps != 0) and (self.args.aesthetic_lr != 0.0)
-        
-        if aesthetic_gradients_are_active:
-            if isinstance(self.args.aesthetic_target, str): # the target is a .pt file
-                self.model.cond_stage_model.aesthetic_target = self.args.aesthetic_target
-            else:
-                self.model.cond_stage_model.aesthetic_target = self.args.aesthetic_target[i]
-            self.model.cond_stage_model.aesthetic_steps  = self.args.aesthetic_steps
-    
     def setup_next_creation_conditions(self, phase_index):
         """
         Setup the all conditioning signals for the next interpolation phase
@@ -178,17 +172,23 @@ class Interpolator():
         for i in range(2):
             index = phase_index + i
             prompt = self.prompts[index]
+            image  = self.images[index]
             seed   = self.seeds[index]
-            self.update_aesthetic_target(index)
 
             try: # SDXL
-                prompt_embeds = self.pipe.encode_prompt(
-                    prompt = prompt,
-                    device = self.device,
-                    num_images_per_prompt = 1,
-                    do_classifier_free_guidance = self.args.guidance_scale > 1.0,
-                    negative_prompt = self.args.uc_text
-                )
+                if image is not None:
+                    # create the conditioning vectors for the current prompt + image using ip_adapter:
+                    prompt_embeds = self.ip_adapter.create_embeds(
+                        image, prompt=prompt, negative_prompt=self.args.uc_text, scale=self.args.ip_image_strength
+                        )
+                else:
+                    prompt_embeds = self.pipe.encode_prompt(
+                        prompt = prompt,
+                        device = self.device,
+                        num_images_per_prompt = 1,
+                        do_classifier_free_guidance = self.args.guidance_scale > 1.0,
+                        negative_prompt = self.args.uc_text
+                    )
             except:
                 prompt_embeds = self.pipe._encode_prompt(
                     prompt = prompt,

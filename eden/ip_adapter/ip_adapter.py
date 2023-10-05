@@ -2,17 +2,35 @@ import os
 from typing import List
 
 import torch
+import torch.nn.functional as F
 from diffusers import StableDiffusionPipeline, StableDiffusionXLImg2ImgPipeline
 from diffusers.pipelines.controlnet import MultiControlNetModel
 from transformers import CLIPVisionModelWithProjection, CLIPImageProcessor
 from PIL import Image
 
-from utils import is_torch2_available
+def is_torch2_available():
+    return hasattr(F, "scaled_dot_product_attention")
+
 if is_torch2_available():
-    from attention_processor import IPAttnProcessor2_0 as IPAttnProcessor, AttnProcessor2_0 as AttnProcessor, CNAttnProcessor2_0 as CNAttnProcessor
+    from .attention_processor import IPAttnProcessor2_0 as IPAttnProcessor, AttnProcessor2_0 as AttnProcessor, CNAttnProcessor2_0 as CNAttnProcessor
 else:
-    from attention_processor import IPAttnProcessor, AttnProcessor, CNAttnProcessor
-from resampler import Resampler
+    from .attention_processor import IPAttnProcessor, AttnProcessor, CNAttnProcessor
+
+from .resampler import Resampler
+
+def prep_image(image, target_res = 1024, pad = True):
+    w, h = image.size
+
+    if pad:
+        square_canvas = Image.new('RGB', size=(max(w, h), max(w, h)))
+        square_canvas.paste(image, box=((max(w, h)-w)//2, (max(w, h)-h)//2))
+    else: # simply crop the center square:
+        square_canvas = image.crop(box=((w-h)//2, 0, (w+h)//2, h))
+
+    # resize to target size:
+    image = square_canvas.resize((target_res, target_res), resample=Image.LANCZOS)
+
+    return image
 
 
 class ImageProjModel(torch.nn.Module):
@@ -178,6 +196,8 @@ class IPAdapterXL(IPAdapter):
         negative_prompt=None,
         num_samples=1,
         scale=1.0):
+
+        pil_image = prep_image(pil_image)
 
         self.set_scale(scale)
 

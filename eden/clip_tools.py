@@ -36,9 +36,13 @@ def load_ci(sd_model_name, force_reload=False, clip_model_path=None):
 def clip_interrogate(sd_ckpt_name, init_img, clip_interrogator_mode, clip_model_path=None):
     ci = load_ci(sd_ckpt_name, False, clip_model_path=clip_model_path)
     if clip_interrogator_mode == "fast":
-        return ci.interrogate_fast(init_img)
+        prompt = ci.interrogate_fast(init_img)
     else:
-        return ci.interrogate(init_img)
+        prompt = ci.interrogate(init_img)
+        
+    prompt = prompt.replace("arafed", "")
+
+    return prompt
 
 
 def del_clip_interrogator_models():

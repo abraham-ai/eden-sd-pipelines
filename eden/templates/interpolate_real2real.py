@@ -92,14 +92,14 @@ def real2real(
             guidance_scale = random.choice([6]),
             n_anchor_imgs = random.choice([3]),
             sampler = "euler",
-            n_frames = 12*n,
+            n_frames = 48*n,
             loop = True,
             smooth = True,
             n_film = 0,
             fps = 12,
             steps = 40,
             seed = seed,
-            H = 1024,
+            H = 1024+512,
             W = 1024,
             #lora_path = None,
         )
@@ -181,15 +181,18 @@ if __name__ == "__main__":
             "https://generations.krea.ai/images/865142e2-8963-47fb-bbe9-fbe260271e00.webp"
         ]
 
-    outdir = "results"
-    n = 2
 
-    for i in [0]:
+    input_dir = "/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/img2img_inits/random2"
+    init_imgs = [os.path.join(input_dir, f) for f in os.listdir(input_dir)]
+
+    outdir = "results_real2real"
+    n = 3
+
+    for i in [11,14,17,21]:
         seed = np.random.randint(0, 1000)
         seed = i
 
         random.seed(seed)
-
         input_images = random.sample(init_imgs, n)
 
         if 0:

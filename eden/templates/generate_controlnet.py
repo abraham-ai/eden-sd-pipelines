@@ -36,22 +36,22 @@ def generate_basic(
     args = StableDiffusionSettings(
         #ckpt = "stable-diffusion-xl-base-1.0",
         mode = "generate",
-        W = random.choice([1024, 1024+256, 1024+512]),
-        H = random.choice([1024+256]),
+        W = random.choice([1024]),
+        H = random.choice([1024]),
         sampler = random.choice(["euler", "euler_ancestral"]),
-        steps = 45,
-        guidance_scale = random.choice([4,6,8,10,12]),
-        upscale_f = random.choice([1.0, 1.25]),
+        steps = 35,
+        guidance_scale = random.choice([7]),
+        upscale_f = random.choice([1.0]),
         text_input = text_input,
         seed = seed,
         n_samples = 1,
         lora_path = None,
         init_image_data = init_img,
-        init_image_strength = random.choice([0.5, 0.55, 0.6, 0.65, 0.7]),
+        init_image_strength = random.choice([0.7]),
         #control_guidance_start = random.choice([0.0, 0.0, 0.05, 0.1]),
         #control_guidance_end = random.choice([0.5, 0.6, 0.7]),
         #control_guidance_end = random.choice([0.65]),
-        controlnet_path = "controlnet-luminance-sdxl-1.0", 
+        #controlnet_path = "controlnet-luminance-sdxl-1.0", 
         #controlnet_path = "controlnet-depth-sdxl-1.0-small",
         #controlnet_path = "controlnet-canny-sdxl-1.0-small",
         #controlnet_path = "controlnet-canny-sdxl-1.0",
@@ -84,7 +84,7 @@ def generate_basic(
 if __name__ == "__main__":
 
     
-    outdir = "results_controlnet_memes"
+    outdir = "results"
     
     meme_prompts = [
         "Psychedelic dreamscape with neon accents",

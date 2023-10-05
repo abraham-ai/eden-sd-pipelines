@@ -30,6 +30,8 @@ from clip_tools import *
 from planner import LatentTracker, create_init_latent, blend_inits
 from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline, StableDiffusionDepth2ImgPipeline
 
+from ip_adapter.ip_adapter import IPAdapterXL
+
 def maybe_apply_watermark(args, x_images):
     # optionally, apply watermark to final image:
     if args.watermark_path is not None:
@@ -67,15 +69,26 @@ def generate(
     args.W = round_to_nearest_multiple(args.W, 8)
     args.H = round_to_nearest_multiple(args.H, 8)
 
-    if args.text_input == "remix_this_image":
-        args.text_input = clip_interrogate(args.ckpt, args.init_image, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
-        del_clip_interrogator_models()
-        print("Using clip-interrogate prompt:")
-        print(args.text_input)
-
     # Load model
     global pipe
     pipe = eden_pipe.get_pipe(args)
+
+    if args.activate_ip_adapter:
+        #args.text_input = clip_interrogate(args.ckpt, args.init_image, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
+        #del_clip_interrogator_models()
+        print("Using clip-interrogate prompt:")
+        print(args.text_input)
+
+        print("Generating conditioning signals from ip_adapter image!")
+        ip_adapter = IPAdapterXL(pipe, eden_pipe.IP_ADAPTER_IMG_ENCODER_PATH, eden_pipe.IP_ADAPTER_PATH, _device)
+
+        args.c, args.uc, args.pc, args.puc = ip_adapter.create_embeds(
+            args.init_image, prompt=args.text_input, negative_prompt=args.uc_text, 
+            scale=args.ip_image_strength  # scale = 1.0 will only use the image prompt, 0.0 will only use the text prompt
+            )
+
+        del ip_adapter
+        torch.cuda.empty_cache()
 
     if (args.interpolator is None) and (len(args.name) == 0):
         args.name = args.text_input # send this name back to the frontend
@@ -126,6 +139,12 @@ def generate(
 
     if args.controlnet_path is not None and args.init_image is None:
         raise ValueError("Must provide init_image if using controlnet")
+
+
+    # SDXL is super sensitive to init_image, even with strength = 0.0, so in some cases we want to completely remove the init_img:
+    if args.init_image_strength == 0.0 and args.mode == "remix":
+        args.init_image = None
+
 
     denoising_start = None
     if (args.init_image is None) and (args.init_latent is not None): # lerp/real2real
@@ -309,6 +328,7 @@ def make_interpolation(args, force_timepoints = None):
         args.n_frames, 
         args, 
         _device, 
+        images = interpolation_init_images,
         smooth=args.smooth,
         seeds=args.interpolation_seeds,
         scales=[args.guidance_scale for _ in args.interpolation_texts],
@@ -390,6 +410,9 @@ def make_interpolation(args, force_timepoints = None):
 def make_images(args):
     if args.mode == "remix" or args.mode == "upscale" or args.mode == "controlnet":
 
+        if args.mode == "remix":
+            args.activate_ip_adapter = True
+
         if args.init_image_data is None:
             raise ValueError(f"Must provide an init image in order to use {args.mode}!")
         
@@ -404,7 +427,7 @@ def make_images(args):
             print(f"Performing {args.mode} with provided text input: {args.text_input}")
 
     if args.text_input is None:
-        raise ValueError("You must provide a text input!")
+        raise ValueError(f"You must provide a text input (prompt) to use {args.mode}!")
 
     _, images_pil = generate(args)
     return images_pil
@@ -424,7 +447,7 @@ def run_upscaler(args_, imgs,
         init_image_strength    = 0.6,
         upscale_guidance_scale = 7.0,
         min_upscale_steps      = 16,  # never do less than this many steps
-        max_n_pixels           = 1600**2, # max number of pixels to avoid OOM
+        max_n_pixels           = 2048**2, # max number of pixels to avoid OOM
     ):
     args = copy(args_)
 
@@ -436,9 +459,8 @@ def run_upscaler(args_, imgs,
         assert args.uc is not None, "Must provide negative prompt conditioning if providing positive prompt conditioning"
         args.uc_text, args.text_input = None, None
     else:
-        args.c, args.uc = None, None
+        args.c, args.uc, args.pc, args.puc = None, None, None, None
 
-    #print_gpu_info(args, "start of run_upscaler()")
     args.W, args.H = args_.upscale_f * args_.W, args_.upscale_f * args_.H
 
     # set max_n_pixels to avoid OOM:
@@ -458,7 +480,7 @@ def run_upscaler(args_, imgs,
     remove_pipe_after_upscaling = False
     print("Free memory:", free_memory / 1e9, "GB")
 
-    if free_memory < 20e9:
+    if free_memory < 20e9 and (args.ckpt != args_.ckpt):
         print("Free memory is low, removing pipe to free up memory...")
         global pipe
         del pipe
@@ -481,8 +503,10 @@ def run_upscaler(args_, imgs,
             strength=1-init_image_strength,
             num_inference_steps=upscale_steps,
             negative_prompt=args.uc_text,
-            #prompt_embeds = args.c,
-            #negative_prompt_embeds = args.uc,
+            prompt_embeds = args.c,
+            negative_prompt_embeds = args.uc,
+            pooled_prompt_embeds = args.pc,
+            negative_pooled_prompt_embeds = args.puc,
         ).images[0]
 
         x_samples_upscaled.extend([])

@@ -11,6 +11,9 @@ print("ROOT_PATH: ", ROOT_PATH)
 DIFFUSERS_PATH = os.path.join(ROOT_PATH, 'diffusers')
 CHECKPOINTS_PATH = os.path.join(SD_PATH, 'models/checkpoints')
 CONTROLNET_PATH = os.path.join(SD_PATH, 'models/controlnets')
+IP_ADAPTER_PATH = os.path.join(SD_PATH, 'models/ip_adapter/ip-adapter_sdxl.bin')
+IP_ADAPTER_IMG_ENCODER_PATH = os.path.join(SD_PATH, 'models/ip_adapter/image_encoder')
+
 LORA_PATH = os.path.join(SD_PATH, 'lora')
 LORA_DIFFUSION_PATH = os.path.join(LORA_PATH, 'lora_diffusion')
 
@@ -167,15 +170,13 @@ def load_pipe(args):
             
 
     else: # Load normal sdxl base ckpt (no controlnet)
-        print(f"Creating new StableDiffusionXLImg2ImgPipeline using {args.ckpt}")
-
         if load_from_single_file:
-            print(f"Loading from single file: {location}...")
+            print(f"Loading SDXL from single file: {location}...")
             pipe = StableDiffusionXLImg2ImgPipeline.from_single_file(
                 location,
                 torch_dtype=torch.float16, use_safetensors=True)
         else:
-            print(f"Loading from pretrained: {location}...")
+            print(f"Loading SDXL from pretrained: {location}...")
             pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
                 location, 
                 torch_dtype=torch.float16, use_safetensors=True, variant="fp16"

@@ -6,20 +6,6 @@ from ip_adapter import IPAdapterXL, IPAdapterPlusXL
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-def prep_image(image, target_res = 1024, pad = True):
-    w, h = image.size
-
-    if pad:
-        square_canvas = Image.new('RGB', size=(max(w, h), max(w, h)))
-        square_canvas.paste(image, box=((max(w, h)-w)//2, (max(w, h)-h)//2))
-    else: # simply crop the center square:
-        square_canvas = image.crop(box=((w-h)//2, 0, (w+h)//2, h))
-
-    # resize to target size:
-    image = square_canvas.resize((target_res, target_res), resample=Image.LANCZOS)
-
-    return image
-
 def image_grid(imgs, rows, cols, grid_w = 1024):
     assert len(imgs) == rows*cols
     grid = Image.new('RGB', size=(cols*grid_w, rows*grid_w))

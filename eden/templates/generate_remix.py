@@ -19,8 +19,27 @@ def remix(init_image_data, outdir,
     seed = int(time.time()),
     debug = False):
 
+    text_modifiers = [
+        "",
+        "",
+        "",
+        "",
+        "tilt shift photo, macrophotography",
+        "pencil sketch, grayscale, black and white",
+        "pixel art, 16-bit, pixelated",
+        "fire, flames, burning, 🔥",
+        "cubism, abstract art",
+        "cyberpunk",
+        "on the beach",
+        "logo design",
+        "butterfly, 🦋",
+        "smiling, happy, 😊",
+    ]
+
     args = StableDiffusionSettings(
         mode = "remix",
+        text_input = random.choice(text_modifiers),
+        ip_image_strength = random.choice([0.4,0.45,0.5,0.55,0.6]),
         clip_interrogator_mode = "fast",
         W = 1024,
         H = 1024,
@@ -29,9 +48,9 @@ def remix(init_image_data, outdir,
         guidance_scale = 7,
         seed = seed,
         n_samples = 2,
-        upscale_f = 1.5,
-        init_image_strength = 0.175,
-        init_image_data = init_image_data
+        upscale_f = 1.25,
+        init_image_strength = 0.0,
+        init_image_data = init_image_data,
     )
 
     if debug: # overwrite some args to make things go FAST
@@ -40,7 +59,7 @@ def remix(init_image_data, outdir,
         args.n_samples = 2
         args.upscale_f = 1.1
 
-    name = f'remix_{args.seed}_{args.sampler}_{args.steps}_{int(time.time())}'
+    name = f'remix_{args.seed}_{int(time.time())}_{args.ip_image_strength}_{args.text_input.replace(" ", "_")}'
 
     generator = make_images(args)
     for i, img in enumerate(generator):
@@ -49,7 +68,8 @@ def remix(init_image_data, outdir,
         img.save(os.path.join(outdir, frame), quality=95)
 
     # Also save the original image:
-    args.init_image.save(os.path.join(outdir, f'remix_original.jpg'), quality=95)
+    init_img = load_img(args.init_image_data, 'RGB').resize((args.W, args.H))
+    init_img.save(os.path.join(outdir, f'{name}_original.jpg'), quality=95)
 
     # save settings
     settings_filename = f'{outdir}/{name}.json'
@@ -60,6 +80,12 @@ if __name__ == "__main__":
 
     outdir = "results"
     init_image_data = "https://generations.krea.ai/images/3cd0b8a8-34e5-4647-9217-1dc03a886b6a.webp"
-    seed = int(time.time())
-    remix(init_image_data, outdir, seed=seed)
+
+
+    for i in range(10):
+        seed = int(time.time())
+        input_dir = "/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/img2img_inits/random2"
+        init_image_data = os.path.join(input_dir, random.choice(os.listdir(input_dir)))
+
+        remix(init_image_data, outdir, seed=seed)
 

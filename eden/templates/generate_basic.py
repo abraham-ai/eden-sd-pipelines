@@ -99,6 +99,7 @@ def generate_basic(
     init_img_path = random.choice(get_all_img_files(init_img_dir))
 
     args = StableDiffusionSettings(
+        ckpt = "/data/xander/Projects/cog/eden-sd-pipelines/models/checkpoints/sdxl-v1.0",
         mode = "generate",
         W = random.choice([1024]),
         H = random.choice([1024]),
