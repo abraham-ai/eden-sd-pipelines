@@ -21,19 +21,19 @@ def remix(init_image_data, outdir,
 
     text_modifiers = [
         "",
-        "",
-        "",
-        "",
         "tilt shift photo, macrophotography",
-        "pencil sketch, grayscale, black and white",
         "pixel art, 16-bit, pixelated",
-        "fire, flames, burning, 🔥",
         "cubism, abstract art",
-        "cyberpunk",
         "on the beach",
-        "logo design",
         "butterfly, 🦋",
-        "smiling, happy, 😊",
+        "low poly, geometric shapes",
+        "retrofuturism, 80s sci-fi",
+        "origami, paper folds",
+        "drawing by M.C. Escher",
+        "painting by Salvador Dalí",
+        "by Banksy",
+        "artwork by Beeple",
+        "painting by Wassily Kandinsky",
     ]
 
     args = StableDiffusionSettings(
@@ -41,15 +41,16 @@ def remix(init_image_data, outdir,
         text_input = random.choice(text_modifiers),
         ip_image_strength = random.choice([0.4,0.45,0.5,0.55,0.6]),
         clip_interrogator_mode = "fast",
-        W = 1024,
-        H = 1024,
-        sampler = "euler",
+        W = random.choice([1024, 1024+256]),
+        H = random.choice([1024, 1024+256]),
+        sampler = random.choice(["euler", "euler_ancestral"]),
         steps = 40,
-        guidance_scale = 7,
+        guidance_scale = random.choice([6,8,10]),
         seed = seed,
         n_samples = 2,
-        upscale_f = 1.25,
-        init_image_strength = 0.0,
+        upscale_f = 1.35,
+        #init_image_strength = 0.0,
+        init_image_strength = random.choice([0.0,0.05]),
         init_image_data = init_image_data,
     )
 
@@ -60,6 +61,7 @@ def remix(init_image_data, outdir,
         args.upscale_f = 1.1
 
     name = f'remix_{args.seed}_{int(time.time())}_{args.ip_image_strength}_{args.text_input.replace(" ", "_")}'
+    name = f'remix_{args.text_input.replace(" ", "_")}_{args.ip_image_strength:.2f}_{args.init_image_strength:.2f}_{args.seed}'
 
     generator = make_images(args)
     for i, img in enumerate(generator):
@@ -78,13 +80,13 @@ def remix(init_image_data, outdir,
 
 if __name__ == "__main__":
 
-    outdir = "results"
+    outdir = "results_remix2"
     init_image_data = "https://generations.krea.ai/images/3cd0b8a8-34e5-4647-9217-1dc03a886b6a.webp"
 
 
-    for i in range(10):
+    for i in range(200):
         seed = int(time.time())
-        input_dir = "/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/img2img_inits/random2"
+        input_dir = "/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/init_imgs/test"
         init_image_data = os.path.join(input_dir, random.choice(os.listdir(input_dir)))
 
         remix(init_image_data, outdir, seed=seed)

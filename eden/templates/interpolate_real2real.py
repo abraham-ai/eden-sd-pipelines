@@ -87,12 +87,12 @@ def real2real(
             interpolation_init_images = input_images,
             interpolation_init_images_min_strength = 0.0,  # a higher value will make the video smoother, but allows less visual change / journey
             interpolation_init_images_max_strength = 0.95,
-            latent_blending_skip_f = random.choice([[0.1, 0.65]]),
+            latent_blending_skip_f = random.choice([[0.0, 0.6]]),
             compile_unet = False,
-            guidance_scale = random.choice([6]),
-            n_anchor_imgs = random.choice([3]),
+            guidance_scale = random.choice([6,8,10]),
+            n_anchor_imgs = random.choice([4,5]),
             sampler = "euler",
-            n_frames = 48*n,
+            n_frames = 56*n,
             loop = True,
             smooth = True,
             n_film = 0,
@@ -100,7 +100,8 @@ def real2real(
             steps = 40,
             seed = seed,
             H = 1024+512,
-            W = 1024,
+            W = random.choice([1024, 1024+256, 1024+512]),
+            ip_image_strength = random.choice([0.4,0.5,0.6,0.7]),
             #lora_path = None,
         )
 
@@ -183,19 +184,20 @@ if __name__ == "__main__":
 
 
     input_dir = "/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/img2img_inits/random2"
+    input_dir = "/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/img2img_inits/architecture"
     init_imgs = [os.path.join(input_dir, f) for f in os.listdir(input_dir)]
 
-    outdir = "results_real2real"
-    n = 3
+    outdir = "results_real2real_centre_cropped_good"
+    n = 4
 
-    for i in [11,14,17,21]:
+    for i in list(range(11,30)):
         seed = np.random.randint(0, 1000)
         seed = i
 
         random.seed(seed)
         input_images = random.sample(init_imgs, n)
 
-        if 0:
+        if 1:
             real2real(input_images, outdir, seed = seed)
         else:
             try:

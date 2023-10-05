@@ -49,7 +49,7 @@ from diffusers import (
 
 from eden_utils import *
 from settings import _device
-from lora_diffusion import *
+#from lora_diffusion import *
 
 global pipe
 global last_checkpoint

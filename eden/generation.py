@@ -410,7 +410,7 @@ def make_interpolation(args, force_timepoints = None):
 def make_images(args):
     if args.mode == "remix" or args.mode == "upscale" or args.mode == "controlnet":
 
-        if args.mode == "remix":
+        if args.mode == "remix" or args.mode == "upscale":
             args.activate_ip_adapter = True
 
         if args.init_image_data is None:
@@ -455,12 +455,6 @@ def run_upscaler(args_, imgs,
     args.lora_path = None
     args.controlnet_path = None
 
-    if args.c is not None:
-        assert args.uc is not None, "Must provide negative prompt conditioning if providing positive prompt conditioning"
-        args.uc_text, args.text_input = None, None
-    else:
-        args.c, args.uc, args.pc, args.puc = None, None, None, None
-
     args.W, args.H = args_.upscale_f * args_.W, args_.upscale_f * args_.H
 
     # set max_n_pixels to avoid OOM:
@@ -475,6 +469,12 @@ def run_upscaler(args_, imgs,
 
     # Load the upscaling model:
     #args.ckpt = "sdxl-refiner-v1.0" # Use SDXL refiner model
+
+    if (args.c is not None) and args.ckpt != "sdxl-refiner-v1.0":
+        assert args.uc is not None, "Must provide negative prompt conditioning if providing positive prompt conditioning"
+        args.uc_text, args.text_input = None, None
+    else: # get rid of prompt conditioning vectors and just upscale with the text prompt
+        args.c, args.uc, args.pc, args.puc = None, None, None, None
 
     free_memory, tot_mem = torch.cuda.mem_get_info(device=_device)
     remove_pipe_after_upscaling = False

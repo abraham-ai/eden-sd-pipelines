@@ -38,8 +38,8 @@ def lerp(
         fps = 12,
         steps = 35,
         seed = seed,
-        W = 2048+1024,
-        H = 768,
+        W = 4096,
+        H = 624,
     )
 
     # always make sure these args are properly set:

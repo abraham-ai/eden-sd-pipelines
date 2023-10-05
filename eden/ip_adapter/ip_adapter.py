@@ -18,14 +18,17 @@ else:
 
 from .resampler import Resampler
 
-def prep_image(image, target_res = 1024, pad = True):
+def prep_image(image, target_res = 1024, pad = False):
     w, h = image.size
 
     if pad:
         square_canvas = Image.new('RGB', size=(max(w, h), max(w, h)))
         square_canvas.paste(image, box=((max(w, h)-w)//2, (max(w, h)-h)//2))
     else: # simply crop the center square:
-        square_canvas = image.crop(box=((w-h)//2, 0, (w+h)//2, h))
+        side = min(w, h)
+        x = (w - side) // 2
+        y = (h - side) // 2
+        square_canvas = image.crop((x, y, x + side, y + side))
 
     # resize to target size:
     image = square_canvas.resize((target_res, target_res), resample=Image.LANCZOS)

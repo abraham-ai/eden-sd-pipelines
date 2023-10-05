@@ -132,13 +132,17 @@ class Predictor(BasePredictor):
             default="off",
             choices=["off", "canny-edge", "depth", "luminance"]
         ),
+        ip_image_strength: float = Input(
+            description="Strength of image conditioning from ip_adapter (vs txt conditioning from clip-interrogator or prompt)(used in remix, upscale, blend and real2real)", 
+            ge=0.0, le=1.0, default=0.6
+        ),
         # Generate mode
         text_input: str = Input(
             description="Text input (mode==generate)", default=None
         ),
         uc_text: str = Input(
             description="Negative text input (mode==all)",
-            default="watermark, text, nude, naked, nsfw, poorly drawn face, ugly, tiling, out of frame, blurry, blurred, grainy, signature, cut off, draft"
+            default="nude, naked, text, watermark, low-quality, signature, padding, margins, white borders, padded border, moiré pattern, downsampling, aliasing, distorted, blurry, blur, jpeg artifacts, compression artifacts, poorly drawn, low-resolution, bad, grainy, error, bad-contrast"
         ),
         seed: int = Input(
             description="random seed (mode==generate)", 
@@ -174,7 +178,7 @@ class Predictor(BasePredictor):
         ),
         interpolation_init_images_min_strength: float = Input(
             description="Minimum init image strength for interpolation_init_images prompts (mode==interpolate)",
-            ge=0, le=1.0, default=0.25
+            ge=0, le=1.0, default=0.1
         ),
         interpolation_init_images_max_strength: float = Input(
             description="Maximum init image strength for interpolation_init_images prompts (mode==interpolate)",
@@ -244,6 +248,7 @@ class Predictor(BasePredictor):
             init_image_strength = init_image_strength,
             adopt_aspect_from_init_img = adopt_aspect_from_init_img,
             controlnet_path = controlnet_options[controlnet_type],
+            ip_image_strength = ip_image_strength,
 
             text_input = text_input,
             uc_text = uc_text,
