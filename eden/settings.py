@@ -47,7 +47,7 @@ class StableDiffusionSettings:
     # controlnet
     controlnet_conditioning_scale: float = 0.0
     control_guidance_start: float = 0.0
-    control_guidance_end: float   = 0.65
+    control_guidance_end:   float = 0.70
     controlnet_path: str = None
 
     # Lora / finetuning:
@@ -93,7 +93,7 @@ class StableDiffusionSettings:
     
     # conditioning vectors:
     activate_ip_adapter: bool = False
-    ip_image_strength: float = 0.6     # 1.0 will only use the image prompt, 0.0 will only use the text prompt
+    ip_image_strength: float  = 0.65     # 1.0 will only use the image prompt, 0.0 will only use the text prompt
 
     c: str = None   # force a specific prompt conditioning vector
     uc: str = None  # force a specific negative prompt conditioning vector

@@ -54,7 +54,6 @@ def generate(
     #assert args.text_input is not None
 
     seed_everything(args.seed)
-
     args.init_image_strength = float(args.init_image_strength)
 
     # Load init image
@@ -164,7 +163,7 @@ def generate(
     args.controlnet_conditioning_scale = args.init_image_strength
          
     # Common SD arguments
-    fn_args = {
+    pipe_fn_args = {
         'prompt': prompt,
         'negative_prompt': negative_prompt,
         'image': args.init_image,
@@ -175,38 +174,33 @@ def generate(
         'callback': callback_,
         'cross_attention_kwargs': cross_attention_kwargs,
         'prompt_embeds': args.c,
-        'negative_prompt_embeds': args.uc
+        'negative_prompt_embeds': args.uc,
     }
 
     if "XL" in str(pipe.__class__.__name__):
-        fn_args.update({
+        pipe_fn_args.update({
             'pooled_prompt_embeds': args.pc,
-            'negative_pooled_prompt_embeds': args.puc
+            'negative_pooled_prompt_embeds': args.puc,
         })
 
     # Conditionally add arguments if controlnet is used
     if args.controlnet_path is not None and args.controlnet_conditioning_scale > 0 and args.init_image is not None:
         args.init_image = preprocess_controlnet_init_image(args.init_image, args)
         #args.init_image.save("init_image.png")
-        #args.upscale_f = 1.0  # disable upscaling with controlnet for now
-        fn_args.update({
+        pipe_fn_args.update({
+            'image': args.init_image,
             'controlnet_conditioning_scale': args.controlnet_conditioning_scale,
             'control_guidance_start': args.control_guidance_start,
-            'control_guidance_end': args.control_guidance_end
+            'control_guidance_end': args.control_guidance_end,
         })
     else:
-        fn_args['strength'] = 1 - args.init_image_strength
-        
+        pipe_fn_args['strength'] = 1 - args.init_image_strength
         if "XL" in str(pipe.__class__.__name__):
-            fn_args.update({
-                'denoising_start': denoising_start,
-            })
+            pipe_fn_args.update({'denoising_start': denoising_start,})
 
-    # Call the pipe function to produce an image:
-    pipe_output = pipe(**fn_args)
-    
-    pil_images = pipe_output.images
-    pt_images = [None]*len(pil_images)
+    pipe_output = pipe(**pipe_fn_args)
+    pil_images  = pipe_output.images
+    pt_images   = [None]*len(pil_images)
 
     if args.upscale_f != 1.0:
         print(f"Upscaling with f = {args.upscale_f:.3f}...")
@@ -444,8 +438,8 @@ def make_callback(
     return diffusers_callback
 
 def run_upscaler(args_, imgs, 
-        init_image_strength    = 0.6,
-        upscale_guidance_scale = 7.0,
+        init_image_strength    = 0.55,
+        upscale_guidance_scale = 6.0,
         min_upscale_steps      = 16,  # never do less than this many steps
         max_n_pixels           = 2048**2, # max number of pixels to avoid OOM
     ):
@@ -468,7 +462,7 @@ def run_upscaler(args_, imgs,
     x_samples_upscaled, x_images_upscaled = [], []
 
     # Load the upscaling model:
-    #args.ckpt = "sdxl-refiner-v1.0" # Use SDXL refiner model
+    args.ckpt = "sdxl-refiner-v1.0" # Use SDXL refiner model
 
     if (args.c is not None) and args.ckpt != "sdxl-refiner-v1.0":
         assert args.uc is not None, "Must provide negative prompt conditioning if providing positive prompt conditioning"

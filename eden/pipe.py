@@ -139,15 +139,9 @@ def load_pipe(args):
         
         if load_from_single_file:
             print("Loading from single file...")
-
-            if 0:
-                pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
-                    "stabilityai/stable-diffusion-xl-base-1.0",
-                    torch_dtype=torch.float16)
-            else:
-                pipe = StableDiffusionXLImg2ImgPipeline.from_single_file(
-                    location, safety_checker=None,
-                    torch_dtype=torch.float16, use_safetensors=True)
+            pipe = StableDiffusionXLImg2ImgPipeline.from_single_file(
+                location, safety_checker=None,
+                torch_dtype=torch.float16, use_safetensors=True)
 
             pipe = StableDiffusionXLControlNetPipeline(
                 vae = pipe.vae,
@@ -165,10 +159,8 @@ def load_pipe(args):
                 location,
                 controlnet=controlnet,
                 torch_dtype=torch.float16, use_safetensors=True, 
-                #variant="fp16"
             )
             
-
     else: # Load normal sdxl base ckpt (no controlnet)
         if load_from_single_file:
             print(f"Loading SDXL from single file: {location}...")
@@ -181,14 +173,14 @@ def load_pipe(args):
                 location, 
                 torch_dtype=torch.float16, use_safetensors=True, variant="fp16"
             )
-
-    # -------- freeu block registration (https://github.com/ChenyangSi/FreeU)
-    # TODO perform big hyperparameter search for these values using automatic img scoring
-    # apply very mild reweighting:
-    s1, s2, b1, b2 = 0.9, 0.9, 1.05, 1.05
-    register_free_upblock2d(pipe, b1=b1, b2=b2, s1=s1, s2=s2)
-    register_free_crossattn_upblock2d(pipe, b1=b1, b2=b2, s1=s1, s2=s2)
-    # -------- freeu block registration
+    if 0:
+        # -------- freeu block registration (https://github.com/ChenyangSi/FreeU)
+        # TODO perform big hyperparameter search for these values using automatic img scoring
+        # apply very mild reweighting:
+        s1, s2, b1, b2 = 0.9, 0.9, 1.05, 1.05
+        register_free_upblock2d(pipe, b1=b1, b2=b2, s1=s1, s2=s2)
+        register_free_crossattn_upblock2d(pipe, b1=b1, b2=b2, s1=s1, s2=s2)
+        # -------- freeu block registration
 
     pipe.safety_checker = None
     pipe = pipe.to(_device)
