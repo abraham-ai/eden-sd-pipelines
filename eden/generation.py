@@ -72,17 +72,20 @@ def generate(
     global pipe
     pipe = eden_pipe.get_pipe(args)
 
-    if args.activate_ip_adapter:
-        #args.text_input = clip_interrogate(args.ckpt, args.init_image, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
-        #del_clip_interrogator_models()
-        print("Using clip-interrogate prompt:")
-        print(args.text_input)
+    if args.ip_image_data:
+        print("Using ip_image from {args.ip_image_data}...")
+        args.ip_image = load_img(args.ip_image_data, 'RGB')
 
-        print("Generating conditioning signals from ip_adapter image!")
+        if args.text_input is None or args.text_input == "":
+            args.text_input = clip_interrogate(args.ckpt, args.ip_image, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
+            del_clip_interrogator_models()
+            print("Using clip-interrogated prompt from ip_image as text_input:")
+            print(args.text_input)
+
         ip_adapter = IPAdapterXL(pipe, eden_pipe.IP_ADAPTER_IMG_ENCODER_PATH, eden_pipe.IP_ADAPTER_PATH, _device)
 
         args.c, args.uc, args.pc, args.puc = ip_adapter.create_embeds(
-            args.init_image, prompt=args.text_input, negative_prompt=args.uc_text, 
+            args.ip_image, prompt=args.text_input, negative_prompt=args.uc_text, 
             scale=args.ip_image_strength  # scale = 1.0 will only use the image prompt, 0.0 will only use the text prompt
             )
 
@@ -404,11 +407,13 @@ def make_interpolation(args, force_timepoints = None):
 def make_images(args):
     if args.mode == "remix" or args.mode == "upscale" or args.mode == "controlnet":
 
-        if args.mode == "remix" or args.mode == "upscale":
-            args.activate_ip_adapter = True
-
         if args.init_image_data is None:
             raise ValueError(f"Must provide an init image in order to use {args.mode}!")
+
+        if args.mode == "remix" or args.mode == "upscale":
+            if not args.ip_image_data:
+                print("Setting init_image as ip_image!")
+                args.ip_image_data = args.init_image_data
         
         if args.text_input is None or args.text_input == "":
             init_image = load_img(args.init_image_data, 'RGB')
@@ -462,10 +467,9 @@ def run_upscaler(args_, imgs,
     x_samples_upscaled, x_images_upscaled = [], []
 
     # Load the upscaling model:
-    args.ckpt = "sdxl-refiner-v1.0" # Use SDXL refiner model
+    args.ckpt = args.upscale_ckpt
 
-    if (args.c is not None) and args.ckpt != "sdxl-refiner-v1.0":
-        assert args.uc is not None, "Must provide negative prompt conditioning if providing positive prompt conditioning"
+    if (args.c is not None) and (args.uc is not None) and args.ckpt != "sdxl-refiner-v1.0":
         args.uc_text, args.text_input = None, None
     else: # get rid of prompt conditioning vectors and just upscale with the text prompt
         args.c, args.uc, args.pc, args.puc = None, None, None, None

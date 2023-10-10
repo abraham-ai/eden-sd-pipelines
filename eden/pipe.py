@@ -114,6 +114,8 @@ def load_pipe(args):
             location = os.path.join(location, safetensor_files[0])
         else:
             load_from_single_file = False
+    else:
+        raise ValueError(f"Invalid checkpoint path: {location}")
 
     print("#############################################")
     print(f"Loading new SD pipeline from {location}..")

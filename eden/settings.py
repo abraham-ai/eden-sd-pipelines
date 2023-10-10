@@ -43,6 +43,7 @@ class StableDiffusionSettings:
     
     # model settings
     ckpt: str = "sdxl-v1.0"
+    upscale_ckpt: str = "sdxl-v1.0"   # "sdxl-refiner-v1.0"
 
     # controlnet
     controlnet_conditioning_scale: float = 0.0
@@ -82,8 +83,8 @@ class StableDiffusionSettings:
     watermark_path: str = None
     
     # input_image
-    init_image: Image = None
     init_image_data: str = None
+    init_image: Image = None
     init_image_strength: float = 0.0
     adopt_aspect_from_init_img: bool = True
     
@@ -92,7 +93,8 @@ class StableDiffusionSettings:
     start_timestep: str = None # used to start at a specific timestep in the denoising loop (LatentBlending)
     
     # conditioning vectors:
-    activate_ip_adapter: bool = False
+    ip_image_data: str = None
+    ip_image: Image = None
     ip_image_strength: float  = 0.65     # 1.0 will only use the image prompt, 0.0 will only use the text prompt
 
     c: str = None   # force a specific prompt conditioning vector

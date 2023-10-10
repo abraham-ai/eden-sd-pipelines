@@ -2,7 +2,7 @@ import sys
 sys.path.append('..')
 
 import json
-import os
+import os, shutil
 import random
 from PIL import Image
 import moviepy.editor as mpy
@@ -11,13 +11,6 @@ from settings import *
 from generation import *
 from prompts import *
 from eden_utils import *
-
-
-checkpoint_options = [
-    "runwayml:stable-diffusion-v1-5",
-    "dreamlike-art:dreamlike-photoreal-2.0",
-    "eden:eden-v1"
-]
 
 def generate_basic(
     text_input, 
@@ -28,53 +21,61 @@ def generate_basic(
     prefix = "",
     suffix = ""):
 
-    img_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/poster"
-    #img_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/memes"
+    img_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/poster2_sq"
+    ip_dir  = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/ip_images"
 
-    img_paths = [f for f in os.listdir(img_dir) if f.endswith(".jpg") or f.endswith(".png") or f.endswith(".jpeg")]
-    init_img = os.path.join(img_dir, random.sample(img_paths, 1)[0])
+    if random.choice([1]):
+        ip_img = get_random_imgpath_from_dir(ip_dir)
+        text_input = ""
+    else:
+        ip_img = None
 
     args = StableDiffusionSettings(
         #mode = "remix",
-        W = random.choice([1024+256, 1024+512]),
+        #upscale_ckpt = "sdxl-refiner-v1.0",
+        W = random.choice([1024+256, 1024+512, 2048]),
         H = random.choice([1024+256]),
         sampler = random.choice(["euler", "euler_ancestral"]),
         steps = 50,
-        guidance_scale = random.choice([5,7,9]),
-        upscale_f = random.choice([1.3]),
+        guidance_scale = random.choice([5,7,9,12]),
+        upscale_f = random.choice([1.0, 1.25]),
         text_input = text_input,
         seed = seed,
         n_samples = 1,
         lora_path = None,
-        init_image_data = init_img,
-        init_image_strength = random.choice([0.4, 0.45, 0.5, 0.55, 0.6]),
-        #control_guidance_start = random.choice([0.0, 0.0, 0.05, 0.1]),
-        #control_guidance_end = random.choice([0.5, 0.6, 0.7]),
-        #control_guidance_end = random.choice([0.65]),
-        #controlnet_path = "controlnet-luminance-sdxl-1.0", 
-        #controlnet_path = "controlnet-depth-sdxl-1.0-small",
-        #controlnet_path = "controlnet-canny-sdxl-1.0-small",
-        #controlnet_path = "controlnet-canny-sdxl-1.0",
-        controlnet_path = random.choice(["controlnet-luminance-sdxl-1.0", "controlnet-luminance-sdxl-1.0", "controlnet-luminance-sdxl-1.0", "controlnet-luminance-sdxl-1.0", "controlnet-canny-sdxl-1.0", "controlnet-depth-sdxl-1.0-small"]),
+        init_image_data = get_random_imgpath_from_dir(img_dir),
+        ip_image_data   = ip_img,
+        init_image_strength = random.choice([0.35, 0.4, 0.45, 0.5, 0.55]),
+        control_guidance_end = random.choice([0.6,0.7,0.8]),
+        controlnet_path = "controlnet-luminance-sdxl-1.0", 
+        #controlnet_path = random.choice(["controlnet-luminance-sdxl-1.0", "controlnet-luminance-sdxl-1.0", "controlnet-canny-sdxl-1.0-small"]),
+        
     )
 
     controlnet_img = load_img(args.init_image_data, "RGB")
 
     #name = f'{prefix}{args.text_input[:40]}_{os.path.basename(args.lora_path)}_{args.seed}_{int(time.time())}{suffix}'
-    name = f'{prefix}{args.text_input[:40]}_{args.seed}_{int(time.time())}{suffix}'
+    init_img_name = os.path.basename(args.init_image_data).split(".")[0]
+    name = f'{prefix}{args.text_input[:40]}_{init_img_name}_{args.seed}_{int(time.time())}{suffix}'
     name = name.replace("/", "_")
     
     generator = make_images(args)
 
     os.makedirs(outdir, exist_ok = True)
-    save_control_img = True
+    save_control_img, save_ip_img = True, True
 
     for i, img in enumerate(generator):
         frame = f'{name}_{i}.jpg'
         img.save(os.path.join(outdir, frame), quality=95)
         if save_control_img:
-            control_frame = f'{name}_{i}_cond.jpg'
-            controlnet_img.save(os.path.join(outdir, control_frame), quality=95)
+            controlnet_img.save(os.path.join(outdir, f'{name}_{i}_cond.jpg'), quality=95)
+        if save_ip_img and args.ip_image is not None:
+            # apply center square crop to the ip_image:
+            ip_image = args.ip_image.crop((args.ip_image.width/2 - args.ip_image.height/2, 0, args.ip_image.width/2 + args.ip_image.height/2, args.ip_image.height))
+            ip_image.save(os.path.join(outdir, f'{name}_{i}_ip.jpg'), quality=95)
+        else:
+            Image.new("RGB", (args.W, args.H), (0,0,0)).save(os.path.join(outdir, f'{name}_{i}_ip.jpg'), quality=95)
+
 
     # save settings
     settings_filename = f'{outdir}/{name}.json'
@@ -84,7 +85,7 @@ def generate_basic(
 if __name__ == "__main__":
 
     
-    outdir = "results_controlnet_poster_01"
+    outdir = "results_controlnet_poster_ip_sq"
     #outdir = "results_meme_ip_remixes"
 
     for i in range(2000):
@@ -96,8 +97,9 @@ if __name__ == "__main__":
         p1 = list(set(get_prompts_from_json_dir("/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/good_controlnet_jsons")))
         p2 = list(set(get_prompts_from_json_dir("/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/good_controlnet_jsons2")))
         p3 = list(set(get_prompts_from_json_dir("/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/good_controlnet_jsons3")))
+        p4 = list(set(get_prompts_from_json_dir("/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/good_controlnet_jsons_effect")))
         #all_p = list(set(text_inputs + sdxl_prompts + p2))
-        text_input = random.choice(p1+p2+p3)
+        text_input = random.choice(p3+p4+p4)
 
 
         if 1:

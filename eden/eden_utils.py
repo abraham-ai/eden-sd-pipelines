@@ -556,6 +556,23 @@ def load_base64(data, mode):
     pil_img = pil_img.convert(mode)
     return pil_img
 
+def get_random_imgpath_from_dir(dir_path, n=1, extensions = [".jpg", ".png", ".jpeg", ".webp"]):
+    # recursively search for images in dir_path:
+    img_paths = []
+    for root, dirs, files in os.walk(dir_path):
+        for file in files:
+            for extension in extensions:
+                if file.endswith(extension):
+                    img_paths.append(os.path.join(root, file))
+
+    # pick n random images:
+    img_paths = random.sample(img_paths, n)
+
+    if n==1:
+        return img_paths[0]
+    else:
+        return img_paths
+
 
 def prepare_mask(mask_image, mask_shape, mask_brightness_adjust=1.0, mask_contrast_adjust=1.0, invert_mask=False):
     # PIL mask image
@@ -1177,7 +1194,7 @@ def preprocess_controlnet_init_image(pil_control_image, args):
             target_width_range = [512,512]
         else: # image
             threshold = False
-            target_width_range = [128,128]
+            target_width_range = [264,264]
             #target_width_range = [48,264]
         return preprocess_luminance(pil_control_image, threshold = threshold, target_width_range=target_width_range)
 
