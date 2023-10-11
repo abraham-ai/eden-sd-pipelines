@@ -132,9 +132,13 @@ class Predictor(BasePredictor):
             default="off",
             choices=["off", "canny-edge", "depth", "luminance"]
         ),
+        ip_image_data: str = Input(
+            description="Load ip_adapter image from file, url, or base64 string", 
+            default=None
+        ),
         ip_image_strength: float = Input(
-            description="Strength of image conditioning from ip_adapter (vs txt conditioning from clip-interrogator or prompt)(used in remix, upscale, blend and real2real)", 
-            ge=0.0, le=1.0, default=0.6
+            description="Strength of image conditioning from ip_adapter (vs txt conditioning from clip-interrogator or prompt) (used in remix, upscale, blend and real2real)", 
+            ge=0.0, le=1.0, default=0.65
         ),
         # Generate mode
         text_input: str = Input(
@@ -249,6 +253,7 @@ class Predictor(BasePredictor):
             adopt_aspect_from_init_img = adopt_aspect_from_init_img,
             controlnet_path = controlnet_options[controlnet_type],
             ip_image_strength = ip_image_strength,
+            ip_image_data     = ip_image_data,
 
             text_input = text_input,
             uc_text = uc_text,

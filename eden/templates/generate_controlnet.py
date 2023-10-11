@@ -21,8 +21,8 @@ def generate_basic(
     prefix = "",
     suffix = ""):
 
-    img_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/poster2_sq"
-    ip_dir  = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/ip_images"
+    img_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/xander"
+    ip_dir  = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/face_styles"
 
     if random.choice([1]):
         ip_img = get_random_imgpath_from_dir(ip_dir)
@@ -31,24 +31,25 @@ def generate_basic(
         ip_img = None
 
     args = StableDiffusionSettings(
-        #mode = "remix",
+        ckpt = "juggernaut_XL",
         #upscale_ckpt = "sdxl-refiner-v1.0",
-        W = random.choice([1024+256, 1024+512, 2048]),
-        H = random.choice([1024+256]),
+        W = random.choice([1024, 1024+256, 1024+512]),
+        H = random.choice([1024, 1024+256]),
         sampler = random.choice(["euler", "euler_ancestral"]),
-        steps = 50,
+        steps = 40,
         guidance_scale = random.choice([5,7,9,12]),
-        upscale_f = random.choice([1.0, 1.25]),
+        upscale_f = random.choice([1.0]),
         text_input = text_input,
         seed = seed,
         n_samples = 1,
         lora_path = None,
         init_image_data = get_random_imgpath_from_dir(img_dir),
         ip_image_data   = ip_img,
-        init_image_strength = random.choice([0.35, 0.4, 0.45, 0.5, 0.55]),
-        control_guidance_end = random.choice([0.6,0.7,0.8]),
-        controlnet_path = "controlnet-luminance-sdxl-1.0", 
-        #controlnet_path = random.choice(["controlnet-luminance-sdxl-1.0", "controlnet-luminance-sdxl-1.0", "controlnet-canny-sdxl-1.0-small"]),
+        #init_image_strength = random.choice([0.35, 0.4, 0.45, 0.5, 0.55]),
+        init_image_strength = random.choice([1.0]),
+        ip_image_strength = random.choice([0.4, 0.5, 0.6, 0.7, 0.8]),
+        #controlnet_path = "controlnet-luminance-sdxl-1.0", 
+        controlnet_path = random.choice(["controlnet-canny-sdxl-1.0-small", "controlnet-canny-sdxl-1.0", "controlnet-luminance-sdxl-1.0"]),
         
     )
 
@@ -57,12 +58,15 @@ def generate_basic(
     #name = f'{prefix}{args.text_input[:40]}_{os.path.basename(args.lora_path)}_{args.seed}_{int(time.time())}{suffix}'
     init_img_name = os.path.basename(args.init_image_data).split(".")[0]
     name = f'{prefix}{args.text_input[:40]}_{init_img_name}_{args.seed}_{int(time.time())}{suffix}'
-    name = name.replace("/", "_")
-    
-    generator = make_images(args)
+    name = f'{prefix}_{args.ckpt}_{args.ip_image_strength}_{args.text_input[:40]}_{args.init_image_strength}_{args.control_guidance_end}_{args.controlnet_path}_{args.seed}'
 
+    name = name.replace("/", "_")
     os.makedirs(outdir, exist_ok = True)
+
     save_control_img, save_ip_img = True, True
+    save_control_img, save_ip_img = 0,1
+
+    generator = make_images(args)
 
     for i, img in enumerate(generator):
         frame = f'{name}_{i}.jpg'
@@ -73,7 +77,7 @@ def generate_basic(
             # apply center square crop to the ip_image:
             ip_image = args.ip_image.crop((args.ip_image.width/2 - args.ip_image.height/2, 0, args.ip_image.width/2 + args.ip_image.height/2, args.ip_image.height))
             ip_image.save(os.path.join(outdir, f'{name}_{i}_ip.jpg'), quality=95)
-        else:
+        elif 0:
             Image.new("RGB", (args.W, args.H), (0,0,0)).save(os.path.join(outdir, f'{name}_{i}_ip.jpg'), quality=95)
 
 
@@ -85,7 +89,7 @@ def generate_basic(
 if __name__ == "__main__":
 
     
-    outdir = "results_controlnet_poster_ip_sq"
+    outdir = "results_controlnet_chebel"
     #outdir = "results_meme_ip_remixes"
 
     for i in range(2000):
@@ -98,11 +102,14 @@ if __name__ == "__main__":
         p2 = list(set(get_prompts_from_json_dir("/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/good_controlnet_jsons2")))
         p3 = list(set(get_prompts_from_json_dir("/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/good_controlnet_jsons3")))
         p4 = list(set(get_prompts_from_json_dir("/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/good_controlnet_jsons_effect")))
-        #all_p = list(set(text_inputs + sdxl_prompts + p2))
-        text_input = random.choice(p3+p4+p4)
+        all_p = list(set(text_inputs + sdxl_prompts + p2))
 
+        text_input = random.choice(all_p)
 
-        if 1:
+        if random.choice([0,0,1]):
+            text_input = "woman with jaguar skin painted by cuno amiet glitchcore"
+
+        if 0:
             n_style_modifiers = random.choice([0,0,1,2])
             if n_style_modifiers > 0:
                 text_input = text_input + ", " + ", ".join(random.sample(style_modifiers, n_style_modifiers))

@@ -99,7 +99,7 @@ def generate_basic(
     init_img_path = random.choice(get_all_img_files(init_img_dir))
 
     args = StableDiffusionSettings(
-        ckpt = "/data/xander/Projects/cog/eden-sd-pipelines/models/checkpoints/sdxl-v1.0",
+        #ckpt = "juggernaut_XL",
         mode = "generate",
         W = random.choice([1024]),
         H = random.choice([1024]),
@@ -132,7 +132,7 @@ def generate_basic(
 
 if __name__ == "__main__":
     
-    outdir = "results_freeU"
+    outdir = "results_base"
     
     # remove the output directory
     if os.path.exists(outdir) and 0:
@@ -144,12 +144,6 @@ if __name__ == "__main__":
 
         seed_everything(seed)
         text_input = random.choice(text_inputs)
-
-        #text_input = "a beautiful mountain landscape"
-
-        text_input = random.choice([
-            "a photo of Nones",
-        ])
 
         if 1:
             generate_basic(text_input, outdir, seed = seed)

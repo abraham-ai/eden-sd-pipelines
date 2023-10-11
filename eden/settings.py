@@ -48,7 +48,7 @@ class StableDiffusionSettings:
     # controlnet
     controlnet_conditioning_scale: float = 0.0
     control_guidance_start: float = 0.0
-    control_guidance_end:   float = 0.70
+    control_guidance_end:   float = 1.0
     controlnet_path: str = None
 
     # Lora / finetuning:
