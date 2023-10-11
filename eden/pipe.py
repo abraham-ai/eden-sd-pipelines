@@ -252,7 +252,11 @@ def prepare_prompt_for_lora(prompt, lora_path, interpolation=False, verbose=True
     token_map = read_json_from_path(os.path.join(lora_path, "special_params.json"))
     training_args = read_json_from_path(os.path.join(lora_path, "training_args.json"))
     
-    lora_name = str(training_args["name"])
+    try:
+        lora_name = str(training_args["name"])
+    except: # fallback for old loras that dont have the name field:
+        return training_args["trigger_text"] + ", " + prompt
+
     print(f"lora name: {lora_name}")
     lora_name_encapsulated = "<" + lora_name + ">"
     trigger_text = training_args["trigger_text"]

@@ -82,15 +82,24 @@ def generate(
             print("Using clip-interrogated prompt from ip_image as text_input:")
             print(args.text_input)
 
-        ip_adapter = IPAdapterXL(pipe, eden_pipe.IP_ADAPTER_IMG_ENCODER_PATH, eden_pipe.IP_ADAPTER_PATH, _device)
+        if (args.lora_path is None): 
+            # For now IP adapter is incompatible with LORA since they both overwrite the attention_processor for the unet
+            # https://github.com/tencent-ailab/IP-Adapter/issues/69
+            # TODO fixable by switching to this LORA-trainer: https://github.com/kohya-ss/sd-scripts
+            ip_adapter = IPAdapterXL(pipe, eden_pipe.IP_ADAPTER_IMG_ENCODER_PATH, eden_pipe.IP_ADAPTER_PATH, _device)
 
-        args.c, args.uc, args.pc, args.puc = ip_adapter.create_embeds(
-            args.ip_image, prompt=args.text_input, negative_prompt=args.uc_text, 
-            scale=args.ip_image_strength  # scale = 1.0 will only use the image prompt, 0.0 will only use the text prompt
-            )
+            args.c, args.uc, args.pc, args.puc = ip_adapter.create_embeds(
+                args.ip_image, prompt=args.text_input, negative_prompt=args.uc_text, 
+                scale=args.ip_image_strength  # scale = 1.0 will only use the image prompt, 0.0 will only use the text prompt
+                )
 
-        del ip_adapter
-        torch.cuda.empty_cache()
+            del ip_adapter
+            torch.cuda.empty_cache()
+
+        else:
+            print("################################################")
+            print("Disabled IP_adapter because a LoRA was active!!!")
+            print("################################################")
 
     if (args.interpolator is None) and (len(args.name) == 0):
         args.name = args.text_input # send this name back to the frontend
@@ -411,7 +420,10 @@ def make_images(args):
             raise ValueError(f"Must provide an init image in order to use {args.mode}!")
 
         if args.mode == "remix" or args.mode == "upscale":
-            if not args.ip_image_data:
+            with Image.open(args.init_image_data) as img:
+                w, h = img.size
+
+            if not args.ip_image_data and (w*h > 512*512): # only use the image conditioning when the input is large enough
                 print("Setting init_image as ip_image!")
                 args.ip_image_data = args.init_image_data
         

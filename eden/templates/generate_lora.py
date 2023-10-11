@@ -52,7 +52,7 @@ if __name__ == "__main__":
 
     outdir = "results"
     seed = 1
-    lora_path = "/data/xander/Projects/cog/GitHub_repos/cog-sdxl/lora_models_fin_init/final_sweep_021_7880/checkpoints/checkpoint-800"
+    lora_path = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/container_lora"
     text_input = "a picture of <concept> drinking coca cola"
     
     seed_everything(seed)

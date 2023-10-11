@@ -1,1 +1,1 @@
-cog predict -i mode=generate -i text_input="<concept> climbing mount everest" -i seed=15 -i width=768 -i height=768 -i steps=40 -i lora="https://minio.aws.abraham.fun/creations-stg/715bc53fa7c47f2560dc7e5c8c3c8d2f9ccc5d9dedb50e23c168525669b5dd63.zip" -i lora_scale=1.0
+cog predict -i mode=generate -i text_input="<concept> climbing mount everest" -i seed=15 -i width=1024 -i height=1024 -i steps=40 -i lora="https://minio.aws.abraham.fun/creations-stg/ce6d87b1dfe906aead34ffda8ab2383dd746389e569d8270bc680774f78dc058.tar" -i lora_scale=0.8

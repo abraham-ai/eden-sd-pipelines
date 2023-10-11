@@ -332,7 +332,7 @@ class Interpolator():
 
                 # filter out high frequencies:
                 dt = 1.0 / self.args.fps
-                f_cutoff = self.args.fps / 4
+                f_cutoff = self.args.fps / 5.0
                 perceptual_target_curve = filter_signal(perceptual_target_curve, f_cutoff, dt)
             else:
                 perceptual_target_curve = np.ones(len(perceptual_distances)+1)

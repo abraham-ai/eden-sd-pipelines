@@ -85,24 +85,23 @@ def real2real(
             interpolation_seeds = [random.randint(1, 1e8) for _ in range(n)],
             interpolation_texts = input_texts,
             interpolation_init_images = input_images,
-            interpolation_init_images_min_strength = 0.0,  # a higher value will make the video smoother, but allows less visual change / journey
+            interpolation_init_images_min_strength = 0.05,  # a higher value will make the video smoother, but allows less visual change / journey
             interpolation_init_images_max_strength = 0.95,
-            latent_blending_skip_f = random.choice([[0.0, 0.6]]),
+            latent_blending_skip_f = random.choice([[0.05, 0.65]]),
             compile_unet = False,
-            guidance_scale = random.choice([6,8,10]),
-            n_anchor_imgs = random.choice([4,5]),
+            guidance_scale = random.choice([6]),
+            n_anchor_imgs = random.choice([3]),
             sampler = "euler",
-            n_frames = 56*n,
+            n_frames = 4*n,
             loop = True,
             smooth = True,
-            n_film = 0,
+            n_film = 1,
             fps = 12,
             steps = 40,
             seed = seed,
-            H = 1024+512,
-            W = random.choice([1024, 1024+256, 1024+512]),
-            ip_image_strength = random.choice([0.4,0.5,0.6,0.7]),
-            #lora_path = None,
+            H = 768,
+            W = 768,
+            ip_image_strength = random.choice([0.6]),
         )
 
     # always make sure these args are properly set:
@@ -183,12 +182,11 @@ if __name__ == "__main__":
         ]
 
 
-    input_dir = "/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/img2img_inits/random2"
-    input_dir = "/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/img2img_inits/architecture"
+    input_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/init_imgs/diverse_real2real_seeds"
     init_imgs = [os.path.join(input_dir, f) for f in os.listdir(input_dir)]
 
-    outdir = "results_real2real_centre_cropped_good"
-    n = 4
+    outdir = "results_real2real"
+    n = 2
 
     for i in list(range(11,30)):
         seed = np.random.randint(0, 1000)

@@ -16,12 +16,17 @@ import tensorflow as tf
 
 # avoid tf from allocating all gpu memory:
 tf_memory_limit = 1024 * 20
+
 gpus = tf.config.experimental.list_physical_devices('GPU')
-tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
-tf.config.experimental.set_memory_growth(gpus[0], True)  # Enable memory growth
-tf.config.experimental.set_virtual_device_configuration(
-    gpus[0],
-    [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=tf_memory_limit)])
+
+try:
+    tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
+    tf.config.experimental.set_memory_growth(gpus[0], True)  # Enable memory growth
+    tf.config.experimental.set_virtual_device_configuration(
+        gpus[0],
+        [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=tf_memory_limit)])
+except:
+    print("WARNING: TF might not have properly found the gpu...")
 
 from absl import flags
 FLAGS = flags.FLAGS

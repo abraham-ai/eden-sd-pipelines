@@ -57,9 +57,9 @@ if __name__ == "__main__":
     
     # Get random images from a directory: (this should be replaced with timeline imgs in WZRD)
     n_imgs = 8
-    input_dir = "/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/img2img_inits/random2"
+    input_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/init_imgs/diverse_real2real_seeds"
 
-    seed      = 4        # different seeds will give different results
+    seed      = 5        # different seeds will give different results
     outdir    = 'results/real2real_audioreactive'
 
     if 0: # debug: very fast render settings
@@ -83,10 +83,10 @@ if __name__ == "__main__":
         interpolation_texts = None,
         interpolation_seeds = [random.randint(1, 1e8) for _ in range(n)],
         interpolation_init_images = img_paths,
-        interpolation_init_images_min_strength = random.choice([0.0]),
+        interpolation_init_images_min_strength = random.choice([0.05]),
         interpolation_init_images_max_strength = 0.95,
         n_anchor_imgs = 5,
-        latent_blending_skip_f = [0.05, 0.85],
+        latent_blending_skip_f = [0.05, 0.7],
         loop = True,
         n_film = 0,
         fps = output_fps,
