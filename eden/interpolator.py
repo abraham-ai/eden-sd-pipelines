@@ -366,7 +366,7 @@ class Interpolator():
             next_t, best_estimated_perceptual_density_curve = t_data
 
             # plot the current distances / target perceptual curves:
-            if self.args.save_distance_data and ((self.latent_tracker.get_n_frames() == self.n_frames_between_two_prompts-1) or (self.latent_tracker.get_n_frames() == 10)):
+            if self.args.save_distance_data and ((self.latent_tracker.get_n_frames() == self.n_frames_between_two_prompts-1) or (self.latent_tracker.get_n_frames() % 10 == 0)):
                 os.makedirs(os.path.join(self.args.frames_dir, "distances"), exist_ok = True)
                 plt.figure(figsize = (12,6))
                 ts = np.linspace(0,1,len(perceptual_distances))
@@ -377,7 +377,7 @@ class Interpolator():
                 plt.title(f"Current distances / target density (interpolation step {self.interpolation_step}, fit_MSE = {best_fit_mse:.3f})")
                 plt.ylim([0,4])
                 #plt.savefig(os.path.join(os.path.join(self.args.frames_dir, "distances"), "distance_targets_%04d.png" %self.interpolation_step))
-                plt.savefig(os.path.join(os.path.join(self.args.frames_dir, "distances"), "all_distance_targets.png"))
+                plt.savefig(os.path.join(os.path.join(self.args.frames_dir, "distances"), f"all_distance_targets_{self.phase_index}.png"))
                 plt.close('all')
                 plt.clf()
 

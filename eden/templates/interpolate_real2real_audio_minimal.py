@@ -33,8 +33,7 @@ python interpolate_real2real_audio_minimal.py
 
 """
 
-def get_random_img_paths_from_dir(directory_path, n_imgs, seed = 0):
-    random.seed(seed)
+def get_random_img_paths_from_dir(directory_path, n_imgs):
     img_exts = [".jpg", ".png", ".jpeg", ".JPG", ".PNG", ".JPEG"]
     all_img_paths = [os.path.join(input_dir, f) for f in os.listdir(input_dir)]
     all_img_paths = [f for f in all_img_paths if os.path.splitext(f)[1] in img_exts]
@@ -47,7 +46,7 @@ if __name__ == "__main__":
     ##############################################################################
     
     # main render settings (eg specified by the user)
-    H,W          = 1024+256, 1024
+    H,W          = 1024+256, 1024+256
     inter_frames = 120      # number of frames to interpolate between each pair of input images
     output_fps   = 12       # final fps will be twice this when n_film = 1
     n_steps      = 40       # n_diffusion steps per frame
@@ -60,7 +59,7 @@ if __name__ == "__main__":
     n_imgs = 8
     input_dir = "/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/img2img_inits/random2"
 
-    seed      = 0        # different seeds will give different results
+    seed      = 4        # different seeds will give different results
     outdir    = 'results/real2real_audioreactive'
 
     if 0: # debug: very fast render settings
@@ -87,7 +86,7 @@ if __name__ == "__main__":
         interpolation_init_images_min_strength = random.choice([0.0]),
         interpolation_init_images_max_strength = 0.95,
         n_anchor_imgs = 5,
-        latent_blending_skip_f = [0.10, 0.85],
+        latent_blending_skip_f = [0.05, 0.85],
         loop = True,
         n_film = 0,
         fps = output_fps,

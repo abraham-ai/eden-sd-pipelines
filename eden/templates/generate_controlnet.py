@@ -24,14 +24,14 @@ def generate_basic(
     img_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/xander"
     ip_dir  = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/face_styles"
 
-    if random.choice([1]):
+    if random.choice([0]):
         ip_img = get_random_imgpath_from_dir(ip_dir)
         text_input = ""
     else:
         ip_img = None
 
     args = StableDiffusionSettings(
-        ckpt = "juggernaut_XL",
+        #ckpt = "juggernaut_XL",
         #upscale_ckpt = "sdxl-refiner-v1.0",
         W = random.choice([1024, 1024+256, 1024+512]),
         H = random.choice([1024, 1024+256]),
@@ -47,9 +47,8 @@ def generate_basic(
         ip_image_data   = ip_img,
         #init_image_strength = random.choice([0.35, 0.4, 0.45, 0.5, 0.55]),
         init_image_strength = random.choice([1.0]),
-        ip_image_strength = random.choice([0.4, 0.5, 0.6, 0.7, 0.8]),
         #controlnet_path = "controlnet-luminance-sdxl-1.0", 
-        controlnet_path = random.choice(["controlnet-canny-sdxl-1.0-small", "controlnet-canny-sdxl-1.0", "controlnet-luminance-sdxl-1.0"]),
+        controlnet_path = random.choice(["controlnet-canny-sdxl-1.0-small", "controlnet-luminance-sdxl-1.0"]),
         
     )
 
@@ -58,7 +57,7 @@ def generate_basic(
     #name = f'{prefix}{args.text_input[:40]}_{os.path.basename(args.lora_path)}_{args.seed}_{int(time.time())}{suffix}'
     init_img_name = os.path.basename(args.init_image_data).split(".")[0]
     name = f'{prefix}{args.text_input[:40]}_{init_img_name}_{args.seed}_{int(time.time())}{suffix}'
-    name = f'{prefix}_{args.ckpt}_{args.ip_image_strength}_{args.text_input[:40]}_{args.init_image_strength}_{args.control_guidance_end}_{args.controlnet_path}_{args.seed}'
+    name = f'{prefix}_{args.text_input[:40]}_{args.init_image_strength}_{args.control_guidance_end}_{args.controlnet_path}_{args.seed}'
 
     name = name.replace("/", "_")
     os.makedirs(outdir, exist_ok = True)
