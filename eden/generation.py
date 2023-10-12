@@ -351,7 +351,7 @@ def make_interpolation(args, force_timepoints = None):
         if force_timepoints is not None:
             force_t_raw = force_timepoints[f]
 
-        if 1: # catch errors and try to complete the video
+        if 0: # catch errors and try to complete the video
             try:
                 t, t_raw, prompt_embeds, init_noise, scale, keyframe_index, abort_render = args.interpolator.get_next_conditioning(verbose=0, save_distances_to_dir = args.save_distances_to_dir, t_raw = force_t_raw)
             except Exception as e:
@@ -373,16 +373,17 @@ def make_interpolation(args, force_timepoints = None):
         args.interpolator.latent_tracker.init_noises[t_raw] = init_noise
         args.guidance_scale = scale
         args.t_raw = t_raw
+
+        # TODO, auto adjust min n_steps (needs to happend before latent blending stuff and reset after each frame render):
+        #orig_n_steps = args.steps
+        #args.steps = max(args.steps, int(args.min_steps/(1-args.init_image_strength)))
+        #pipe.scheduler.set_timesteps(args.steps, device=_device)
+        #print(f"Adjusted n_steps from {orig_n_steps} to {args.steps} to match min_steps {args.min_steps} and init_image_strength {args.init_image_strength}")
         
         if args.init_image_data is None:
             args.init_latent, args.init_image, args.init_image_strength = create_init_latent(args, t, interpolation_init_images, keyframe_index, init_noise, _device, pipe)
         else:
             args.init_image = None
-
-        # TODO, auto adjust min n_steps (needs to happend before latent blending stuff and reset after each frame render):
-        #args.steps = max(args.steps, int(args.min_steps/(1-args.init_image_strength)))
-        #pipe.scheduler.set_timesteps(args.steps, device=device)
-        #print(f"Adjusted n_steps from {args.steps} to {n_steps} to match min_steps {args.min_steps} and init_image_strength {args.init_image_strength}")
 
         if args.lora_paths is not None: # Maybe update the lora:
             if args.lora_paths[keyframe_index] != active_lora_path:
@@ -400,13 +401,17 @@ def make_interpolation(args, force_timepoints = None):
             f"lpips_d: {args.interpolator.latent_tracker.frame_buffer.get_perceptual_distance_at_t(args.t_raw):.2f})"
         )
         
+        # Generate the frame:
         _, pil_images = generate(args, do_callback = True)
+
         if args.smooth and args.latent_blending_skip_f:
             args.interpolator.latent_tracker.construct_noised_latents(args, args.t_raw)
 
         img_pil = pil_images[0]
         img_t = T.ToTensor()(img_pil).unsqueeze_(0).to(_device)
         args.interpolator.latent_tracker.add_frame(args, img_t, t, t_raw)
+
+        #args.steps = orig_n_steps
 
         yield img_pil, t_raw
 

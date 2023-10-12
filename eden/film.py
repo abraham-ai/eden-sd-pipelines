@@ -5,6 +5,7 @@ import numpy as np
 from pathlib import Path
 import gc
 import argparse
+import torch 
 
 SD_PATH = Path(os.path.dirname(os.path.realpath(__file__))).parents[0]
 ROOT_PATH = SD_PATH.parents[0]
@@ -14,9 +15,14 @@ sys.path.append(FILM_PATH)
 
 import tensorflow as tf
 
+# Checks and prints out detailed info about GPUs
+gpus = tf.config.list_physical_devices('GPU')
+print("Num GPUs Available: ", len(gpus))
+for gpu in gpus:
+    print("Name:", gpu.name, "  Type:", gpu.device_type)
+
 # avoid tf from allocating all gpu memory:
 tf_memory_limit = 1024 * 20
-
 gpus = tf.config.experimental.list_physical_devices('GPU')
 
 try:
@@ -26,7 +32,7 @@ try:
         gpus[0],
         [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=tf_memory_limit)])
 except:
-    print("WARNING: TF might not have properly found the gpu...")
+    print("WARNING: TF was unable to set_memory_growth..")
 
 from absl import flags
 FLAGS = flags.FLAGS

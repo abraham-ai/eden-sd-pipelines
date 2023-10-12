@@ -1,6 +1,7 @@
 .huggingface/hub/models--stabilityai--stable-diffusion-xl-refiner-1.0
 .huggingface/hub/models--stabilityai--sd-vae-ft-mse
 
+models/checkpoints/juggernaut_XL
 models/checkpoints/eden:eden-v1
 models/checkpoints/gordon-berger:gordon-berger-figurative
 models/checkpoints/dreamshaper.safetensors

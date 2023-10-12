@@ -92,15 +92,15 @@ def real2real(
             guidance_scale = random.choice([6]),
             n_anchor_imgs = random.choice([3]),
             sampler = "euler",
-            n_frames = 4*n,
+            n_frames = 12*n,
             loop = True,
             smooth = True,
             n_film = 1,
             fps = 12,
-            steps = 40,
+            steps = 35,
             seed = seed,
-            H = 768,
-            W = 768,
+            H = 1024,
+            W = 1024,
             ip_image_strength = random.choice([0.6]),
         )
 
@@ -113,7 +113,7 @@ def real2real(
         args.W, args.H = 512, 512
         args.steps = 20
         args.n_frames = 6*n
-        args.n_anchor_imgs = 3
+        args.n_anchor_imgs = 2
 
     # Only needed when visualising the smoothing algorithm (debugging mode)
     if args.save_distances_to_dir:
@@ -132,12 +132,22 @@ def real2real(
 
     # run FILM postprocessing (frame blending)
     if args.n_film > 0:
+
+        print("Clearing SD pipe memory to run FILM...")
+        global pipe
+        pipe = eden_pipe.get_pipe(args)
+        del pipe
+        torch.cuda.empty_cache()
+        pipe = None
+
         if 0: # old way, run FILM inside main thread, causes gpu memory leak from TF
             from film import interpolate_FILM
             frames_dir = interpolate_FILM(frames_dir, args.n_film)
         else: # run FILM as a subprocess:
             frames_dir = os.path.abspath(frames_dir)
-            command = ["python", os.path.join(str(SD_PATH), "eden/film.py"), "--frames_dir", frames_dir, "--times_to_interpolate", str(args.n_film)]
+
+            command = [sys.executable, os.path.join(str(SD_PATH), "eden/film.py"), "--frames_dir", frames_dir, "--times_to_interpolate", str(args.n_film)]
+
             print("running command:", ' '.join(command))
             result = subprocess.run(command, text=True, capture_output=True)
             print(result)

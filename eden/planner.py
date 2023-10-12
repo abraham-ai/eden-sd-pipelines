@@ -468,7 +468,7 @@ def create_init_latent(args, t, interpolation_init_images, keyframe_index, init_
         # We want a gradual increase of skip_f from min_v when current_lpips_distance >= max_d to max_v when current_lpips_distance < min_d
         min_skip_f, max_skip_f = args.latent_blending_skip_f[0], args.latent_blending_skip_f[1]
         # hardcoded lpips_perceptual distances corresponding to min_v and max_v latent_skip_f values:
-        max_d, min_d = 0.65, 0.15 # normal renders
+        max_d, min_d = 0.65, 0.1 # normal renders
         latent_tracker.latent_blending_skip_f = min_skip_f + (max_skip_f - min_skip_f) * (max_d - current_lpips_distance) / (max_d - min_d)
         latent_tracker.latent_blending_skip_f = np.clip(latent_tracker.latent_blending_skip_f, min_skip_f, max_skip_f)
         init_image_strength = init_image_strength * (1.0 - latent_tracker.latent_blending_skip_f) + latent_tracker.latent_blending_skip_f

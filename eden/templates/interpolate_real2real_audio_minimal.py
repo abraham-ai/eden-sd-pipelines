@@ -47,7 +47,7 @@ if __name__ == "__main__":
     
     # main render settings (eg specified by the user)
     H,W          = 1024+256, 1024+256
-    inter_frames = 120      # number of frames to interpolate between each pair of input images
+    inter_frames = 112      # number of frames to interpolate between each pair of input images
     output_fps   = 12       # final fps will be twice this when n_film = 1
     n_steps      = 40       # n_diffusion steps per frame
 
@@ -58,48 +58,52 @@ if __name__ == "__main__":
     # Get random images from a directory: (this should be replaced with timeline imgs in WZRD)
     n_imgs = 8
     input_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/init_imgs/diverse_real2real_seeds"
+    input_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/init_imgs/tall"
 
-    seed      = 5        # different seeds will give different results
-    outdir    = 'results/real2real_audioreactive'
+    outdir    = 'results_real2real_audioreactive'
 
     if 0: # debug: very fast render settings
-        H,W          = 640, 640
-        inter_frames = 42      # number of frames to interpolate between each pair of input images
-        n_imgs       = 3
+        H,W          = 768, 768
+        inter_frames = 36      # number of frames to interpolate between each pair of input images
+        n_imgs       = 2
         n_steps      = 20
 
-    ##############################################################################
-    seed_everything(seed)
-    img_paths = get_random_img_paths_from_dir(input_dir, n_imgs)
-    n = len(img_paths)
 
-    args = StableDiffusionSettings(
-        steps = n_steps,
-        H = H,
-        W = W,
-        n_frames = inter_frames*(n-1) + n,
-        guidance_scale = 6,
-        text_input = "real2real",  # text_input is also the title, but has no effect on interpolations
-        interpolation_texts = None,
-        interpolation_seeds = [random.randint(1, 1e8) for _ in range(n)],
-        interpolation_init_images = img_paths,
-        interpolation_init_images_min_strength = random.choice([0.05]),
-        interpolation_init_images_max_strength = 0.95,
-        n_anchor_imgs = 5,
-        latent_blending_skip_f = [0.05, 0.7],
-        loop = True,
-        n_film = 0,
-        fps = output_fps,
-        seed = seed,
-        clip_interrogator_mode = "fast",
-    )
+    for seed in [23,21,20,3,41,42]:
 
-    # Render the frames:
-    frames_dir = real2real_x(W, H, args, img_paths, outdir, n,
-                exp_name = "", audio_path = audio_path, 
-                save_phase_data = 1,
-                save_distance_data = 1)
+        ##############################################################################
+        seed_everything(seed)
+        img_paths = get_random_img_paths_from_dir(input_dir, n_imgs)
+        n = len(img_paths)
 
-    # Add post processing audio modulation:
-    n_film = 0  # set n_film to 0 to disable FILM interpolation
-    post_process_audio_reactive_video_frames(frames_dir, audio_path, output_fps, n_film)
+        args = StableDiffusionSettings(
+            steps = n_steps,
+            #ckpt = "juggernaut_XL",
+            H = H,
+            W = W,
+            n_frames = inter_frames*(n-1) + n,
+            guidance_scale = 6,
+            text_input = "real2real",  # text_input is also the title, but has no effect on interpolations
+            interpolation_texts = None,
+            interpolation_seeds = [random.randint(1, 1e8) for _ in range(n)],
+            interpolation_init_images = img_paths,
+            interpolation_init_images_min_strength = random.choice([0.05]),
+            interpolation_init_images_max_strength = 0.95,
+            n_anchor_imgs = 5,
+            latent_blending_skip_f = [0.05, 0.65],
+            loop = True,
+            n_film = 1,
+            fps = output_fps,
+            seed = seed,
+            clip_interrogator_mode = "fast",
+        )
+
+        # Render the frames:
+        frames_dir = real2real_x(W, H, args, img_paths, outdir, n,
+                    exp_name = "", audio_path = audio_path, 
+                    save_phase_data = 1,
+                    save_distance_data = 1)
+
+        # Add post processing audio modulation:
+        n_film = 0  # set n_film to 0 to disable FILM interpolation
+        post_process_audio_reactive_video_frames(frames_dir, audio_path, output_fps, n_film)

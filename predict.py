@@ -388,19 +388,30 @@ class Predictor(BasePredictor):
 
             # run FILM
             if args.n_film > 0:
-                print('predict.py: running FILM...')
-                FILM_MODEL_PATH = "/src/models/film/film_net/Style/saved_model"
-                abs_out_dir_path = os.path.abspath(str(out_dir))
-                command = ["python", "/src/eden/film.py", "--frames_dir", abs_out_dir_path, "--times_to_interpolate", str(args.n_film), '--update_film_model_path', FILM_MODEL_PATH]
-                
-                run_and_kill_cmd(command)
-                print("predict.py: FILM done.")
-                film_out_dir = Path(os.path.join(abs_out_dir_path, "interpolated_frames"))
+                try:
+                    if args.W * argsH > 1600*1600:
+                        print("Clearing SD pipe memory to run FILM...")
+                        global pipe
+                        pipe = eden_pipe.get_pipe(args)
+                        del pipe
+                        torch.cuda.empty_cache()
+                        pipe = None
 
-                # check if film_out_dir exists and contains at least 3 .jpg files:
-                if os.path.exists(film_out_dir) and len(list(film_out_dir.glob("*.jpg"))) > 3:
-                    out_dir = film_out_dir
-                else:
+                    print('predict.py: running FILM...')
+                    FILM_MODEL_PATH = "/src/models/film/film_net/Style/saved_model"
+                    abs_out_dir_path = os.path.abspath(str(out_dir))
+                    command = ["python", "/src/eden/film.py", "--frames_dir", abs_out_dir_path, "--times_to_interpolate", str(args.n_film), '--update_film_model_path', FILM_MODEL_PATH]
+                    
+                    run_and_kill_cmd(command)
+                    print("predict.py: FILM done.")
+                    film_out_dir = Path(os.path.join(abs_out_dir_path, "interpolated_frames"))
+
+                    # check if film_out_dir exists and contains at least 3 .jpg files:
+                    if os.path.exists(film_out_dir) and len(list(film_out_dir.glob("*.jpg"))) > 3:
+                        out_dir = film_out_dir
+                    else:
+                        print("Something went wrong with FILM, using original frames instead.")
+                except:
                     print("Something went wrong with FILM, using original frames instead.")
 
             if mode != "blend":

@@ -46,6 +46,9 @@ def filter_signal(signal, f_cutoff, dt, plot=False):
     if np.all(signal == signal[0]):
         return signal
 
+    if len(signal) <= 18:
+        return signal
+
     fs = 1 / dt
     b, a = butter_lowpass(f_cutoff, fs)
     y = filtfilt(b, a, signal)
@@ -366,7 +369,7 @@ class Interpolator():
             next_t, best_estimated_perceptual_density_curve = t_data
 
             # plot the current distances / target perceptual curves:
-            if self.args.save_distance_data and ((self.latent_tracker.get_n_frames() == self.n_frames_between_two_prompts-1) or (self.latent_tracker.get_n_frames() % 10 == 0)):
+            if self.args.save_distance_data and ((len(perceptual_distances) == self.n_frames_between_two_prompts-2) or (len(perceptual_distances) % 10 == 0)):
                 os.makedirs(os.path.join(self.args.frames_dir, "distances"), exist_ok = True)
                 plt.figure(figsize = (12,6))
                 ts = np.linspace(0,1,len(perceptual_distances))
