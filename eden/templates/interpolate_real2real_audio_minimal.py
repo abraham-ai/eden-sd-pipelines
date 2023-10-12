@@ -48,8 +48,8 @@ if __name__ == "__main__":
     # main render settings (eg specified by the user)
     H,W          = 1024+256, 1024+256
     inter_frames = 112      # number of frames to interpolate between each pair of input images
-    output_fps   = 12       # final fps will be twice this when n_film = 1
-    n_steps      = 40       # n_diffusion steps per frame
+    output_fps   = 16       
+    n_steps      = 50       # n_diffusion steps per frame
 
     # audio_path is either a path of a .zip file, or a tuple of (audio_features_pickle, audio_mp3_path)
     audio_path = ("path_to_features.pkl", "path_to_audio.mp3")
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     # Get random images from a directory: (this should be replaced with timeline imgs in WZRD)
     n_imgs = 8
     input_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/init_imgs/diverse_real2real_seeds"
-    input_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/init_imgs/tall"
+    #input_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/init_imgs/tall"
 
     outdir    = 'results_real2real_audioreactive'
 
@@ -69,7 +69,7 @@ if __name__ == "__main__":
         n_steps      = 20
 
 
-    for seed in [23,21,20,3,41,42]:
+    for seed in [23,3,41,42]:
 
         ##############################################################################
         seed_everything(seed)

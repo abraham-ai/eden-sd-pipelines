@@ -425,8 +425,8 @@ def make_images(args):
             raise ValueError(f"Must provide an init image in order to use {args.mode}!")
 
         if args.mode == "remix" or args.mode == "upscale":
-            with Image.open(args.init_image_data) as img:
-                w, h = img.size
+            img = load_img(args.init_image_data, 'RGB')
+            w, h = img.size
 
             if not args.ip_image_data and (w*h > 512*512): # only use the image conditioning when the input is large enough
                 print("Setting init_image as ip_image!")

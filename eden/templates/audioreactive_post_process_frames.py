@@ -294,11 +294,17 @@ python post_process_frames.py
 
 if __name__ == "__main__":
 
-    frames_dir     = "/home/rednax/SSD2TB/Github_repos/cog/eden-sd-pipelines/eden/templates/real2real_audioreactive/real2real_seed_0__0_168276749608"
-    audio_path = "/home/rednax/SSD2TB/SSDbackup_x/music_vr/Xander_Tools/Beat_Modulation/audio_data/Max_Cooper/beat_start_audio_features_80_40/beat_start_audio_features_80_40.zip"
-    #audio_path = None
-
+    audio_path = ("/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/tmp_unzip/features.pkl", "/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/tmp_unzip/music.mp3")
+    
     fps = 16    # orig fps, before FILM
     n_film = 0  # set n_film to 0 to disable FILM interpolation
 
-    post_process_audio_reactive_video_frames(frames_dir, audio_path, fps, n_film)
+    root_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/templates/results_real2real_audioreactive"
+    subdirs = os.listdir(root_dir)
+
+    for subdir in subdirs:
+        if not os.path.isdir(os.path.join(root_dir, subdir)):
+            continue
+            
+        frames_dir = os.path.join(root_dir, subdir, "interpolated_frames")
+        post_process_audio_reactive_video_frames(frames_dir, audio_path, fps, n_film)
