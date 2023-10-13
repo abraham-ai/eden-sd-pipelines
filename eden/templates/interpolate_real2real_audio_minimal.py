@@ -47,8 +47,8 @@ if __name__ == "__main__":
     
     # main render settings (eg specified by the user)
     H,W          = 1024+256, 1024+256
-    inter_frames = 112      # number of frames to interpolate between each pair of input images
-    output_fps   = 16       
+    inter_frames = 100      # number of frames to interpolate between each pair of input images
+    output_fps   = 12       
     n_steps      = 50       # n_diffusion steps per frame
 
     # audio_path is either a path of a .zip file, or a tuple of (audio_features_pickle, audio_mp3_path)
@@ -60,12 +60,12 @@ if __name__ == "__main__":
     input_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/init_imgs/diverse_real2real_seeds"
     #input_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/init_imgs/tall"
 
-    outdir    = 'results_real2real_audioreactive'
+    outdir    = 'results_real2real_audioreactive_test'
 
     if 0: # debug: very fast render settings
         H,W          = 768, 768
-        inter_frames = 36      # number of frames to interpolate between each pair of input images
-        n_imgs       = 2
+        inter_frames = 56      # number of frames to interpolate between each pair of input images
+        n_imgs       = 3
         n_steps      = 20
 
 
@@ -90,9 +90,9 @@ if __name__ == "__main__":
             interpolation_init_images_min_strength = random.choice([0.05]),
             interpolation_init_images_max_strength = 0.95,
             n_anchor_imgs = 5,
-            latent_blending_skip_f = [0.05, 0.65],
+            latent_blending_skip_f = [0.05, 0.6],
             loop = True,
-            n_film = 1,
+            n_film = 0,
             fps = output_fps,
             seed = seed,
             clip_interrogator_mode = "fast",
@@ -105,5 +105,5 @@ if __name__ == "__main__":
                     save_distance_data = 1)
 
         # Add post processing audio modulation:
-        n_film = 0  # set n_film to 0 to disable FILM interpolation
+        n_film = 1  # set n_film to 0 to disable FILM interpolation
         post_process_audio_reactive_video_frames(frames_dir, audio_path, output_fps, n_film)

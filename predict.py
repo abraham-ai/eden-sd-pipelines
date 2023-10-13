@@ -198,7 +198,7 @@ class Predictor(BasePredictor):
         ),
         latent_blending_skip_f: str = Input(
             description="What fraction of the denoising trajectory to skip at the start and end of each interpolation phase, two floats, separated by a pipe (|)",
-            default="0.15|0.65"
+            default="0.05|0.6"
         ),
         n_film: int = Input(
             description="Number of times to smooth final frames with FILM (default is 0) (mode==interpolate)",

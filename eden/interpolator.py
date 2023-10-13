@@ -120,7 +120,7 @@ class Interpolator():
         self.args = args
         self.device = device
         self.prompts, self.seeds, self.scales = prompts, seeds, scales
-        if images is not None:
+        if images and (args.lora_path is None):
             assert len(images) == len(prompts), "Number of given images must match number of prompts!"
             self.images = images
             self.ip_adapter = IPAdapterXL(pipe, eden_pipe.IP_ADAPTER_IMG_ENCODER_PATH, eden_pipe.IP_ADAPTER_PATH, _device)
@@ -179,7 +179,7 @@ class Interpolator():
             seed   = self.seeds[index]
 
             try: # SDXL
-                if image is not None:
+                if image and self.ip_adapter:
                     # create the conditioning vectors for the current prompt + image using ip_adapter:
                     prompt_embeds = self.ip_adapter.create_embeds(
                         image, prompt=prompt, negative_prompt=self.args.uc_text, scale=self.args.ip_image_strength

@@ -253,9 +253,20 @@ def post_process_audio_reactive_video_frames(frames_dir, audio_path, fps, n_film
             target_steps = 100, min_max_steps = [25,40])
 
     if n_film > 0:
-        from film import interpolate_FILM
-        frames_dir = interpolate_FILM(frames_dir, n_film, max_n_images_per_chunk = 3000)
+        #from film import interpolate_FILM
+        #frames_dir = interpolate_FILM(frames_dir, n_film, max_n_images_per_chunk = 3000)
+
+        frames_dir = os.path.abspath(frames_dir)
+        command = [sys.executable, os.path.join(str(SD_PATH), "eden/film.py"), "--frames_dir", frames_dir, "--times_to_interpolate", str(n_film)]
+
+        print("running command:", ' '.join(command))
+        result = subprocess.run(command, text=True, capture_output=True)
+        print(result)
+        print(result.stdout)
+        frames_dir = os.path.join(frames_dir, "interpolated_frames")
+
         fps = fps*(1+n_film)
+
     
     frame_paths = sorted([os.path.join(frames_dir, f) for f in os.listdir(frames_dir) if f.endswith(".jpg")])
 
@@ -287,8 +298,8 @@ def post_process_audio_reactive_video_frames(frames_dir, audio_path, fps, n_film
 """
 
 export CUDA_VISIBLE_DEVICES=0
-cd /home/rednax/SSD2TB/Github_repos/cog/eden-sd-pipelines/eden/xander
-python post_process_frames.py
+cd /data/xander/Projects/cog/eden-sd-pipelines/eden/templates
+python audioreactive_post_process_frames.py
 
 """
 
@@ -296,15 +307,17 @@ if __name__ == "__main__":
 
     audio_path = ("/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/tmp_unzip/features.pkl", "/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/tmp_unzip/music.mp3")
     
-    fps = 16    # orig fps, before FILM
-    n_film = 0  # set n_film to 0 to disable FILM interpolation
+    fps = 12    # orig fps, before FILM
+    n_film = 1  # set n_film to 0 to disable FILM interpolation
 
-    root_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/templates/results_real2real_audioreactive"
+    root_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/templates/results_real2real_audioreactive_test"
     subdirs = os.listdir(root_dir)
 
     for subdir in subdirs:
-        if not os.path.isdir(os.path.join(root_dir, subdir)):
+        frames_dir = os.path.join(root_dir, subdir)
+
+        if not os.path.isdir(frames_dir):
             continue
             
-        frames_dir = os.path.join(root_dir, subdir, "interpolated_frames")
+        #frames_dir = os.path.join(frames_dir, "interpolated_frames")
         post_process_audio_reactive_video_frames(frames_dir, audio_path, fps, n_film)
