@@ -13,7 +13,6 @@ from safetensors.torch import save_file
 from torch.utils.data import Dataset
 from transformers import AutoTokenizer, PretrainedConfig
 
-
 def prepare_image(
     pil_image: PIL.Image.Image, w: int = 512, h: int = 512
 ) -> torch.Tensor:

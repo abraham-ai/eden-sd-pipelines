@@ -94,7 +94,7 @@ def perceptual_distance(img1, img2,
 #######################################################################################################
 #######################################################################################################
 
-
+import pipe as eden_pipe
 from pipe import update_pipe_with_lora
 from planner import FrameBuffer, LatentTracker, resample_signal
 class Interpolator():
@@ -123,7 +123,7 @@ class Interpolator():
         if images and (args.lora_path is None):
             assert len(images) == len(prompts), "Number of given images must match number of prompts!"
             self.images = images
-            self.ip_adapter = IPAdapterXL(pipe, eden_pipe.IP_ADAPTER_IMG_ENCODER_PATH, eden_pipe.IP_ADAPTER_PATH, _device)
+            self.ip_adapter = eden_pipe.pipe_manager.enable_ip_adapter()
         else:
             self.images = [None] * len(prompts)
             self.ip_adapter = None

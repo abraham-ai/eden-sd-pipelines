@@ -63,21 +63,31 @@ class IPAdapter:
         
         self.pos_prompt = pos_prompt
         self.neg_prompt = neg_prompt
+        self.pipe = sd_pipe
         
         self.device = device
         self.image_encoder_path = image_encoder_path
         self.ip_ckpt = ip_ckpt
         self.num_tokens = num_tokens
+
+        # save attention processors for enbaling / disabling ip_adapter on the fly:
+        self._ip_adapter_unet_attention_processors = None
+        self._ip_adapter_controlnet_attention_processors = None
+        self._default_unet_attention_processors = None
+        self._default_controlnet_attention_processors = None
         
-        self.pipe = sd_pipe.to(self.device)
+        self.setup()
+
+    def setup(self):
         self.set_ip_adapter()
         
+        print("Loading clip models...")
         # load image encoder
         self.image_encoder = CLIPVisionModelWithProjection.from_pretrained(self.image_encoder_path).to(self.device, dtype=torch.float16)
         self.clip_image_processor = CLIPImageProcessor()
         # image proj model
         self.image_proj_model = self.init_proj()
-        
+
         self.load_ip_adapter()
         
     def init_proj(self):
@@ -87,11 +97,60 @@ class IPAdapter:
             clip_extra_context_tokens=self.num_tokens,
         ).to(self.device, dtype=torch.float16)
         return image_proj_model
+
+    def disbable_ip_adapter(self):
+        """
+        Unloads the IP adapter by resetting attention processors to vanilla values
+        """
+        if not hasattr(self, "_default_unet_attention_processors"):
+            print("IP adapter was not loaded, cannot unload")
+            return
+
+        self._ip_adapter_unet_attention_processors = self.pipe.unet.attn_processors
+        self.pipe.unet.set_attn_processor({**self._default_unet_attention_processors})
+
+        if hasattr(self.pipe, "controlnet"):
+            if isinstance(self.pipe.controlnet, MultiControlNetModel):
+                self._ip_adapter_controlnet_attention_processors = {}
+                for controlnet in self.pipe.controlnet.nets:
+                    self._ip_adapter_controlnet_attention_processors[controlnet] = controlnet.attn_processors
+                    controlnet.set_attn_processor(**self._default_controlnet_attention_processors[controlnet])
+            else:
+                self._ip_adapter_controlnet_attention_processors = self.pipe.controlnet.attn_processors
+                self.pipe.controlnet.set_attn_processor(**self._default_controlnet_attention_processors)
+
+    def enable_ip_adapter(self):
+        """
+        Loads the IP adapter by setting attention processors to IPAttnProcessor
+        """
+        if (self._ip_adapter_unet_attention_processors is None) or (hasattr(self.pipe, "controlnet") and self._ip_adapter_controlnet_attention_processors is None):
+            print("Triggering setup...")
+            self.setup()
+            return
+
+        self.pipe.unet.set_attn_processor({**self._ip_adapter_unet_attention_processors})
+
+        if hasattr(self.pipe, "controlnet"):
+            if isinstance(self.pipe.controlnet, MultiControlNetModel):
+                for controlnet in self.pipe.controlnet.nets:
+                    controlnet.set_attn_processor(**self._ip_adapter_controlnet_attention_processors[controlnet])
+            else:
+                self.pipe.controlnet.set_attn_processor(**self._ip_adapter_controlnet_attention_processors)
+
         
     def set_ip_adapter(self):
+        print("setting ip_adapter...")
         unet = self.pipe.unet
+
+        # save the current attn_processors for later use:
+        # self.no_ip_attn_processors = unet.attn_processors
+
+        self._default_unet_attention_processors: Dict[str, Any] = {}
+        self._default_controlnet_attention_processors: Dict[str, Dict[str, Any]] = {}
+
         attn_procs = {}
         for name in unet.attn_processors.keys():
+            current_processor = unet.attn_processors[name]
             cross_attention_dim = None if name.endswith("attn1.processor") else unet.config.cross_attention_dim
             if name.startswith("mid_block"):
                 hidden_size = unet.config.block_out_channels[-1]
@@ -101,20 +160,34 @@ class IPAdapter:
             elif name.startswith("down_blocks"):
                 block_id = int(name[len("down_blocks.")])
                 hidden_size = unet.config.block_out_channels[block_id]
+
+            self._default_unet_attention_processors[name] = current_processor
+
             if cross_attention_dim is None:
                 attn_procs[name] = AttnProcessor()
             else:
                 attn_procs[name] = IPAttnProcessor(hidden_size=hidden_size, cross_attention_dim=cross_attention_dim,
                 scale=1.0,num_tokens= self.num_tokens).to(self.device, dtype=torch.float16)
+
+        self._ip_adapter_unet_attention_processors = attn_procs
         unet.set_attn_processor(attn_procs)
+
         if hasattr(self.pipe, "controlnet"):
             if isinstance(self.pipe.controlnet, MultiControlNetModel):
+                self._ip_adapter_controlnet_attention_processors = {}
                 for controlnet in self.pipe.controlnet.nets:
-                    controlnet.set_attn_processor(CNAttnProcessor(num_tokens=self.num_tokens))
+                    self._default_controlnet_attention_processors[controlnet] = controlnet.attn_processors
+                    cn_attn = CNAttnProcessor(num_tokens=self.num_tokens)
+                    controlnet.set_attn_processor(cn_attn)
+                    self._ip_adapter_controlnet_attention_processors[controlnet] = cn_attn
             else:
-                self.pipe.controlnet.set_attn_processor(CNAttnProcessor(num_tokens=self.num_tokens))
+                self._default_controlnet_attention_processors = self.pipe.controlnet.attn_processors
+                cn_attn = CNAttnProcessor(num_tokens=self.num_tokens)
+                self.pipe.controlnet.set_attn_processor(cn_attn)
+                self._ip_adapter_controlnet_attention_processors = cn_attn
         
     def load_ip_adapter(self):
+        print("loading ip_adapter...")
         state_dict = torch.load(self.ip_ckpt, map_location="cpu")
         self.image_proj_model.load_state_dict(state_dict["image_proj"])
         ip_layers = torch.nn.ModuleList(self.pipe.unet.attn_processors.values())

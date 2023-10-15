@@ -14,14 +14,6 @@ CONTROLNET_PATH = os.path.join(SD_PATH, 'models/controlnets')
 IP_ADAPTER_PATH = os.path.join(SD_PATH, 'models/ip_adapter/ip-adapter_sdxl.bin')
 IP_ADAPTER_IMG_ENCODER_PATH = os.path.join(SD_PATH, 'models/ip_adapter/image_encoder')
 
-LORA_PATH = os.path.join(SD_PATH, 'lora')
-LORA_DIFFUSION_PATH = os.path.join(LORA_PATH, 'lora_diffusion')
-
-#print("DIFFUSERS PATH: ", DIFFUSERS_PATH)
-#sys.path.insert(0,DIFFUSERS_PATH)
-sys.path.append(LORA_PATH)
-sys.path.append(LORA_DIFFUSION_PATH)
-
 # https://github.com/lyn-rgb/FreeU_Diffusers
 from free_lunch_utils import register_free_upblock2d, register_free_crossattn_upblock2d
 
@@ -47,25 +39,9 @@ from diffusers import (
     PNDMScheduler
 )
 
+from ip_adapter.ip_adapter import IPAdapterXL
 from eden_utils import *
 from settings import _device
-#from lora_diffusion import *
-
-global pipe
-global last_checkpoint
-global last_lora_path
-global last_controlnet_path
-pipe = None
-last_checkpoint = None
-last_lora_path = None
-last_controlnet_path = None
-
-global upscaling_pipe
-global upscaling_last_checkpoint
-global upscaling_last_lora_path
-upscaling_pipe = None
-upscaling_last_checkpoint = None
-upscaling_last_lora_path = None
 
 _local_files_only = False
 
@@ -97,12 +73,60 @@ class NoWatermark:
     def apply_watermark(self, img):
         return img
 
+class PipeManager:
+    # utility class to manage a consistent pipe object
+    def __init__(self):
+        self.pipe = None
+        self.last_checkpoint = None
+        self.last_lora_path = None
+        self.last_controlnet_path = None
+        self.ip_adapter = None
+
+    def get_pipe(self, args, force_reload = False):
+        if (args.ckpt != self.last_checkpoint) or (args.controlnet_path != self.last_controlnet_path):
+            force_reload = True
+
+        if (self.pipe is None) or force_reload:
+            self.pipe = None
+            torch.cuda.empty_cache()
+
+            if args.activate_tileable_textures:
+                patch_conv(padding_mode='circular')
+
+            self.pipe = load_pipe(args)
+            self.last_checkpoint = args.ckpt
+            self.last_controlnet_path = args.controlnet_path
+            self.last_lora_path = None # load_pipe does not set lora
+
+        if (args.lora_path != self.last_lora_path) and args.lora_path:
+            self.pipe = update_pipe_with_lora(self.pipe, args)
+            self.last_lora_path = args.lora_path
+
+        self.pipe = set_sampler(args.sampler, self.pipe)
+
+        return self.pipe
+
+    def enable_ip_adapter(self):
+        if self.ip_adapter is None:
+            self.ip_adapter = IPAdapterXL(self.pipe, IP_ADAPTER_IMG_ENCODER_PATH, IP_ADAPTER_PATH, _device)
+        else:
+            self.ip_adapter.enable_ip_adapter()
+
+        return self.ip_adapter
+
+    def disable_ip_adapter(self):
+        if self.ip_adapter is None:
+            return
+
+        self.ip_adapter.disbable_ip_adapter()
+
+pipe_manager = PipeManager()
+
 
 def load_pipe(args):
-    if 'eden' in os.path.basename(args.ckpt):
+    if 'eden-v1' in os.path.basename(args.ckpt):
         return load_pipe_v1(args)
 
-    global pipe
     start_time = time.time()
 
     location = args.ckpt
@@ -198,40 +222,6 @@ def load_pipe(args):
     print_model_info(pipe)
     return pipe
 
-def get_pipe(args, force_reload = False):
-    global pipe
-    global last_checkpoint
-    global last_lora_path
-    global last_controlnet_path
-
-    if args.ckpt != last_checkpoint:
-        force_reload = True
-        last_checkpoint = args.ckpt
-
-    if args.controlnet_path != last_controlnet_path:
-        force_reload = True
-        last_controlnet_path = args.controlnet_path
-
-    if not args.lora_path and last_lora_path:
-        force_reload = True
-
-    if (pipe is None) or force_reload:
-        del pipe
-        torch.cuda.empty_cache()
-
-        if args.activate_tileable_textures:
-            patch_conv(padding_mode='circular')
-
-        pipe = load_pipe(args)
-
-    # Potentially update the pipe:
-    pipe = set_sampler(args.sampler, pipe)
-    pipe = update_pipe_with_lora(pipe, args)
-    
-    last_lora_path = args.lora_path
-
-    return pipe
-
 from safetensors import safe_open
 from safetensors.torch import load_file
 from diffusers.models.attention_processor import LoRAAttnProcessor2_0
@@ -323,10 +313,7 @@ def prepare_prompt_for_lora(prompt, lora_path, interpolation=False, verbose=True
     return prompt
 
 
-
-
 def update_pipe_with_lora(pipe, args):
-    global last_lora_path
 
     if (args.lora_path == last_lora_path) or (not args.lora_path):
         return pipe
@@ -387,7 +374,6 @@ def update_pipe_with_lora(pipe, args):
 
 
 def load_pipe_v1(args):
-    global pipe
     start_time = time.time()
     
     if os.path.isdir(os.path.join(CHECKPOINTS_PATH, args.ckpt)):

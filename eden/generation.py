@@ -10,6 +10,10 @@ CLIP_INTERROGATOR_MODEL_PATH = os.path.join(ROOT_PATH, 'cache')
 LORA_PATH = os.path.join(ROOT_PATH, 'lora')
 sys.path.append(LORA_PATH)
 
+#IP_ADAPTER_CODE_PATH = os.path.join(SD_PATH, 'eden/ip_adapter')
+#sys.path.append(IP_ADAPTER_CODE_PATH)
+#from attention_processor import IPAttnProcessor2_0 as IPAttnProcessor, AttnProcessor2_0 as AttnProcessor, CNAttnProcessor2_0 as CNAttnProcessor
+
 from _thread import start_new_thread
 from queue import Queue
 from copy import copy
@@ -29,8 +33,6 @@ from interpolator import *
 from clip_tools import *
 from planner import LatentTracker, create_init_latent, blend_inits
 from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline, StableDiffusionDepth2ImgPipeline
-
-from ip_adapter.ip_adapter import IPAdapterXL
 
 def maybe_apply_watermark(args, x_images):
     # optionally, apply watermark to final image:
@@ -69,11 +71,10 @@ def generate(
     args.H = round_to_nearest_multiple(args.H, 8)
 
     # Load model
-    global pipe
-    pipe = eden_pipe.get_pipe(args)
+    pipe = eden_pipe.pipe_manager.get_pipe(args)
 
-    if args.ip_image_data:
-        print("Using ip_image from {args.ip_image_data}...")
+    if args.ip_image_data and args.lora_path is None:
+        print(f"Using ip_image from {args.ip_image_data}...")
         args.ip_image = load_img(args.ip_image_data, 'RGB')
 
         if args.text_input is None or args.text_input == "":
@@ -82,24 +83,18 @@ def generate(
             print("Using clip-interrogated prompt from ip_image as text_input:")
             print(args.text_input)
 
-        if (args.lora_path is None): 
-            # For now IP adapter is incompatible with LORA since they both overwrite the attention_processor for the unet
-            # https://github.com/tencent-ailab/IP-Adapter/issues/69
-            # TODO fixable by switching to this LORA-trainer: https://github.com/kohya-ss/sd-scripts
-            ip_adapter = IPAdapterXL(pipe, eden_pipe.IP_ADAPTER_IMG_ENCODER_PATH, eden_pipe.IP_ADAPTER_PATH, _device)
+        # For now IP adapter is incompatible with LORA since they both overwrite the attention_processor for the unet
+        # https://github.com/tencent-ailab/IP-Adapter/issues/69
+        # TODO maybe fixable by switching to this LORA-trainer: https://github.com/kohya-ss/sd-scripts
+        ip_adapter = eden_pipe.pipe_manager.enable_ip_adapter()
 
-            args.c, args.uc, args.pc, args.puc = ip_adapter.create_embeds(
-                args.ip_image, prompt=args.text_input, negative_prompt=args.uc_text, 
-                scale=args.ip_image_strength  # scale = 1.0 will only use the image prompt, 0.0 will only use the text prompt
-                )
+        args.c, args.uc, args.pc, args.puc = ip_adapter.create_embeds(
+            args.ip_image, prompt=args.text_input, negative_prompt=args.uc_text, 
+            scale=args.ip_image_strength  # scale = 1.0 will only use the image prompt, 0.0 will only use the text prompt
+            )
 
-            del ip_adapter
-            torch.cuda.empty_cache()
-
-        else:
-            print("################################################")
-            print("Disabled IP_adapter because a LoRA was active!!!")
-            print("################################################")
+    else:
+        eden_pipe.pipe_manager.disable_ip_adapter()
 
     if (args.interpolator is None) and (len(args.name) == 0):
         args.name = args.text_input # send this name back to the frontend
@@ -315,8 +310,7 @@ def make_interpolation(args, force_timepoints = None):
                     args.interpolation_texts[jj] = init_img_prompt
 
     # Load model
-    global pipe
-    pipe = eden_pipe.get_pipe(args)
+    pipe = eden_pipe.pipe_manager.get_pipe(args)
     
     args.name = " => ".join(args.interpolation_texts) # send this name back to frontend
 
@@ -351,7 +345,7 @@ def make_interpolation(args, force_timepoints = None):
         if force_timepoints is not None:
             force_t_raw = force_timepoints[f]
 
-        if 0: # catch errors and try to complete the video
+        if 1: # catch errors and try to complete the video
             try:
                 t, t_raw, prompt_embeds, init_noise, scale, keyframe_index, abort_render = args.interpolator.get_next_conditioning(verbose=0, save_distances_to_dir = args.save_distances_to_dir, t_raw = force_t_raw)
             except Exception as e:
@@ -497,13 +491,11 @@ def run_upscaler(args_, imgs,
 
     if free_memory < 20e9 and (args.ckpt != args_.ckpt):
         print("Free memory is low, removing pipe to free up memory...")
-        global pipe
-        del pipe
-        pipe = None
+        eden_pipe.pipe_manager.pipe = None
         torch.cuda.empty_cache()
         remove_pipe_after_upscaling = True
     
-    upscaling_pipe = eden_pipe.get_pipe(args)
+    upscaling_pipe = eden_pipe.pipe_manager.get_pipe(args)
 
     # Avoid doing too little steps when init_image_strength is very high:
     upscale_steps = int(max(args.steps * (1-init_image_strength), min_upscale_steps) / (1-init_image_strength))+1

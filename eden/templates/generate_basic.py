@@ -82,6 +82,7 @@ def get_all_img_files(directory_root):
     
 
 def generate_basic(
+    i,
     text_input, 
     outdir, 
     steps_per_update = None, # None to disable intermediate frames
@@ -111,6 +112,7 @@ def generate_basic(
         text_input_2 = text_input_2,
         seed = seed,
         n_samples = 1,
+        ip_image_data = None if i%2 else init_img_path,
         #init_image_data = random.choice([None, None, init_img_path]),
         #init_image_strength = random.choice([0.05, 0.1, 0.15, 0.2, 0.25]),
         #lora_path = "/data/xander/Projects/cog/GitHub_repos/cog-sdxl/lora_models_saved/koji_color/checkpoints/checkpoint-804"
@@ -146,10 +148,10 @@ if __name__ == "__main__":
         text_input = random.choice(text_inputs)
 
         if 1:
-            generate_basic(text_input, outdir, seed = seed)
+            generate_basic(i, text_input, outdir, seed = seed)
         else:
             try:
-                generate_basic(text_input, outdir, seed = seed)
+                generate_basic(i, text_input, outdir, seed = seed)
             except KeyboardInterrupt:
                 print("Interrupted by user")
                 exit()  # or sys.exit()
