@@ -1,61 +1,9 @@
 import os, time, random, sys, shutil, subprocess
 sys.path.append('..')
 
-def sample_from_dir(dirpath, n, use_json_prompt_prob = 1.0, shuffle = False, extensions = [".jpg", ".png", ".jpeg", "webp"]):
-    
-    interpolation_texts = []
-    # find all images in this dir:
-    all_files = sorted(os.listdir(dirpath))
-    img_paths = [os.path.join(dirpath,f) for f in all_files if any(f.endswith(ext) for ext in extensions)]
-
-    if shuffle:
-        random.shuffle(img_paths)
-    else:
-        if n < len(img_paths):
-            print("Warning: only using first %d images from a directory with %d images" % (n, len(img_paths)))
-
-    #n = len(img_paths)
-    img_paths = img_paths[:n]
-
-    for i in range(n):
-        img_path = img_paths[i]
-        extension = os.path.splitext(img_path)[1]
-
-        json_path = img_path.replace(extension, ".json")
-        json_path = os.path.join(dirpath, json_path)
-
-        json_path2 = img_path.replace("_0" + extension, ".json")
-        json_path2 = os.path.join(dirpath, json_path2)
-
-        txt_path = img_path.replace(extension, ".txt")
-        txt_path = os.path.join(dirpath, txt_path)
-
-        interpolation_text = None
-
-        if (random.random() < use_json_prompt_prob):
-            try:
-                if os.path.exists(json_path):
-                    with open(json_path, "r") as f:
-                        interpolation_text = json.load(f)["text_input"]
-                elif os.path.exists(json_path2):
-                    with open(json_path2, "r") as f:
-                        interpolation_text = json.load(f)["text_input"]
-                elif os.path.exists(txt_path):
-                    with open(txt_path, "r") as f:
-                        interpolation_text = f.read()
-            except:
-                pass
-        
-        interpolation_texts.append(interpolation_text)
-
-    print("Using imgs:")
-    for img_p in img_paths:
-        print(img_p)
-
-    return img_paths, interpolation_texts
-
 from settings import StableDiffusionSettings
 from generation import *
+from pipe import pipe_manager
 
 def real2real(
     input_images, 
@@ -66,7 +14,7 @@ def real2real(
     name_str = "",
     force_timepoints = None,
     save_video = True,
-    remove_frames_dir = 0,
+    remove_frames_dir = False,
     save_phase_data = False,  # save condition vectors and scale for each frame (used for later upscaling)
     save_distance_data = 0,  # save distance plots to disk
     debug = 0):
@@ -97,11 +45,11 @@ def real2real(
             smooth = True,
             n_film = 1,
             fps = 12,
-            steps = 35,
+            steps = 30,
             seed = seed,
             H = 1024,
             W = 1024,
-            ip_image_strength = random.choice([0.6]),
+            ip_image_strength = random.choice([0.65]),
         )
 
     # always make sure these args are properly set:
@@ -134,30 +82,20 @@ def real2real(
     if args.n_film > 0:
 
         print("Clearing SD pipe memory to run FILM...")
-        global pipe
-        pipe = eden_pipe.get_pipe(args)
-        del pipe
-        torch.cuda.empty_cache()
-        pipe = None
+        pipe_manager.clear()
 
-        if 0: # old way, run FILM inside main thread, causes gpu memory leak from TF
-            from film import interpolate_FILM
-            frames_dir = interpolate_FILM(frames_dir, args.n_film)
-        else: # run FILM as a subprocess:
-            frames_dir = os.path.abspath(frames_dir)
+        frames_dir = os.path.abspath(frames_dir)
+        command = [sys.executable, os.path.join(str(SD_PATH), "eden/film.py"), "--frames_dir", frames_dir, "--times_to_interpolate", str(args.n_film)]
 
-            command = [sys.executable, os.path.join(str(SD_PATH), "eden/film.py"), "--frames_dir", frames_dir, "--times_to_interpolate", str(args.n_film)]
-
-            print("running command:", ' '.join(command))
-            result = subprocess.run(command, text=True, capture_output=True)
-            print(result)
-            print(result.stdout)
-            frames_dir = os.path.join(frames_dir, "interpolated_frames")
+        print("running command:", ' '.join(command))
+        result = subprocess.run(command, text=True, capture_output=True)
+        print(result)
+        print(result.stdout)
+        frames_dir = os.path.join(frames_dir, "interpolated_frames")
 
         args.fps = args.fps * (args.n_film + 1)
 
     if save_video:
-        # save video
         loop = (args.loop and len(args.interpolation_seeds) == 2)
         video_filename = f'{outdir}/{name}.mp4'
         write_video(frames_dir, video_filename, loop=loop, fps=args.fps)
@@ -185,34 +123,6 @@ if __name__ == "__main__":
         "https://minio.aws.abraham.fun/creations-stg/049848c63707293cddc766b2cbd230d9cde71f5075e48e9e02c6da03566ddae7.jpg",
         ]
 
-    init_imgs = [
-            "https://generations.krea.ai/images/3cd0b8a8-34e5-4647-9217-1dc03a886b6a.webp",
-            "https://generations.krea.ai/images/928271c8-5a8e-4861-bd57-d1398e8d9e7a.webp",
-            "https://generations.krea.ai/images/865142e2-8963-47fb-bbe9-fbe260271e00.webp"
-        ]
-
-
-    input_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/init_imgs/diverse_real2real_seeds"
-    init_imgs = [os.path.join(input_dir, f) for f in os.listdir(input_dir)]
-
     outdir = "results_real2real"
-    n = 2
 
-    for i in list(range(11,30)):
-        seed = np.random.randint(0, 1000)
-        seed = i
-
-        random.seed(seed)
-        input_images = random.sample(init_imgs, n)
-
-        if 1:
-            real2real(input_images, outdir, seed = seed)
-        else:
-            try:
-                real2real(input_images, outdir, seed = seed)
-            except KeyboardInterrupt:
-                print("Interrupted by user")
-                exit()
-            except Exception as e:
-                print(f"Error: {e}")  # Optionally print the error
-                continue
+    real2real(init_imgs, outdir, seed = seed)

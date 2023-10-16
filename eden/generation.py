@@ -53,8 +53,6 @@ def generate(
     upscale = False,
     do_callback = False,
 ):
-    #assert args.text_input is not None
-
     seed_everything(args.seed)
     args.init_image_strength = float(args.init_image_strength)
 
@@ -90,11 +88,12 @@ def generate(
 
         args.c, args.uc, args.pc, args.puc = ip_adapter.create_embeds(
             args.ip_image, prompt=args.text_input, negative_prompt=args.uc_text, 
-            scale=args.ip_image_strength  # scale = 1.0 will only use the image prompt, 0.0 will only use the text prompt
+            scale=args.ip_image_strength  # scale = 1.0 will mostly use the image prompt, 0.0 will only use the text prompt
             )
-
     else:
         eden_pipe.pipe_manager.disable_ip_adapter()
+
+    # args = sample_random_conditioning(args)
 
     if (args.interpolator is None) and (len(args.name) == 0):
         args.name = args.text_input # send this name back to the frontend
@@ -146,11 +145,9 @@ def generate(
     if args.controlnet_path is not None and args.init_image is None:
         raise ValueError("Must provide init_image if using controlnet")
 
-
     # SDXL is super sensitive to init_image, even with strength = 0.0, so in some cases we want to completely remove the init_img:
     if args.init_image_strength == 0.0 and args.mode == "remix":
         args.init_image = None
-
 
     denoising_start = None
     if (args.init_image is None) and (args.init_latent is not None): # lerp/real2real
@@ -215,37 +212,10 @@ def generate(
 
     pil_images = maybe_apply_watermark(args, pil_images)
 
-    if ((args.c is None) or (args.uc is None)) and (pipe is not None):
-        try: # SD v1/v2
-            prompt_embeds = pipe._encode_prompt(
-                    prompt = prompt,
-                    device = _device,
-                    num_images_per_prompt = args.n_samples,
-                    do_classifier_free_guidance = args.guidance_scale > 1.0,
-                    negative_prompt = negative_prompt,
-                )
-        except: # SDXL
-            (
-                prompt_embeds,
-                negative_prompt_embeds,
-                pooled_prompt_embeds,
-                negative_pooled_prompt_embeds,
-            ) = pipe.encode_prompt(
-                prompt = prompt,
-                device = _device,
-                num_images_per_prompt = args.n_samples,
-                do_classifier_free_guidance = args.guidance_scale > 1.0,
-                negative_prompt = negative_prompt)
-            
-            prompt_embeds_dict = {}
-            prompt_embeds_dict['prompt_embeds'] = torch.cat([negative_prompt_embeds, prompt_embeds], dim=0)
-            prompt_embeds_dict['pooled_prompt_embeds'] = torch.cat([negative_pooled_prompt_embeds, pooled_prompt_embeds], dim=0)
-            prompt_embeds = prompt_embeds_dict
-    else:
-        try:
-            prompt_embeds = torch.cat([args.uc, args.c])
-        except:
-            prompt_embeds = None
+    try:
+        prompt_embeds = {key: getattr(args, key).cpu().numpy() for key in ["c", "uc", "pc", "puc"]}
+    except:
+        prompt_embeds = None
 
     return prompt_embeds, pil_images
 

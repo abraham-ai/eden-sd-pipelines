@@ -82,50 +82,41 @@ def get_all_img_files(directory_root):
     
 
 def generate_basic(
-    i,
     text_input, 
     outdir, 
     steps_per_update = None, # None to disable intermediate frames
-    text_input_2 = None,
     seed = int(time.time()),
     debug = False,
     init_image_data = None,
     lora_path = None,
     prefix = "",
-    suffix = "_freeU_mild3"):
-
-
-    init_imgs = [None]
-    init_img_dir = "/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/img2img_inits"
-    init_img_path = random.choice(get_all_img_files(init_img_dir))
+    suffix = ""):
 
     args = StableDiffusionSettings(
-        #ckpt = "juggernaut_XL",
         mode = "generate",
         W = random.choice([1024]),
         H = random.choice([1024]),
         sampler = random.choice(["euler"]),
         steps = 30,
-        guidance_scale = random.choice([8]),
+        guidance_scale = random.choice([7]),
         upscale_f = 1.0,
         text_input = text_input,
-        text_input_2 = text_input_2,
         seed = seed,
         n_samples = 1,
-        ip_image_data = None if i%2 else init_img_path,
-        #init_image_data = random.choice([None, None, init_img_path]),
-        #init_image_strength = random.choice([0.05, 0.1, 0.15, 0.2, 0.25]),
-        #lora_path = "/data/xander/Projects/cog/GitHub_repos/cog-sdxl/lora_models_saved/koji_color/checkpoints/checkpoint-804"
+        init_image_data = init_image_data,
+        init_image_strength = 0.0,
+        lora_path = lora_path
     )
 
     name = f'{prefix}{args.text_input[:80]}_{args.seed}_{int(time.time())}{suffix}'
     name = name.replace("/", "_")
-    generator = make_images(args)
 
-    for i, img in enumerate(generator):
-        frame = f'{name}_{i}.jpg'
+    _, imgs = generate(args)
+
+    for i, img in enumerate(imgs):
+        save_name = f'{name}_{i}'
         os.makedirs(outdir, exist_ok = True)
-        img.save(os.path.join(outdir, frame), quality=95)
+        img.save(os.path.join(outdir, save_name + '.jpg'), quality=95)
 
     # save settings
     settings_filename = f'{outdir}/{name}.json'
@@ -134,26 +125,11 @@ def generate_basic(
 
 if __name__ == "__main__":
     
-    outdir = "results_base"
-    
-    # remove the output directory
-    if os.path.exists(outdir) and 0:
-        os.system(f"rm -rf {outdir}")
+    outdir = "results_basic"
 
-    for i in range(20):
-        seed = random.randint(0, 100000)
-        seed = i
-
+    for i in range(10):
+        seed = int(time.time())
         seed_everything(seed)
         text_input = random.choice(text_inputs)
 
-        if 1:
-            generate_basic(i, text_input, outdir, seed = seed)
-        else:
-            try:
-                generate_basic(i, text_input, outdir, seed = seed)
-            except KeyboardInterrupt:
-                print("Interrupted by user")
-                exit()  # or sys.exit()
-            except Exception as e:
-                print(f"Error: {e}")  # Optionally print the error
+        generate_basic(i, text_input, outdir, seed = seed)

@@ -123,7 +123,7 @@ class Interpolator():
         if images and (args.lora_path is None):
             assert len(images) == len(prompts), "Number of given images must match number of prompts!"
             self.images = images
-            self.ip_adapter = eden_pipe.pipe_manager.enable_ip_adapter()
+            self.ip_adapter = eden_pipe.pipe_manager.enable_ip_adapter(force_reload = True)
         else:
             self.images = [None] * len(prompts)
             self.ip_adapter = None

@@ -67,11 +67,11 @@ if __name__ == "__main__":
     outdir = "unit_test_results"
     seed   = 0
     n      = 3  # n_prompts to sample for lerp
-    init_image_data = "https://generations.krea.ai/images/3cd0b8a8-34e5-4647-9217-1dc03a886b6a.webp"
+    init_image_data = "https://storage.googleapis.com/public-assets-xander/A_workbox/init_imgs/img_00003.jpg"
     input_images = [
-        "https://generations.krea.ai/images/3cd0b8a8-34e5-4647-9217-1dc03a886b6a.webp",
-        "https://generations.krea.ai/images/928271c8-5a8e-4861-bd57-d1398e8d9e7a.webp",
-        "https://generations.krea.ai/images/865142e2-8963-47fb-bbe9-fbe260271e00.webp"]
+        "https://storage.googleapis.com/public-assets-xander/A_workbox/init_imgs/img_00005.jpg",
+        "https://storage.googleapis.com/public-assets-xander/A_workbox/init_imgs/img_00006.jpg",
+        "https://storage.googleapis.com/public-assets-xander/A_workbox/init_imgs/img_00014.jpg"]
 
     test_tracker = UnitTestTracker()
 

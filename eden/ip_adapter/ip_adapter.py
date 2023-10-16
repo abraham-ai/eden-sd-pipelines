@@ -79,9 +79,8 @@ class IPAdapter:
         self.setup()
 
     def setup(self):
+        print("Loading ip_adapter...")
         self.set_ip_adapter()
-        
-        print("Loading clip models...")
         # load image encoder
         self.image_encoder = CLIPVisionModelWithProjection.from_pretrained(self.image_encoder_path).to(self.device, dtype=torch.float16)
         self.clip_image_processor = CLIPImageProcessor()
@@ -89,6 +88,7 @@ class IPAdapter:
         self.image_proj_model = self.init_proj()
 
         self.load_ip_adapter()
+        self.is_active = True
         
     def init_proj(self):
         image_proj_model = ImageProjModel(
@@ -102,6 +102,9 @@ class IPAdapter:
         """
         Unloads the IP adapter by resetting attention processors to vanilla values
         """
+        if not self.is_active:
+            return
+
         if not hasattr(self, "_default_unet_attention_processors"):
             print("IP adapter was not loaded, cannot unload")
             return
@@ -119,12 +122,16 @@ class IPAdapter:
                 self._ip_adapter_controlnet_attention_processors = self.pipe.controlnet.attn_processors
                 self.pipe.controlnet.set_attn_processor(**self._default_controlnet_attention_processors)
 
+        self.is_active = False
+
     def enable_ip_adapter(self):
         """
         Loads the IP adapter by setting attention processors to IPAttnProcessor
         """
+        if self.is_active:
+            return
+
         if (self._ip_adapter_unet_attention_processors is None) or (hasattr(self.pipe, "controlnet") and self._ip_adapter_controlnet_attention_processors is None):
-            print("Triggering setup...")
             self.setup()
             return
 
@@ -137,9 +144,10 @@ class IPAdapter:
             else:
                 self.pipe.controlnet.set_attn_processor(**self._ip_adapter_controlnet_attention_processors)
 
+        self.is_active = True
+
         
     def set_ip_adapter(self):
-        print("setting ip_adapter...")
         unet = self.pipe.unet
 
         # save the current attn_processors for later use:
@@ -187,7 +195,6 @@ class IPAdapter:
                 self._ip_adapter_controlnet_attention_processors = cn_attn
         
     def load_ip_adapter(self):
-        print("loading ip_adapter...")
         state_dict = torch.load(self.ip_ckpt, map_location="cpu")
         self.image_proj_model.load_state_dict(state_dict["image_proj"])
         ip_layers = torch.nn.ModuleList(self.pipe.unet.attn_processors.values())

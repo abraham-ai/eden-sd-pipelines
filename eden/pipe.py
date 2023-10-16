@@ -97,6 +97,7 @@ class PipeManager:
             self.last_checkpoint = args.ckpt
             self.last_controlnet_path = args.controlnet_path
             self.last_lora_path = None # load_pipe does not set lora
+            self.ip_adapter = None
 
         if (args.lora_path != self.last_lora_path) and args.lora_path:
             self.pipe = update_pipe_with_lora(self.pipe, args)
@@ -106,19 +107,26 @@ class PipeManager:
 
         return self.pipe
 
-    def enable_ip_adapter(self):
-        if self.ip_adapter is None:
-            self.ip_adapter = IPAdapterXL(self.pipe, IP_ADAPTER_IMG_ENCODER_PATH, IP_ADAPTER_PATH, _device)
-        else:
+    def enable_ip_adapter(self, force_reload = False):
+        if self.ip_adapter and not force_reload:
             self.ip_adapter.enable_ip_adapter()
+        else:
+            self.ip_adapter = IPAdapterXL(self.pipe, IP_ADAPTER_IMG_ENCODER_PATH, IP_ADAPTER_PATH, _device)
 
         return self.ip_adapter
 
     def disable_ip_adapter(self):
-        if self.ip_adapter is None:
-            return
+        if self.ip_adapter:
+            self.ip_adapter.disbable_ip_adapter()
 
-        self.ip_adapter.disbable_ip_adapter()
+    def clear(self):
+        del self.pipe
+        self.pipe = None
+        self.last_checkpoint = None
+        self.last_lora_path = None
+        self.last_controlnet_path = None
+        self.ip_adapter = None
+        torch.cuda.empty_cache()
 
 pipe_manager = PipeManager()
 

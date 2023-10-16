@@ -5,6 +5,7 @@ from settings import StableDiffusionSettings
 from generation import *
 from eden_utils import *
 from prompts import text_inputs
+from pipe import pipe_manager
 
 def lerp(
     interpolation_texts, 
@@ -28,18 +29,18 @@ def lerp(
         text_input = interpolation_texts[0],
         interpolation_texts = interpolation_texts,
         interpolation_seeds = interpolation_seeds if interpolation_seeds else [random.randint(1, 1e8) for i in range(n)],
-        n_frames = 24*n,
+        n_frames = 12*n,
         guidance_scale = random.choice([7]),
         loop = True,
         smooth = True,
-        latent_blending_skip_f = random.choice([[0.15, 0.65]]),
+        latent_blending_skip_f = random.choice([[0.05, 0.65]]),
         n_anchor_imgs = random.choice([3]),
         n_film = 0,
         fps = 12,
         steps = 35,
         seed = seed,
-        W = 4096,
-        H = 624,
+        W = 768,
+        H = 768,
     )
 
     # always make sure these args are properly set:
@@ -62,8 +63,8 @@ def lerp(
         
     # run FILM
     if args.n_film > 0:
-        # clear cuda cache:
-        torch.cuda.empty_cache()
+        print("Clearing SD pipe memory to run FILM...")
+        pipe_manager.clear()
 
         print('predict.py: running FILM...')
         FILM_MODEL_PATH = os.path.join(SD_PATH, 'models/film/film_net/Style/saved_model')
