@@ -86,26 +86,31 @@ class PipeManager:
         if (args.ckpt != self.last_checkpoint) or (args.controlnet_path != self.last_controlnet_path):
             force_reload = True
 
+        if not args.lora_path and self.last_lora_path: # for now, unsetting lora requires reloading...
+            force_reload = True
+
         if (self.pipe is None) or force_reload:
-            self.pipe = None
-            torch.cuda.empty_cache()
+            self.clear()
 
             if args.activate_tileable_textures:
                 patch_conv(padding_mode='circular')
 
             self.pipe = load_pipe(args)
             self.last_checkpoint = args.ckpt
-            self.last_controlnet_path = args.controlnet_path
             self.last_lora_path = None # load_pipe does not set lora
+            self.last_controlnet_path = args.controlnet_path
             self.ip_adapter = None
 
-        if (args.lora_path != self.last_lora_path) and args.lora_path:
-            self.pipe = update_pipe_with_lora(self.pipe, args)
-            self.last_lora_path = args.lora_path
+        self.update_pipe_with_lora(args)
 
         self.pipe = set_sampler(args.sampler, self.pipe)
 
         return self.pipe
+
+    def update_pipe_with_lora(self, args):
+        if (args.lora_path != self.last_lora_path) and args.lora_path:
+            self.pipe = load_lora(self.pipe, args)
+            self.last_lora_path = args.lora_path
 
     def enable_ip_adapter(self, force_reload = False):
         if self.ip_adapter and not force_reload:
@@ -321,10 +326,7 @@ def prepare_prompt_for_lora(prompt, lora_path, interpolation=False, verbose=True
     return prompt
 
 
-def update_pipe_with_lora(pipe, args):
-
-    if (args.lora_path == last_lora_path) or (not args.lora_path):
-        return pipe
+def load_lora(pipe, args):
     
     start_time = time.time()
 

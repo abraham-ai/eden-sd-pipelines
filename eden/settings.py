@@ -68,6 +68,7 @@ class StableDiffusionSettings:
     # dimensions, quantity
     W: int = 1024
     H: int = 1024
+    n_target_pixels: int = None
 
     # sampler params
     sampler: str = "euler"

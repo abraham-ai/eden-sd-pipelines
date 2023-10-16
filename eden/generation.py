@@ -27,7 +27,7 @@ import torchvision.transforms as T
 import torchvision.transforms.functional as TF
 
 from settings import _device
-import pipe as eden_pipe
+from pipe import pipe_manager, prepare_prompt_for_lora
 from eden_utils import *
 from interpolator import *
 from clip_tools import *
@@ -36,7 +36,7 @@ from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline, S
 
 def maybe_apply_watermark(args, x_images):
     # optionally, apply watermark to final image:
-    if args.watermark_path is not None:
+    if args.watermark_path:
         # check if args.watermarker already exists:
         if not hasattr(args, 'watermarker'):
             # get width and height of image:
@@ -60,16 +60,18 @@ def generate(
     if args.init_image_data and args.init_image is None:
         args.init_image = load_img(args.init_image_data, 'RGB')
 
-    if args.init_image is not None:
+    if args.init_image:
         if args.adopt_aspect_from_init_img:
-            args.W, args.H  = match_aspect_ratio(args.W * args.H, args.init_image)
+            if args.n_target_pixels is None:
+                args.n_target_pixels = args.W * args.H
+            args.W, args.H  = match_aspect_ratio(args.n_target_pixels, args.init_image)
         args.init_image = args.init_image.resize((args.W, args.H), Image.LANCZOS)
 
     args.W = round_to_nearest_multiple(args.W, 8)
     args.H = round_to_nearest_multiple(args.H, 8)
 
     # Load model
-    pipe = eden_pipe.pipe_manager.get_pipe(args)
+    pipe = pipe_manager.get_pipe(args)
 
     if args.ip_image_data and args.lora_path is None:
         print(f"Using ip_image from {args.ip_image_data}...")
@@ -84,30 +86,30 @@ def generate(
         # For now IP adapter is incompatible with LORA since they both overwrite the attention_processor for the unet
         # https://github.com/tencent-ailab/IP-Adapter/issues/69
         # TODO maybe fixable by switching to this LORA-trainer: https://github.com/kohya-ss/sd-scripts
-        ip_adapter = eden_pipe.pipe_manager.enable_ip_adapter()
+        ip_adapter = pipe_manager.enable_ip_adapter()
 
         args.c, args.uc, args.pc, args.puc = ip_adapter.create_embeds(
             args.ip_image, prompt=args.text_input, negative_prompt=args.uc_text, 
             scale=args.ip_image_strength  # scale = 1.0 will mostly use the image prompt, 0.0 will only use the text prompt
             )
     else:
-        eden_pipe.pipe_manager.disable_ip_adapter()
+        pipe_manager.disable_ip_adapter()
 
     # args = sample_random_conditioning(args)
 
     if (args.interpolator is None) and (len(args.name) == 0):
         args.name = args.text_input # send this name back to the frontend
 
-    if (args.lora_path is not None) and (args.interpolator is None):
-        args.text_input = eden_pipe.prepare_prompt_for_lora(args.text_input, args.lora_path, verbose = True)
+    if (args.lora_path) and (args.interpolator is None):
+        args.text_input = prepare_prompt_for_lora(args.text_input, args.lora_path, verbose = True)
 
-    if args.interpolator is not None:
+    if args.interpolator:
         args.interpolator.latent_tracker.create_new_denoising_trajectory(args, pipe)
     
     # if init image strength == 1, just return the initial image
     if (args.init_image_strength == 1.0 or (int(args.steps*(1-args.init_image_strength)) < 1)) and args.init_image and (args.controlnet_path is None):
         latent = pil_img_to_latent(args.init_image, args, _device, pipe)
-        if args.interpolator is not None:
+        if args.interpolator:
             args.interpolator.latent_tracker.add_latent(0, pipe.scheduler.timesteps[-1], latent)
 
         pt_images = T.ToTensor()(args.init_image).unsqueeze(0).to(_device)
@@ -120,7 +122,7 @@ def generate(
         return pt_images, pil_images
 
     if do_callback:
-        callback_ = make_callback(latent_tracker = args.interpolator.latent_tracker if args.interpolator is not None else None)
+        callback_ = make_callback(latent_tracker = args.interpolator.latent_tracker if args.interpolator else None)
     else:
         callback_ = None
 
@@ -142,7 +144,7 @@ def generate(
     if args.init_latent is not None:
         args.init_latent = args.init_latent.half()
 
-    if args.controlnet_path is not None and args.init_image is None:
+    if args.controlnet_path and args.init_image is None:
         raise ValueError("Must provide init_image if using controlnet")
 
     # SDXL is super sensitive to init_image, even with strength = 0.0, so in some cases we want to completely remove the init_img:
@@ -158,7 +160,7 @@ def generate(
         args.init_image = torch.randn(shape, generator=generator, device=_device)
         args.init_image_strength = 0.0
         
-    if args.lora_scale > 0.0 and args.lora_path is not None:
+    if args.lora_scale > 0.0 and args.lora_path:
         cross_attention_kwargs = {"scale": args.lora_scale}
     else:
         cross_attention_kwargs = None
@@ -188,7 +190,7 @@ def generate(
         })
 
     # Conditionally add arguments if controlnet is used
-    if args.controlnet_path is not None and args.controlnet_conditioning_scale > 0 and args.init_image is not None:
+    if args.controlnet_path and args.controlnet_conditioning_scale > 0 and args.init_image:
         args.init_image = preprocess_controlnet_init_image(args.init_image, args)
         #args.init_image.save("init_image.png")
         pipe_fn_args.update({
@@ -280,14 +282,14 @@ def make_interpolation(args, force_timepoints = None):
                     args.interpolation_texts[jj] = init_img_prompt
 
     # Load model
-    pipe = eden_pipe.pipe_manager.get_pipe(args)
+    pipe = pipe_manager.get_pipe(args)
     
     args.name = " => ".join(args.interpolation_texts) # send this name back to frontend
 
     # Map LORA tokens:
-    if args.lora_path is not None:
+    if args.lora_path:
         for i, _ in enumerate(args.interpolation_texts):
-            args.interpolation_texts[i] = eden_pipe.prepare_prompt_for_lora(args.interpolation_texts[i], args.lora_path, interpolation = True, verbose = True)
+            args.interpolation_texts[i] = prepare_prompt_for_lora(args.interpolation_texts[i], args.lora_path, interpolation = True, verbose = True)
 
     # Release CLIP memory:
     del_clip_interrogator_models()
@@ -306,13 +308,13 @@ def make_interpolation(args, force_timepoints = None):
     )
 
     n_frames  = len(args.interpolator.ts) if force_timepoints is None else len(force_timepoints)
-    active_lora_path = args.lora_paths[0] if args.lora_paths is not None else None
+    active_lora_path = args.lora_paths[0] if args.lora_paths else None
 
     ######################################
 
     for f in range(n_frames):
         force_t_raw = None
-        if force_timepoints is not None:
+        if force_timepoints:
             force_t_raw = force_timepoints[f]
 
         if 1: # catch errors and try to complete the video
@@ -323,7 +325,7 @@ def make_interpolation(args, force_timepoints = None):
                 break
         else: # get full stack_trace, for debugging:
             t, t_raw, prompt_embeds, init_noise, scale, keyframe_index, abort_render = args.interpolator.get_next_conditioning(verbose=0, save_distances_to_dir = args.save_distances_to_dir, t_raw = force_t_raw)
-        
+
         if abort_render:
             return
             
@@ -349,13 +351,13 @@ def make_interpolation(args, force_timepoints = None):
         else:
             args.init_image = None
 
-        if args.lora_paths is not None: # Maybe update the lora:
+        if args.lora_paths: # Maybe update the lora:
             if args.lora_paths[keyframe_index] != active_lora_path:
                 active_lora_path = args.lora_paths[keyframe_index]
                 print("Switching to lora path", active_lora_path)
                 args.lora_path = active_lora_path
 
-        if args.planner is not None: # When audio modulation is active:
+        if args.planner: # When audio modulation is active:
             args = args.planner.adjust_args(args, t_raw, force_timepoints=force_timepoints)
 
         print(f"Interpolating frame {f+1}/{len(args.interpolator.ts)} "
@@ -395,6 +397,14 @@ def make_images(args):
             if not args.ip_image_data and (w*h > 512*512): # only use the image conditioning when the input is large enough
                 print("Setting init_image as ip_image!")
                 args.ip_image_data = args.init_image_data
+
+        if args.mode == "upscale" and args.lora_path:
+            print("Disabling LoRA for upscaling!!")
+            args.lora_path = None
+
+        # remove text_input when a LoRA is active since this will trigger clip_interrogator instead of ip_adapter for now:
+        if (args.mode == "remix") and args.lora_path:
+            args.text_input = None
         
         if args.text_input is None or args.text_input == "":
             init_image = load_img(args.init_image_data, 'RGB')
@@ -418,7 +428,7 @@ def make_callback(
     extra_callback=None,
 ):
     def diffusers_callback(i, t, latents, pre_timestep = 0):
-        if latent_tracker is not None:
+        if latent_tracker:
             latent_tracker.add_latent(i, t, latents, pre_timestep = pre_timestep)
               
     return diffusers_callback
@@ -461,11 +471,11 @@ def run_upscaler(args_, imgs,
 
     if free_memory < 20e9 and (args.ckpt != args_.ckpt):
         print("Free memory is low, removing pipe to free up memory...")
-        eden_pipe.pipe_manager.pipe = None
+        pipe_manager.pipe = None
         torch.cuda.empty_cache()
         remove_pipe_after_upscaling = True
     
-    upscaling_pipe = eden_pipe.pipe_manager.get_pipe(args)
+    upscaling_pipe = pipe_manager.get_pipe(args)
 
     # Avoid doing too little steps when init_image_strength is very high:
     upscale_steps = int(max(args.steps * (1-init_image_strength), min_upscale_steps) / (1-init_image_strength))+1
@@ -501,7 +511,7 @@ def interrogate(args):
     if args.init_image_data:
         args.init_image = load_img(args.init_image_data, 'RGB')
     
-    assert args.init_image is not None, "Must provide an init image"
+    assert args.init_image, "Must provide an init image"
     interrogated_prompt = clip_interrogate(args.ckpt, args.init_image, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
     del_clip_interrogator_models()
 

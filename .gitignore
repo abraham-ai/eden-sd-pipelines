@@ -9,6 +9,8 @@ src/
 *nohup.out
 
 # eden specific stuff
+tests/server/debug_output
+tests/server/*.log
 eden/templates/*.png
 controlnet_input.jpg
 MiDaS

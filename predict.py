@@ -1,6 +1,6 @@
 # don't push DEBUG_MODE = True to Replicate!
 DEBUG_MODE = False
-#DEBUG_MODE = True
+DEBUG_MODE = True
 
 from pathlib import Path
 import os
@@ -15,6 +15,7 @@ import signal
 from typing import Iterator, Optional
 from dotenv import load_dotenv
 from copy import deepcopy
+from cog import BasePredictor, BaseModel, File, Input, Path
 
 load_dotenv()
 
@@ -31,10 +32,18 @@ sys.path.extend([
     "/clip-interrogator",
 ])
 
+# Eden imports:
 from io_utils import *
+from pipe import pipe_manager
 from settings import StableDiffusionSettings
 import eden_utils
-from cog import BasePredictor, BaseModel, File, Input, Path
+import generation
+
+if DEBUG_MODE:
+    debug_output_dir = "/src/tests/server/debug_output"
+    if os.path.exists(debug_output_dir):
+        shutil.rmtree(debug_output_dir)
+    os.makedirs(debug_output_dir, exist_ok=True)
 
 checkpoint_options = [
     "sdxl-v1.0",
@@ -140,6 +149,7 @@ class Predictor(BasePredictor):
             description="Strength of image conditioning from ip_adapter (vs txt conditioning from clip-interrogator or prompt) (used in remix, upscale, blend and real2real)", 
             ge=0.0, le=1.0, default=0.65
         ),
+
         # Generate mode
         text_input: str = Input(
             description="Text input (mode==generate)", default=None
@@ -162,8 +172,6 @@ class Predictor(BasePredictor):
             description="Total number of frames (mode==interpolate)",
             ge=3, le=1000, default=40
         ),
-
-        # Interpolate mode
         interpolation_texts: str = Input(
             description="Interpolation texts (mode==interpolate)",
             default=None
@@ -182,18 +190,18 @@ class Predictor(BasePredictor):
         ),
         interpolation_init_images_min_strength: float = Input(
             description="Minimum init image strength for interpolation_init_images prompts (mode==interpolate)",
-            ge=0, le=1.0, default=0.1
+            ge=0, le=1.0, default=0.05
         ),
         interpolation_init_images_max_strength: float = Input(
             description="Maximum init image strength for interpolation_init_images prompts (mode==interpolate)",
             ge=0.0, le=1.0, default=0.95
         ),
         loop: bool = Input(
-            description="Loops (mode==interpolate)",
+            description="Loops (mode==interpolate & real2real)",
             default=True
         ),
         smooth: bool = Input(
-            description="Smooth (mode==interpolate)",
+            description="Smooth (mode==interpolate & real2real)",
             default=True
         ),
         latent_blending_skip_f: str = Input(
@@ -205,15 +213,16 @@ class Predictor(BasePredictor):
             default=1, ge=0, le=3
         ),
         fps: int = Input(
-            description="Frames per second (mode==interpolate)",
+            description="Frames per second (mode==interpolate & real2real)",
             default=12, ge=1, le=30
         ),
 
     ) -> Iterator[GENERATOR_OUTPUT_TYPE]:
     
-        print("cog:predict:")
-        import generation
+        for i in range(5):
+            print("--------------------------------------------------------------------------")
 
+        print(f"cog:predict: {mode}")
         t_start = time.time()
 
         interpolation_texts = interpolation_texts.split('|') if interpolation_texts else None
@@ -241,8 +250,8 @@ class Predictor(BasePredictor):
 
             mode = mode,
 
-            W = width - (width % 64),
-            H = height - (height % 64),
+            W = width - (width % 8),
+            H = height - (height % 8),
             sampler = sampler,
             steps = steps,
             guidance_scale = guidance_scale,
@@ -281,11 +290,20 @@ class Predictor(BasePredictor):
             ag_L2_normalization_constant = 0.25, # for real2real, only 
         )
         
-        print("Arguments:")
-        print(args)
-        print("--------------------------------------")
+        #print("Arguments:")
+        #print(args)
 
         out_dir = Path(tempfile.mkdtemp())
+        
+        if DEBUG_MODE:
+            lora_str       = f"_lora_{lora_scale}" if lora_path else ""
+            controlnet_str = f"_controlnet_{controlnet_type}_{init_image_strength}" if controlnet_type != "off" else ""
+            ip_adapter_str = f"_ip_adapter_{ip_image_strength}" if ip_image_data else ""
+            image_str      = f"_image_{init_image_strength:.2f}" if init_image_data else ""
+
+            prediction_name = f"{int(t_start)}_{mode}{lora_str}{controlnet_str}{ip_adapter_str}{image_str}_upf_{upscale_f:.2f}_"
+            os.makedirs(debug_output_dir, exist_ok=True)
+
 
         if mode == "interrogate":
             interrogation = generation.interrogate(args)
@@ -294,6 +312,7 @@ class Predictor(BasePredictor):
                 f.write(interrogation)
             attributes = {'interrogation': interrogation}
             if DEBUG_MODE:
+                shutil.copyfile(out_path, os.path.join(debug_output_dir, "out_interrogation.txt"))
                 yield out_path
             else:
                 yield CogOutput(files=[out_path], name=interrogation, thumbnails=[out_path], attributes=attributes, isFinal=True, progress=1.0)
@@ -302,6 +321,9 @@ class Predictor(BasePredictor):
 
             if (mode == "upscale" or mode == "remix" or mode == "controlnet") and (args.init_image_data is None):
                 raise ValueError(f"an init_image must be provided for mode = {mode}")
+
+            if args.controlnet_path and args.init_image_strength == 0.0:
+                raise ValueError("controlnet requires init_image_strength > 0.0")
             
             if args.init_image_data is None:
                 args.init_image_strength = 0.0
@@ -328,11 +350,16 @@ class Predictor(BasePredictor):
                 attributes = {"interrogation": batch_i_args.text_input}
             
             if DEBUG_MODE:
+                for index, out_path in enumerate(out_paths):
+                    shutil.copyfile(out_path, os.path.join(debug_output_dir, prediction_name + f"_{index}.jpg"))
                 yield out_paths[0]
             else:
                 yield CogOutput(files=out_paths, name=batch_i_args.name, thumbnails=out_paths, attributes=attributes, isFinal=True, progress=1.0)
 
         else: # mode == "interpolate" or mode == "real2real" or mode == "blend"
+
+            if args.controlnet_path and args.init_image_strength == 0.0:
+                raise ValueError("controlnet requires init_image_strength > 0.0")
 
             if args.interpolation_seeds is None:
                 # create random seeds with the same length as the number of texts / images:
@@ -380,22 +407,26 @@ class Predictor(BasePredictor):
                     print("predict.py: blend mode, saving frame 0.5")
                     break
 
-                progress = f / args.n_frames
-                cog_output = CogOutput(attributes=attributes, progress=progress)
-                if stream and f % stream_every == 0:
-                    cog_output.files = [out_path]
-                yield cog_output
+                if not DEBUG_MODE:
+                    progress = f / args.n_frames
+                    cog_output = CogOutput(attributes=attributes, progress=progress)
+                    if stream and f % stream_every == 0:
+                        cog_output.files = [out_path]
+
+                    yield cog_output
+                else:
+                    # make a subdir for the frames:
+                    frames_dir = os.path.join(debug_output_dir, f"{prediction_name}_frames")
+                    os.makedirs(frames_dir, exist_ok=True)
+                    shutil.copyfile(out_path, os.path.join(frames_dir, f"frame_{t_raw:0.16f}.jpg"))
+
 
             # run FILM
             if args.n_film > 0:
                 try:
-                    if args.W * argsH > 1600*1600:
+                    if args.W * args.H > 1600*1600:
                         print("Clearing SD pipe memory to run FILM...")
-                        global pipe
-                        pipe = eden_pipe.get_pipe(args)
-                        del pipe
-                        torch.cuda.empty_cache()
-                        pipe = None
+                        pipe_manager.clear()
 
                     print('predict.py: running FILM...')
                     FILM_MODEL_PATH = "/src/models/film/film_net/Style/saved_model"
@@ -410,20 +441,24 @@ class Predictor(BasePredictor):
                     if os.path.exists(film_out_dir) and len(list(film_out_dir.glob("*.jpg"))) > 3:
                         out_dir = film_out_dir
                     else:
-                        print("Something went wrong with FILM, using original frames instead.")
-                except:
+                        print("ERROR: film_out_dir does not exist or contains less than 3 .jpg files, using original frames instead.")
+                except Exception as e:
+                    print(str(e))
                     print("Something went wrong with FILM, using original frames instead.")
 
             if mode != "blend":
                 # save video
-                out_path = out_dir / "out.mp4"
+                out_path = Path(out_dir) / "out.mp4"
                 eden_utils.write_video(out_dir, str(out_path), loop=loop, fps=args.fps)
 
                 if mode == "real2real":
                     attributes = {"interrogation": args.interpolation_texts}
 
             if DEBUG_MODE:
-                shutil.copyfile(out_path, "/src/out.jpg")
+                if mode == "blend":
+                    shutil.copyfile(out_path, os.path.join(debug_output_dir, prediction_name + ".jpg"))
+                else:
+                    shutil.copyfile(out_path, os.path.join(debug_output_dir, prediction_name + ".mp4"))
                 yield out_path
             else:
                 yield CogOutput(files=[out_path], name=args.name, thumbnails=[thumbnail], attributes=attributes, isFinal=True, progress=1.0)
