@@ -49,7 +49,7 @@ if __name__ == "__main__":
     H,W          = 1024+256, 1024+256
     n_steps      = 50       # n_diffusion steps per frame
     output_fps   = 14       
-    seconds_between_keyframes = 7
+    seconds_between_keyframes = 8
     inter_frames = int(seconds_between_keyframes * output_fps)
 
     # audio_path is either a path of a .zip file, or a tuple of (audio_features_pickle, audio_mp3_path)
@@ -63,9 +63,9 @@ if __name__ == "__main__":
 
     outdir    = 'results_real2real_audioreactive_test'
 
-    if 1: # debug: very fast render settings
+    if 0: # debug: very fast render settings
         H,W          = 768, 768
-        n_imgs       = 2
+        n_imgs       = 3
         n_steps      = 25
         output_fps   = 12
         seconds_between_keyframes = 7

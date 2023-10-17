@@ -352,6 +352,7 @@ class Predictor(BasePredictor):
                     shutil.copyfile(out_path, os.path.join(debug_output_dir, prediction_name + f"_{index}.jpg"))
                 yield out_paths[0]
             else:
+                print("Debug: Type of out_paths elements:", [type(p) for p in out_paths])
                 yield CogOutput(files=out_paths, name=batch_i_args.name, thumbnails=out_paths, attributes=attributes, isFinal=True, progress=1.0)
 
         else: # mode == "interpolate" or mode == "real2real" or mode == "blend"
@@ -459,6 +460,7 @@ class Predictor(BasePredictor):
                     shutil.copyfile(out_path, os.path.join(debug_output_dir, prediction_name + ".mp4"))
                 yield out_path
             else:
+                print("Debug: Type of out_path:", type(out_path))
                 yield CogOutput(files=[out_path], name=args.name, thumbnails=[thumbnail], attributes=attributes, isFinal=True, progress=1.0)
 
         t_end = time.time()
