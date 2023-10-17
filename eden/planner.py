@@ -65,7 +65,7 @@ class Planner():
             print("Warning: more video frames than audio features, this will lead to errors!")   
 
     def __len__(self):
-        return len(self.frames)
+        return self.total_frames
 
     def load_audio_features(self, audio_load_path):
         self.harmonic_energy, self.final_percus_features, self.metadata, self.audio_path = create_audio_features(audio_load_path)
@@ -195,6 +195,8 @@ class Planner():
 
 
     def adjust_args(self, args, t_raw, force_timepoints = None, verbose = 0):
+
+        return # this function is disabled for now
 
         if force_timepoints is not None:
             # find the index of t_raw in all the timepoints:

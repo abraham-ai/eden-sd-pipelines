@@ -1,4 +1,6 @@
 
+#!/bin/bash
+
 
 # Define variables
 
@@ -16,23 +18,14 @@ INIT_IMAGE_STRENGTH2=0.2
 INIT_IMAGE_STRENGTH_CONTROL1=0.4
 INIT_IMAGE_STRENGTH_CONTROL2=0.7
 
-STEPS=25
+STEPS=20
 WIDTH=768
 HEIGHT=768
-N_FRAMES=24
-
-# STEPS=35
-# WIDTH=1024
-# HEIGHT=1024
+N_FRAMES=20
 
 UPSCALE_F=1.25
 NSAMPLES=2
 SEED=0
-
-
-RUN_REAL2REAL=1
-RUN_INTERPOLATE=1
-
 
 ###########################################################
 
@@ -45,10 +38,10 @@ RUN_INTERPOLATE=1
 
 ################################################
 
-if [ $RUN_INTERPOLATE -eq 1 ]; then
-  echo "Running interpolate commands..."
 
-  curl -s -X POST -H "Authorization: Token $REPLICATE_API_TOKEN" -H 'Content-Type: application/json' "http://0.0.0.0:5000/predictions" -d @- <<EOF | jq '.' >> output.log 2>> error.log
+# Define request variables
+
+REQUEST1=$(cat <<- EOM
 {
     "input": {
       "mode": "interpolate",
@@ -63,19 +56,10 @@ if [ $RUN_INTERPOLATE -eq 1 ]; then
       "seed": $SEED
     }
 }
-EOF
+EOM
+)
 
-else
-  echo "Skipping interpolate commands"
-fi
-
-
-########## REAL2REAL COMMANDS: ##########
-
-if [ $RUN_REAL2REAL -eq 1 ]; then
-  echo "Running real2real commands..."
-
-  curl -s -X POST -H "Authorization: Token $REPLICATE_API_TOKEN" -H 'Content-Type: application/json' "http://0.0.0.0:5000/predictions" -d @- <<EOF
+REQUEST2=$(cat <<- EOM
 {
     "input": {
       "mode": "real2real",
@@ -88,9 +72,10 @@ if [ $RUN_REAL2REAL -eq 1 ]; then
       "seed": $SEED
     }
 }
-EOF
+EOM
+)
 
-  curl -s -X POST -H "Authorization: Token $REPLICATE_API_TOKEN" -H 'Content-Type: application/json' "http://0.0.0.0:5000/predictions" -d @- <<EOF
+REQUEST3=$(cat <<- EOM
 {
     "input": {
       "mode": "real2real",
@@ -102,15 +87,10 @@ EOF
       "seed": $SEED
     }
 }
-EOF
+EOM
+)
 
-else
-  echo "Skipping real2real commands"
-fi
-
-###############################################################################
-
-  curl -s -X POST -H "Authorization: Token $REPLICATE_API_TOKEN" -H 'Content-Type: application/json' "http://0.0.0.0:5000/predictions" -d @- <<EOF | jq '.' >> output.log 2>> error.log
+REQUEST4=$(cat <<- EOM
 {
     "input": {
       "mode": "interpolate",
@@ -126,28 +106,39 @@ fi
       "seed": $SEED
     }
 }
-EOF
-
-  curl -s -X POST -H "Authorization: Token $REPLICATE_API_TOKEN" -H 'Content-Type: application/json' "http://0.0.0.0:5000/predictions" -d @- <<EOF | jq '.' >> output.log 2>> error.log
-{
-    "input": {
-      "mode": "interpolate",
-      "interpolation_texts": "$TEXT_INPUT1|$TEXT_INPUT2",
-      "init_image_data": "$INIT_IMAGE_URL1",
-      "init_image_strength": $INIT_IMAGE_STRENGTH2,
-      "controlnet_type": "depth",
-      "lora": "$LORA_URL",
-      "steps": $STEPS,
-      "width": $WIDTH,
-      "height": $HEIGHT,
-      "n_frames": $N_FRAMES,
-      "n_film": 1,
-      "seed": $SEED
-    }
-}
-EOF
+EOM
+)
 
 
+# Add all request variables to an array
+REQUESTS=( "$REQUEST1" "$REQUEST2" "$REQUEST3" "$REQUEST4" )
 
-########## very HD REAL2REAL: ############
-##########################################
+# Validate each request JSON
+for REQ in "${REQUESTS[@]}"; do
+  echo $REQ | jq empty
+  if [ $? -ne 0 ]; then
+    echo "Invalid JSON found: $REQ"
+    exit 1
+  fi
+done
+
+# Create a single string with all requests separated by a unique delimiter
+ALL_REQUESTS=$(printf "@@@%s" "${REQUESTS[@]}")
+
+# Set IFS to the unique delimiter and read into an array
+IFS="@@@" read -ra RANDOMIZED_REQUESTS <<< "$ALL_REQUESTS"
+
+# Now, RANDOMIZED_REQUESTS should be properly populated. You can shuffle if needed.
+RANDOMIZED_REQUESTS=( $(shuf -e "${RANDOMIZED_REQUESTS[@]}") )
+
+# Execute the requests
+for REQ in "${RANDOMIZED_REQUESTS[@]}"; do
+  if [ ! -z "$REQ" ]; then  # Skip empty strings
+    echo "Debug: The request being sent is: $REQ"
+    RESPONSE=$(curl -s -X POST -H "Authorization: Token $REPLICATE_API_TOKEN" \
+                    -H 'Content-Type: application/json' "http://0.0.0.0:5000/predictions" \
+                    -d "$REQ")
+    echo "Debug: The response is: $RESPONSE"
+    echo $RESPONSE | jq '.' >> output.log 2>> error.log
+  fi
+done

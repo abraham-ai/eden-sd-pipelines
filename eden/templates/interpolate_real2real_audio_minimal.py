@@ -47,9 +47,10 @@ if __name__ == "__main__":
     
     # main render settings (eg specified by the user)
     H,W          = 1024+256, 1024+256
-    inter_frames = 100      # number of frames to interpolate between each pair of input images
-    output_fps   = 12       
     n_steps      = 50       # n_diffusion steps per frame
+    output_fps   = 14       
+    seconds_between_keyframes = 7
+    inter_frames = int(seconds_between_keyframes * output_fps)
 
     # audio_path is either a path of a .zip file, or a tuple of (audio_features_pickle, audio_mp3_path)
     audio_path = ("path_to_features.pkl", "path_to_audio.mp3")
@@ -62,12 +63,15 @@ if __name__ == "__main__":
 
     outdir    = 'results_real2real_audioreactive_test'
 
-    if 0: # debug: very fast render settings
+    if 1: # debug: very fast render settings
         H,W          = 768, 768
-        inter_frames = 56      # number of frames to interpolate between each pair of input images
-        n_imgs       = 3
-        n_steps      = 20
+        n_imgs       = 2
+        n_steps      = 25
+        output_fps   = 12
+        seconds_between_keyframes = 7
+        inter_frames = int(seconds_between_keyframes * output_fps)
 
+    exp_name = "metropolis_actual"
 
     for seed in [23,3,41,42]:
 
@@ -88,7 +92,7 @@ if __name__ == "__main__":
             interpolation_seeds = [random.randint(1, 1e8) for _ in range(n)],
             interpolation_init_images = img_paths,
             interpolation_init_images_min_strength = random.choice([0.05]),
-            interpolation_init_images_max_strength = 0.95,
+            interpolation_init_images_max_strength = 0.8,
             n_anchor_imgs = 5,
             latent_blending_skip_f = [0.05, 0.6],
             loop = True,
@@ -98,9 +102,12 @@ if __name__ == "__main__":
             clip_interrogator_mode = "fast",
         )
 
+        if args.loop:
+            args.n_frames = inter_frames*((n+1)-1) + (n+1)
+
         # Render the frames:
         frames_dir = real2real_x(W, H, args, img_paths, outdir, n,
-                    exp_name = "", audio_path = audio_path, 
+                    exp_name = exp_name, audio_path = audio_path, 
                     save_phase_data = 1,
                     save_distance_data = 1)
 

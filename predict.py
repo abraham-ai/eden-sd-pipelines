@@ -1,6 +1,6 @@
 # don't push DEBUG_MODE = True to Replicate!
 DEBUG_MODE = False
-DEBUG_MODE = True
+#DEBUG_MODE = True
 
 from pathlib import Path
 import os
@@ -329,8 +329,6 @@ class Predictor(BasePredictor):
                 args.init_image_strength = 0.0
 
             attributes = None
-            print("Input prompt:")
-            print(args.text_input)
             out_paths = []
 
             # slight overhead here to do iterative batching (avoid OOM):

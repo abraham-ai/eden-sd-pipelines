@@ -317,7 +317,7 @@ def make_interpolation(args, force_timepoints = None):
         if force_timepoints:
             force_t_raw = force_timepoints[f]
 
-        if 1: # catch errors and try to complete the video
+        if 0: # catch errors and try to complete the video
             try:
                 t, t_raw, prompt_embeds, init_noise, scale, keyframe_index, abort_render = args.interpolator.get_next_conditioning(verbose=0, save_distances_to_dir = args.save_distances_to_dir, t_raw = force_t_raw)
             except Exception as e:
@@ -341,10 +341,10 @@ def make_interpolation(args, force_timepoints = None):
         args.t_raw = t_raw
 
         # TODO, auto adjust min n_steps (needs to happend before latent blending stuff and reset after each frame render):
-        #orig_n_steps = args.steps
-        #args.steps = max(args.steps, int(args.min_steps/(1-args.init_image_strength)))
-        #pipe.scheduler.set_timesteps(args.steps, device=_device)
-        #print(f"Adjusted n_steps from {orig_n_steps} to {args.steps} to match min_steps {args.min_steps} and init_image_strength {args.init_image_strength}")
+        # orig_n_steps = args.steps
+        # args.steps = max(args.steps, int(args.min_steps/(1-args.init_image_strength)))
+        # pipe.scheduler.set_timesteps(args.steps, device=_device)
+        # print(f"Adjusted n_steps from {orig_n_steps} to {args.steps} to match min_steps {args.min_steps} and init_image_strength {args.init_image_strength}")
         
         if args.init_image_data is None:
             args.init_latent, args.init_image, args.init_image_strength = create_init_latent(args, t, interpolation_init_images, keyframe_index, init_noise, _device, pipe)
@@ -357,8 +357,8 @@ def make_interpolation(args, force_timepoints = None):
                 print("Switching to lora path", active_lora_path)
                 args.lora_path = active_lora_path
 
-        if args.planner: # When audio modulation is active:
-            args = args.planner.adjust_args(args, t_raw, force_timepoints=force_timepoints)
+        #if args.planner: # When audio modulation is active:
+        #    args = args.planner.adjust_args(args, t_raw, force_timepoints=force_timepoints)
 
         print(f"Interpolating frame {f+1}/{len(args.interpolator.ts)} "
             f"(t_raw = {t_raw:.3f}, "

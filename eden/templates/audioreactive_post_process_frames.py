@@ -253,21 +253,29 @@ def post_process_audio_reactive_video_frames(frames_dir, audio_path, fps, n_film
             target_steps = 100, min_max_steps = [25,40])
 
     if n_film > 0:
-        #from film import interpolate_FILM
-        #frames_dir = interpolate_FILM(frames_dir, n_film, max_n_images_per_chunk = 3000)
-
         frames_dir = os.path.abspath(frames_dir)
-        command = [sys.executable, os.path.join(str(SD_PATH), "eden/film.py"), "--frames_dir", frames_dir, "--times_to_interpolate", str(n_film)]
 
-        print("running command:", ' '.join(command))
-        result = subprocess.run(command, text=True, capture_output=True)
-        print(result)
-        print(result.stdout)
-        frames_dir = os.path.join(frames_dir, "interpolated_frames")
+        try:
+            command = [sys.executable, os.path.join(str(SD_PATH), "eden/film.py"), "--frames_dir", frames_dir, "--times_to_interpolate", str(n_film)]
 
-        fps = fps*(1+n_film)
+            print("running command:", ' '.join(command))
+            result = subprocess.run(command, text=True, capture_output=True)
+            print(result)
+            print(result.stdout)
 
-    
+            film_out_dir = Path(os.path.join(frames_dir, "interpolated_frames"))
+
+            # check if film_out_dir exists and contains at least 3 .jpg files:
+            if os.path.exists(film_out_dir) and len(list(film_out_dir.glob("*.jpg"))) > 3:
+                frames_dir = str(film_out_dir)
+                fps = fps*(1+n_film)
+            else:
+                print("ERROR: film_out_dir does not exist or contains less than 3 .jpg files, using original frames instead.")
+            
+        except Exception as e:
+            print(str(e))
+            print("Something went wrong with FILM, using original frames instead.")
+
     frame_paths = sorted([os.path.join(frames_dir, f) for f in os.listdir(frames_dir) if f.endswith(".jpg")])
 
     if audio_path is not None:
