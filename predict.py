@@ -1,8 +1,7 @@
-# don't push DEBUG_MODE = True to Replicate!
+# never push DEBUG_MODE = True to Replicate!
 DEBUG_MODE = False
 #DEBUG_MODE = True
 
-from pathlib import Path
 import os
 import time
 import random
@@ -15,7 +14,9 @@ import signal
 from typing import Iterator, Optional
 from dotenv import load_dotenv
 from copy import deepcopy
-from cog import BasePredictor, BaseModel, File, Input, Path
+from PIL import Image
+
+from cog import BasePredictor, BaseModel, File, Input, Path as cogPath
 
 load_dotenv()
 
@@ -51,16 +52,16 @@ checkpoint_options = [
 checkpoint_default = "sdxl-v1.0"
 
 class CogOutput(BaseModel):
-    files: Optional[list[Path]] = []
+    files: Optional[list[cogPath]] = []
     name: Optional[str] = None
-    thumbnails: Optional[list[Path]] = []
+    thumbnails: Optional[list[cogPath]] = []
     attributes: Optional[dict] = None
     progress: Optional[float] = None
     isFinal: bool = False
 
 class Predictor(BasePredictor):
 
-    GENERATOR_OUTPUT_TYPE = Path if DEBUG_MODE else CogOutput
+    GENERATOR_OUTPUT_TYPE = cogPath if DEBUG_MODE else CogOutput
 
     def setup(self):
         print("cog:setup")
@@ -231,7 +232,7 @@ class Predictor(BasePredictor):
         
         lora_path = None
         if lora:
-            lora_folder = Path('loras')
+            lora_folder = cogPath('loras')
             lora_zip_path = download(lora, lora_folder)
             lora_path = os.path.join(lora_folder, os.path.splitext(os.path.basename(lora_zip_path))[0])
             extract_to_folder(lora_zip_path, lora_path)
@@ -293,7 +294,7 @@ class Predictor(BasePredictor):
         #print("Arguments:")
         #print(args)
 
-        out_dir = Path(tempfile.mkdtemp())
+        out_dir = cogPath(tempfile.mkdtemp())
         
         if DEBUG_MODE:
             lora_str       = f"_lora_{lora_scale}" if lora_path else ""
@@ -352,7 +353,6 @@ class Predictor(BasePredictor):
                     shutil.copyfile(out_path, os.path.join(debug_output_dir, prediction_name + f"_{index}.jpg"))
                 yield out_paths[0]
             else:
-                print("Debug: Type of out_paths elements:", [type(p) for p in out_paths])
                 yield CogOutput(files=out_paths, name=batch_i_args.name, thumbnails=out_paths, attributes=attributes, isFinal=True, progress=1.0)
 
         else: # mode == "interpolate" or mode == "real2real" or mode == "blend"
@@ -434,7 +434,7 @@ class Predictor(BasePredictor):
                     
                     run_and_kill_cmd(command)
                     print("predict.py: FILM done.")
-                    film_out_dir = Path(os.path.join(abs_out_dir_path, "interpolated_frames"))
+                    film_out_dir = cogPath(os.path.join(abs_out_dir_path, "interpolated_frames"))
 
                     # check if film_out_dir exists and contains at least 3 .jpg files:
                     if os.path.exists(film_out_dir) and len(list(film_out_dir.glob("*.jpg"))) > 3:
@@ -447,7 +447,7 @@ class Predictor(BasePredictor):
 
             if mode != "blend":
                 # save video
-                out_path = Path(out_dir) / "out.mp4"
+                out_path = cogPath(out_dir) / "out.mp4"
                 eden_utils.write_video(out_dir, str(out_path), loop=loop, fps=args.fps)
 
                 if mode == "real2real":
@@ -460,7 +460,6 @@ class Predictor(BasePredictor):
                     shutil.copyfile(out_path, os.path.join(debug_output_dir, prediction_name + ".mp4"))
                 yield out_path
             else:
-                print("Debug: Type of out_path:", type(out_path))
                 yield CogOutput(files=[out_path], name=args.name, thumbnails=[thumbnail], attributes=attributes, isFinal=True, progress=1.0)
 
         t_end = time.time()

@@ -48,8 +48,8 @@ if __name__ == "__main__":
     # main render settings (eg specified by the user)
     H,W          = 1024+256, 1024+256
     n_steps      = 50       # n_diffusion steps per frame
-    output_fps   = 14       
-    seconds_between_keyframes = 8
+    output_fps   = 12      
+    seconds_between_keyframes = 7
     inter_frames = int(seconds_between_keyframes * output_fps)
 
     # audio_path is either a path of a .zip file, or a tuple of (audio_features_pickle, audio_mp3_path)
@@ -61,12 +61,12 @@ if __name__ == "__main__":
     input_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/init_imgs/diverse_real2real_seeds"
     #input_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/init_imgs/tall"
 
-    outdir    = 'results_real2real_audioreactive_test'
+    outdir    = 'results_real2real_audioreactive_wzrd_quality'
 
-    if 0: # debug: very fast render settings
-        H,W          = 768, 768
-        n_imgs       = 3
-        n_steps      = 25
+    if 1: # debug: very fast render settings
+        H,W          = 1024, 1024
+        n_imgs       = 7
+        n_steps      = 35
         output_fps   = 12
         seconds_between_keyframes = 7
         inter_frames = int(seconds_between_keyframes * output_fps)
@@ -86,7 +86,7 @@ if __name__ == "__main__":
             H = H,
             W = W,
             n_frames = inter_frames*(n-1) + n,
-            guidance_scale = 6,
+            guidance_scale = 8,
             text_input = "real2real",  # text_input is also the title, but has no effect on interpolations
             interpolation_texts = None,
             interpolation_seeds = [random.randint(1, 1e8) for _ in range(n)],
@@ -94,7 +94,7 @@ if __name__ == "__main__":
             interpolation_init_images_min_strength = random.choice([0.05]),
             interpolation_init_images_max_strength = 0.8,
             n_anchor_imgs = 5,
-            latent_blending_skip_f = [0.05, 0.6],
+            latent_blending_skip_f = [0.05, 0.65],
             loop = True,
             n_film = 0,
             fps = output_fps,

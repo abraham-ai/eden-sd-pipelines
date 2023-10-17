@@ -101,6 +101,7 @@ class IPAdapter:
     def disbable_ip_adapter(self):
         """
         Unloads the IP adapter by resetting attention processors to vanilla values
+        Could maybe also be done with self.pipe.unet.set_default_attn_processor()
         """
         if not self.is_active:
             return

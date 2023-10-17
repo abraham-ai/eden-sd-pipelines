@@ -75,7 +75,7 @@ fi
 if [ $RUN_REAL2REAL -eq 1 ]; then
   echo "Running real2real commands..."
 
-  curl -s -X POST -H "Authorization: Token $REPLICATE_API_TOKEN" -H 'Content-Type: application/json' "http://0.0.0.0:5000/predictions" -d @- <<EOF
+  curl -s -X POST -H "Authorization: Token $REPLICATE_API_TOKEN" -H 'Content-Type: application/json' "http://0.0.0.0:5000/predictions" -d @- <<EOF | jq '.' >> output.log 2>> error.log
 {
     "input": {
       "mode": "real2real",
@@ -90,7 +90,7 @@ if [ $RUN_REAL2REAL -eq 1 ]; then
 }
 EOF
 
-  curl -s -X POST -H "Authorization: Token $REPLICATE_API_TOKEN" -H 'Content-Type: application/json' "http://0.0.0.0:5000/predictions" -d @- <<EOF
+  curl -s -X POST -H "Authorization: Token $REPLICATE_API_TOKEN" -H 'Content-Type: application/json' "http://0.0.0.0:5000/predictions" -d @- <<EOF | jq '.' >> output.log 2>> error.log
 {
     "input": {
       "mode": "real2real",
