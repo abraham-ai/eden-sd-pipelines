@@ -223,7 +223,7 @@ class Interpolator():
             scale = self.scales[self.prompt_index]
         return scale
 
-    def evaluate_new_t(self, new_t, distance_index, target_perceptual_distances, t_min_treshold, min_d_relative, verbose = 1):
+    def evaluate_new_t(self, new_t, distance_index, target_perceptual_distances, verbose = 1):
         """ given the current perceptual distances in the frames_buffer, 
             evaluate  the "fitness" of the newly proposed split location
 
@@ -250,8 +250,8 @@ class Interpolator():
         current_d = current_distances[distance_index]
         d_mean    = np.mean(current_distances)
 
-        if (current_d / d_mean) < min_d_relative: # splitting this frame is prob not a good idea
-            #print(f"Target {current_t_try:.3f} distance is <{min_d_relative:.3f}, skipping!")
+        if (current_d / d_mean) < self.min_d_relative: # splitting this frame is prob not a good idea
+            #print(f"Target {(current_d/d_mean):.3f} distance is <min_d_relative ({self.min_d_relative:.3f}), skipping!")
             return 1000, -1, (best_new_t, best_estimated_perceptual_density_curve)
         
         # remove the current distance from the buffer_copy:   
@@ -262,24 +262,38 @@ class Interpolator():
         else:
             mixing_fs = np.linspace(0.2,0.8,10)
 
-        start = time.time()
+        # Estimate the distance slope at the current split location:
+        try:
+            left_d = current_distances[distance_index - 1]
+            right_d = current_distances[distance_index]
+            slope = (right_d - left_d) / 2
+        except:
+            slope = 0
 
         for mixing_f in mixing_fs:
-
-            current_delta_t = new_t[1] - new_t[0]
             current_t_try = (1-mixing_f)*new_t[0] + mixing_f*new_t[1]
 
-            if np.min(np.abs(np.array(self.latent_tracker.frame_buffer.ts) - current_t_try)) < t_min_treshold: # new split location would be too close to existing frames
-                #print(f"Splitting at {current_t_try:.3f} would be too close to existing ts, skipping!")
+            if np.min(np.abs(np.array(self.latent_tracker.frame_buffer.ts) - current_t_try)) < self.t_min_treshold: # new split location would be too close to existing frames
+                #print(f"t_min_treshold: Splitting at {current_t_try:.3f} would be too close to existing ts, skipping!")
                 continue
 
             tmp_distance_copy = current_distances.copy()
             tmp_timepoints_copy = self.latent_tracker.frame_buffer.ts.copy()
 
-            # predict the new distances as a simple linear combination of new_d:
-            predicted_new_d   = current_d * self.latent_tracker.frame_buffer.current_reduction_f
-            predicted_d_left  = mixing_f * 2*predicted_new_d
-            predicted_d_right = (1-mixing_f) * 2*predicted_new_d
+            if 1: # assume slope = 0
+                # predict the new distances as a simple linear combination of new_d:
+                predicted_new_d   = current_d * self.latent_tracker.frame_buffer.current_reduction_f
+                predicted_d_left  = mixing_f * 2*predicted_new_d
+                predicted_d_right = (1-mixing_f) * 2*predicted_new_d
+            else:
+                # predict the new distances as a linear combination using the slope and mixing_f:
+                predicted_new_d   = current_d * self.latent_tracker.frame_buffer.current_reduction_f
+                # Ensuring slope is bounded within a range to avoid extreme effects
+                slope = np.clip(slope, -4, 4) 
+
+                # this needs fixing: dont use!!
+                predicted_d_left = 2*new_d*mixing_f - slope * (1-mixing_f)
+                predicted_d_right = 2*new_d*(1-mixing_f) + slope * (1-mixing_f)        
 
             # insert the new distances into the buffer_copy:
             tmp_distance_copy = np.insert(tmp_distance_copy, distance_index, predicted_d_right)
@@ -300,7 +314,8 @@ class Interpolator():
             # Finally, compute the cost wrt the target_perceptual_distances:
             estimated_perceptual_density_curve = estimated_perceptual_density_curve / np.mean(estimated_perceptual_density_curve)
             target_perceptual_distances = target_perceptual_distances / np.mean(target_perceptual_distances)
-            cost = np.mean(np.abs(estimated_perceptual_density_curve - target_perceptual_distances)**2.0)
+            errors = np.abs(estimated_perceptual_density_curve - target_perceptual_distances)**1.5
+            cost = np.mean(errors)
 
             if cost < best_cost:
                 best_cost = cost
@@ -310,7 +325,7 @@ class Interpolator():
         
         return best_cost, best_mixing_f, (best_new_t, best_estimated_perceptual_density_curve)
 
-    def find_next_t(self, max_density_diff = 20, verbose = 1):
+    def find_next_t(self, max_density_diff = 15, verbose = 1):
         """
         --> Use the frame buffer to find the next t value to use for interpolation.
         This implements an interative smoothing algorithm that tries to find the best t value to render the next frame,
@@ -323,10 +338,10 @@ class Interpolator():
         stop = False
 
         # Determines how close the closest frame can be before trying another location to split
-        t_min_treshold = 1 / (max_density_diff * self.n_frames_between_two_prompts)
+        self.t_min_treshold = 1 / (max_density_diff * self.n_frames_between_two_prompts)
 
         # Determines the minimum perceptual distance that is allowed (will find another location to split if encountered)
-        min_d_relative = 1 / max_density_diff
+        self.min_d_relative = 1 / max_density_diff
         
         if self.latent_tracker.get_n_frames() == 0: # Render start
             t_midpoint = 0
@@ -342,7 +357,7 @@ class Interpolator():
             perceptual_distances = self.latent_tracker.frame_buffer.distances.copy()
 
             if self.args.planner is not None:
-                t_min_treshold *= 0.5 # when doing audio-modulation we can be more aggressive about splitting
+                self.t_min_treshold *= 0.5 # when doing audio-modulation we can be more aggressive about splitting
                  
                 #print("###### Using planner to get audio push curve! ######")
                 perceptual_target_curve, high_fps_target_curve = self.args.planner.get_audio_push_curve(len(perceptual_distances)+1, self.prompt_index, self.n_frames_between_two_prompts, max_n_samples = self.n_frames_between_two_prompts)
@@ -379,7 +394,7 @@ class Interpolator():
 
             if 0: # greedy
                 for distance_index, new_t in enumerate(new_ts_to_try):
-                    mse, best_mixing_f, t_data = self.evaluate_new_t(new_t, distance_index, perceptual_target_curve, t_min_treshold, min_d_relative, verbose = 0)
+                    mse, best_mixing_f, t_data = self.evaluate_new_t(new_t, distance_index, perceptual_target_curve, verbose = 0)
                     mse_values.append(mse)
                     mixing_fs.append(best_mixing_f)
                     t_datas.append(t_data)
@@ -396,7 +411,7 @@ class Interpolator():
                 T = end_T + (start_T - end_T) * math.exp(-lambda_val * self.phase_completion_f)
 
                 for distance_index, new_t in enumerate(new_ts_to_try):
-                    mse, best_mixing_f, t_data = self.evaluate_new_t(new_t, distance_index, perceptual_target_curve, t_min_treshold, min_d_relative, verbose = 0)
+                    mse, best_mixing_f, t_data = self.evaluate_new_t(new_t, distance_index, perceptual_target_curve, verbose = 0)
                     mse_values.append(mse)
                     mixing_fs.append(best_mixing_f)
                     t_datas.append(t_data)
@@ -412,13 +427,13 @@ class Interpolator():
                 percentile = np.sum(mse_values < best_mse) / len(mse_values)
 
                 # print some info:
-                print(f"best_mse: {best_fit_mse:.3f}, metropolis_mse: {best_mse:.3f} ({percentile:.2f} percentile), worst_mse: {np.max(mse_values):.3f}, T: {T:.3f} (completion_f: {self.phase_completion_f:.2f})")
+                #print(f"best_mse: {best_fit_mse:.3f}, metropolis_mse: {best_mse:.3f} ({percentile:.2f} percentile), worst_mse: {np.max(mse_values):.3f}, T: {T:.3f} (completion_f: {self.phase_completion_f:.2f})")
 
                 best_t_data = t_datas[chosen_idx]
                 best_mixing_f = mixing_fs[chosen_idx]
                 next_t, best_estimated_perceptual_density_curve = best_t_data
 
-            print(f"best_mixing_f: {best_mixing_f:.2f}, took {time.time() - start_t:.3f}s")
+            #print(f"best_mixing_f: {best_mixing_f:.2f}, took {time.time() - start_t:.3f}s")
 
             # plot the current distances / target perceptual curves:
             if self.args.save_distance_data and ((len(perceptual_distances) == self.n_frames_between_two_prompts-2) or (len(perceptual_distances) % 10 == 0)):

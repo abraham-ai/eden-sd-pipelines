@@ -73,7 +73,7 @@ def generate(
     # Load model
     pipe = pipe_manager.get_pipe(args)
 
-    if args.ip_image_data and args.lora_path is None:
+    if args.ip_image_data and not args.lora_path:
         print(f"Using ip_image from {args.ip_image_data}...")
         args.ip_image = load_img(args.ip_image_data, 'RGB')
 
@@ -229,14 +229,13 @@ def make_interpolation(args, force_timepoints = None):
 
     if args.interpolation_init_images and all(args.interpolation_init_images):
         mode = "real2real"
-        if not args.interpolation_texts: #len(args.interpolation_texts) == 0:
+        if not args.interpolation_texts:
             args.interpolation_texts = [None]*len(args.interpolation_init_images)
     else:
         mode = "lerp"
 
-
     if mode == "real2real":
-        args.controlnet_path = None
+        #args.controlnet_path = None
         args.init_image_data = None
     else: # mode == "lerp"
         if args.controlnet_path or args.init_image_data:
@@ -437,7 +436,7 @@ def run_upscaler(args_, imgs,
         init_image_strength    = 0.55,
         upscale_guidance_scale = 6.0,
         min_upscale_steps      = 16,  # never do less than this many steps
-        max_n_pixels           = 2048**2, # max number of pixels to avoid OOM
+        max_n_pixels           = 1800**2, # max number of pixels to avoid OOM
     ):
     args = copy(args_)
 
@@ -466,14 +465,10 @@ def run_upscaler(args_, imgs,
         args.c, args.uc, args.pc, args.puc = None, None, None, None
 
     free_memory, tot_mem = torch.cuda.mem_get_info(device=_device)
-    remove_pipe_after_upscaling = False
     print("Free memory:", free_memory / 1e9, "GB")
 
     if free_memory < 20e9 and (args.ckpt != args_.ckpt):
-        print("Free memory is low, removing pipe to free up memory...")
-        pipe_manager.pipe = None
-        torch.cuda.empty_cache()
-        remove_pipe_after_upscaling = True
+        print("Free memory is low, ready for upscaling......")
     
     upscaling_pipe = pipe_manager.get_pipe(args)
 
@@ -498,11 +493,6 @@ def run_upscaler(args_, imgs,
 
         x_samples_upscaled.extend([])
         x_images_upscaled.extend([image])
-
-    if remove_pipe_after_upscaling:
-        del upscaling_pipe
-        torch.cuda.empty_cache()
-        upscaling_pipe = None
 
     return x_samples_upscaled, x_images_upscaled
 

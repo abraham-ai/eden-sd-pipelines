@@ -34,12 +34,13 @@ def real2real(
             interpolation_texts = input_texts,
             interpolation_init_images = input_images,
             interpolation_init_images_min_strength = 0.05,  # a higher value will make the video smoother, but allows less visual change / journey
-            interpolation_init_images_max_strength = 0.95,
+            interpolation_init_images_max_strength = 0.90,
             latent_blending_skip_f = random.choice([[0.05, 0.65]]),
             compile_unet = False,
             guidance_scale = random.choice([6]),
             n_anchor_imgs = random.choice([3]),
             sampler = "euler",
+            controlnet_path = "controlnet-luminance-sdxl-1.0",
             n_frames = 12*n,
             loop = True,
             smooth = True,
@@ -125,4 +126,4 @@ if __name__ == "__main__":
 
     outdir = "results_real2real"
 
-    real2real(init_imgs, outdir, seed = seed)
+    real2real(init_imgs, outdir, seed = 0)

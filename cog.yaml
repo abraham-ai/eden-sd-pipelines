@@ -30,7 +30,7 @@ build:
     - "wandb==0.13.10"       # Not found in the pip freeze output, so no change
     - "pandas==2.0.3"        # Updated from 1.5.3 to 2.0.3
     - "invisible-watermark>=0.2.0"
-    - "timm==0.9.6"           # needed for ZoeDepth model (depth controlnet)
+    - "timm==0.6.7"           # needed for ZoeDepth model (depth controlnet), downgraded from timm==0.9.6
     - "omegaconf==2.3.0"      # needed to load .safetensors config files
 
   pre_install:

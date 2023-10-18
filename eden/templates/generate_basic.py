@@ -89,7 +89,7 @@ def generate_basic(
     debug = False,
     init_image_data = None,
     lora_path = None,
-    prefix = "",
+    prefix = "tile",
     suffix = ""):
 
     args = StableDiffusionSettings(
@@ -105,9 +105,8 @@ def generate_basic(
         n_samples = 1,
         init_image_data = init_image_data,
         init_image_strength = 0.0,
-        lora_path = lora_path
+        lora_path = lora_path,
     )
-
     name = f'{prefix}{args.text_input[:80]}_{args.seed}_{int(time.time())}{suffix}'
     name = name.replace("/", "_")
 
@@ -129,7 +128,8 @@ if __name__ == "__main__":
 
     for i in range(10):
         seed = int(time.time())
+        seed = i
         seed_everything(seed)
         text_input = random.choice(text_inputs)
 
-        generate_basic(i, text_input, outdir, seed = seed)
+        generate_basic(text_input, outdir, seed = seed)

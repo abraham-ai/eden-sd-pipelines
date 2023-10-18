@@ -125,9 +125,9 @@ class StableDiffusionSettings:
     interpolation_texts: List = field(default_factory=lambda: [])
     interpolation_seeds: List = field(default_factory=lambda: [])
     interpolation_init_images: List = field(default_factory=lambda: [])
-    interpolation_init_images_power: float = 2.0
-    interpolation_init_images_min_strength: float = 0.00 # SDXL is very sensitive to init_imgs
-    interpolation_init_images_max_strength: float = 0.95
+    interpolation_init_images_power: float = 2.5
+    interpolation_init_images_min_strength: float = 0.05 # SDXL is very sensitive to init_imgs
+    interpolation_init_images_max_strength: float = 0.80
     save_distances_to_dir: str = None
 
     # personalized aesthetic gradients:
@@ -145,7 +145,10 @@ class StableDiffusionSettings:
     # Latent Tracking:
     interpolator: str = None
     n_anchor_imgs: int = 3  # number of anchor images to render before starting latent blending
-    latent_blending_skip_f: List = field(default_factory=lambda: [0.1, 0.65])  # What fraction of the denoising trajectory to skip ahead when using LatentBlending Trick (start and end values for each frame)
+    latent_blending_skip_f: List = field(default_factory=lambda: [0.05, 0.65])  # What fraction of the denoising trajectory to skip ahead when using LatentBlending Trick (start and end values for each frame)
+    lpips_max_d: float = 0.70  # once interframe lpips distance dips below this value, blending_skip_f will start increasing from latent_blending_skip_f[0]
+    lpips_min_d: float = 0.05  # once interframe lpips distance dips below this value, blending_skip_f will saturate at latent_blending_skip_f[1]
+
     never_overwrite_existing_latents: bool = True # if True, will never overwrite real, existing latents in the tracker
 
     # disk folder interaction:

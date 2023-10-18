@@ -12,9 +12,9 @@ harmonic_smooth_window  = 25
 fade_to_black_s         = 0
 
 nr_beat_bins = 3
-percus_push_factor = 25.       # How much does a percussive beat push the perceptual change
-base_decay = 0.20              # How slowely does a 'base-push' decay back to zero
-min_v = 0.1   #  What is the minimum motion speed in latent space? (Relative to #nodes / minute setting)
+percus_push_factor = 20.       # How much does a percussive beat push the perceptual change
+base_decay = 0.25              # How slowely does a 'base-push' decay back to zero
+min_v = 0.2   #  What is the minimum motion speed in latent space? (Relative to #nodes / minute setting)
 
 outlier_removal_fraction = 0.70  # Beats with an amplitude above this percentile will get clipped (making softer beats more visually aparent)
 percussive_threshold     = 0.10  # Anything lower than this fraction will get squashed to zero

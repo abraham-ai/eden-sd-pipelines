@@ -151,32 +151,35 @@ class Planner():
 
     def morph_image(self, image, 
                     frame_index = None,
-                    brightness_factor = 0.004,
-                    contrast_factor   = 0.4,
-                    saturation_factor = 0.5,
-                    zoom_factor       = 0.007,
-                    noise_factor      = 0.0,
-                    ):
+                    audio_reactivity_settings = {
+                                'brightness_factor': 0.003,
+                                'contrast_factor'  : 0.4,
+                                'saturation_factor': 0.4,
+                                'zoom_factor'      : 0.0065,
+                                'noise_factor'     : 0.0,
+                    }):
+            
         if frame_index is None:
             frame_index = self.frame_index
 
         # increase the brightness of the init_img:
         enhancer = ImageEnhance.Brightness(image)
-        factor = 1 + brightness_factor * self.fps_adjusted_percus_features[2, frame_index]
+        factor = 1 + audio_reactivity_settings['brightness_factor'] * self.fps_adjusted_percus_features[2, frame_index]
         image = enhancer.enhance(factor)
 
         # increase the contrast of the init_img:
         enhancer = ImageEnhance.Contrast(image)
-        factor = 1 + contrast_factor * self.fps_adjusted_percus_features[1, frame_index]
+        factor = 1 + audio_reactivity_settings['contrast_factor'] * self.fps_adjusted_percus_features[1, frame_index]
         image = enhancer.enhance(factor)
 
         # increase the saturation of the init_img:
         enhancer = ImageEnhance.Color(image)
-        factor = 1 + saturation_factor * self.fps_adjusted_percus_features[1, frame_index]
+        factor = 1 + audio_reactivity_settings['saturation_factor'] * self.fps_adjusted_percus_features[1, frame_index]
         image = enhancer.enhance(factor)
 
         # slightly crop and zoom in on the init_img:
-        factor = 1 + zoom_factor * self.fps_adjusted_percus_features[0, frame_index]
+        # TODO replace this with 3D zoom:
+        factor = 1 + audio_reactivity_settings['zoom_factor'] * self.fps_adjusted_percus_features[0, frame_index]
         # get the center pixel coordinates:
         x, y = image.size[0]//2, image.size[1]//2
         image = zoom_at(image, x, y, factor)
@@ -186,9 +189,9 @@ class Planner():
         # image = image.rotate(rotation_angle)
 
         # add random pixel noise to the img:
-        if noise_factor > 0:
+        if audio_reactivity_settings['noise_factor'] > 0:
             noise_img = Image.fromarray(np.uint8(np.random.rand(image.size[1], image.size[0], 3) * 255))
-            factor = noise_factor * self.fps_adjusted_percus_features[2, frame_index]
+            factor = audio_reactivity_settings['noise_factor'] * self.fps_adjusted_percus_features[2, frame_index]
             image = Image.blend(image, noise_img, factor)
         
         return image
@@ -455,6 +458,7 @@ def create_init_latent(args, t, interpolation_init_images, keyframe_index, init_
         # apply linear blending of keyframe images in pixel space and then encode
         init_image, init_image_strength = blend_inits(init_img0, init_img1, t, args, real2real = real2real)
         init_latent = None
+        latent_tracker.latent_blending_skip_f = 0.0
 
     else: # Apply Latent-Blending trick:
         if verbose:
@@ -469,20 +473,29 @@ def create_init_latent(args, t, interpolation_init_images, keyframe_index, init_
 
         # We want a gradual increase of skip_f from min_v when current_lpips_distance >= max_d to max_v when current_lpips_distance < min_d
         min_skip_f, max_skip_f = args.latent_blending_skip_f[0], args.latent_blending_skip_f[1]
-        # hardcoded lpips_perceptual distances corresponding to min_v and max_v latent_skip_f values:
-        max_d, min_d = 0.65, 0.1 # normal renders
-        latent_tracker.latent_blending_skip_f = min_skip_f + (max_skip_f - min_skip_f) * (max_d - current_lpips_distance) / (max_d - min_d)
+        latent_tracker.latent_blending_skip_f = min_skip_f + (max_skip_f - min_skip_f) * (args.lpips_max_d - current_lpips_distance) / (args.lpips_max_d - args.lpips_min_d)
+
+        if 0:
+            # if delta_t is very low, but the current_lpips_distance is still high, we want to increase the skip_f a bit:
+            t_raw_left, t_raw_right = latent_tracker.get_neighbouring_ts(t)
+            delta_t = t_raw_right - t_raw_left
+            max_increase_skip_f = 0.25
+            increase_skip_f = max_increase_skip_f * (current_lpips_distance / (20*delta_t)) * args.interpolator.phase_completion_f
+            print(f"d = {current_lpips_distance:.3f}, delta_t = {delta_t:.4f} --> increasing skip_f by: {increase_skip_f:.3f}", )
+            latent_tracker.latent_blending_skip_f += increase_skip_f
+
         latent_tracker.latent_blending_skip_f = np.clip(latent_tracker.latent_blending_skip_f, min_skip_f, max_skip_f)
         init_image_strength = init_image_strength * (1.0 - latent_tracker.latent_blending_skip_f) + latent_tracker.latent_blending_skip_f
         
         # grab the nearest neighbouring latents, at the corresponding timepoint in the diffusion process:
         latent_left, latent_right, t_raw_left, t_raw_right = latent_tracker.get_neighbouring_latents(args, adjusted_init_image_strength = init_image_strength)
 
-        # linearly interpolate between the neighbouring latents for create the new init_latent:
+        # linearly interpolate between the neighbouring latents to create the new init_latent:
         mixing_f    = (t - t_raw_left%1) / (t_raw_right - t_raw_left)
         init_latent = (1-mixing_f) * latent_left + mixing_f * latent_right
-
+        
         # Correct the std of the combined latent (summing uncorrelated gaussians decreases the std)
+        # This is def a bit hacky, but without this the diffusion goes completely off the rails
         target_std = (1-mixing_f) * latent_left.std() + mixing_f * latent_right.std()
         if init_latent.std() > 0:
             init_latent = target_std * init_latent / init_latent.std()
@@ -567,6 +580,9 @@ class LatentTracker():
         return
 
     def construct_noised_latents(self, args, t_raw):
+        # given the current denoising stack of latents for this frame,
+        # construct the full stack all the way up to pure noise
+
         def sample_random_noise(shape, seed=None):
             if seed is not None:
                 torch.manual_seed(seed)
@@ -574,9 +590,6 @@ class LatentTracker():
                     torch.cuda.manual_seed_all(seed)
             return torch.randn(shape)
 
-        # given the current denoising stack of latents for this frame,
-        # construct the full stack all the way up to pure noise
-        
         fully_denoised_latent = self.latents[t_raw][-1]
         
         try:
@@ -593,18 +606,19 @@ class LatentTracker():
             torch_fully_denoised_latent = torch.from_numpy(fully_denoised_latent).to(self.device).float()
             # Loop over all the timesteps and add the corresponding noise to the fully_denoised_latent:
 
-            if self.fixed_noise is None:
-                self.fixed_noise = sample_random_noise(self.init_noises[t_raw].shape, seed=12345).to(self.device).float()
+            #if self.fixed_noise is None:
+            #    self.fixed_noise = sample_random_noise(self.init_noises[t_raw].shape, seed=np.random.randint(0,10000)).to(self.device).float()
 
-            fixed_noise = self.fixed_noise.clone()
-            #fixed_noise = sample_random_noise(self.init_noises[t_raw].shape, seed=int(time.time()*1000)).to(self.device).float()
+            #fixed_noise = self.fixed_noise.clone()
+            #fixed_noise = sample_random_noise(self.init_noises[t_raw].shape, seed=int(time.time())).to(self.device).float()
+            fixed_noise = torch.randn(self.init_noises[t_raw].shape).to(self.device).float()
 
             if True: # This is a bit of a hack, I dont know how else to fix this:
                 """
                 - because we are adding noise to the init imgs and then diffusing,
-                - the fully_denoised_latent is sometimes highly correlated with the fixed_noise vector
+                - the fully_denoised_latent is sometimes highly correlated with the starting fixed_noise vector
                 - when adding that same fixed_noise vector back to the img_latent (in the next denoising stack of an adjacent frame),
-                  this causes the final noise_std to be too large, cause the diffusion process to break and produce oversaturated frames
+                  this causes the final noise_std to be too large, causing the diffusion process to break and produce bad frames
                 - when this happens, simply resample the random noise vector until the correlation is low enough
 
                 """
@@ -614,7 +628,8 @@ class LatentTracker():
                 resample_index = 1
                 while (np.abs(rr) > 0.01) and resample_index < 20:
                     prev_rr = rr
-                    fixed_noise = sample_random_noise(self.fixed_noise.shape, seed=12345+resample_index).to(self.device).float()
+                    #fixed_noise = sample_random_noise(fixed_noise.shape, seed=resample_index).to(self.device).float()
+                    fixed_noise = torch.randn(self.init_noises[t_raw].shape).to(self.device).float()
                     rr = pearson_correlation_coefficient(torch_fully_denoised_latent, fixed_noise)
                     #print(f"WARNING: Noise-Latent correlation was {prev_rr:.3f}, resampled {resample_index}x to: {rr:.3f}")   
                     resample_index += 1
@@ -853,7 +868,8 @@ class FrameBuffer():
                 current_reduction_f = ((before_distance + after_distance) / 2) / old_distance
 
                 # moving average:
-                self.current_reduction_f = 0.5 * self.current_reduction_f + 0.5 * current_reduction_f
+                self.current_reduction_f = 0.6 * self.current_reduction_f + 0.4 * current_reduction_f
+                #print(f"current_reduction_f: {current_reduction_f:.3f}, avg-reduction_f: {self.current_reduction_f:.3f}")
                 
                 # Remove the old distance from the list and insert the two new distances:
                 self.distances.pop(insert_index-1)
