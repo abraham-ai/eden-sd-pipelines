@@ -140,7 +140,7 @@ class Planner():
         self.push_signal = self.push_signal / np.mean(self.push_signal)
 
         # plot the harmonic_energy curve:
-        if 1:
+        if 0:
             seconds = 60
             frames = self.fps*seconds
             plt.figure(figsize=(14,8))
@@ -155,7 +155,7 @@ class Planner():
                                 'brightness_factor': 0.003,
                                 'contrast_factor'  : 0.4,
                                 'saturation_factor': 0.4,
-                                'zoom_factor'      : 0.0065,
+                                '2d_zoom_factor'   : 0.0065,
                                 'noise_factor'     : 0.0,
                     }):
             
@@ -178,8 +178,7 @@ class Planner():
         image = enhancer.enhance(factor)
 
         # slightly crop and zoom in on the init_img:
-        # TODO replace this with 3D zoom:
-        factor = 1 + audio_reactivity_settings['zoom_factor'] * self.fps_adjusted_percus_features[0, frame_index]
+        factor = 1 + audio_reactivity_settings['2d_zoom_factor'] * self.fps_adjusted_percus_features[0, frame_index]
         # get the center pixel coordinates:
         x, y = image.size[0]//2, image.size[1]//2
         image = zoom_at(image, x, y, factor)
@@ -442,7 +441,7 @@ def create_init_latent(args, t, interpolation_init_images, keyframe_index, init_
     
     if (len(latent_tracker.t_raws) < args.n_anchor_imgs or (args.latent_blending_skip_f is None)) and 0:
         if verbose:
-            print("Simply alpha-blending the keyframe latents..")
+            print("Simply alpha-blending to the keyframe latents..")
         # simply alpha-blend the keyframe latents using t:
         init_latent, init_image_strength = blend_inits(key_latent0, key_latent1, t, args, real2real = real2real)
         

@@ -167,6 +167,7 @@ class Interpolator():
         self.lora_paths = lora_paths
         self.prompt_embeds, self.init_noises = [], []
         self.phase_index = 0
+        self.current_seed = self.seeds[self.phase_index]
         self.setup_next_creation_conditions(self.phase_index)
 
     def setup_next_creation_conditions(self, phase_index):
@@ -461,6 +462,7 @@ class Interpolator():
         self.clear_buffer_at_next_iteration = False
         self.args.c = None
         self.phase_index += 1
+        self.current_seed = self.seeds[self.phase_index]
         self.setup_next_creation_conditions(self.phase_index)
         self.phase_completion_f = 0
 

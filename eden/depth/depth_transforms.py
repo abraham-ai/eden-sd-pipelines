@@ -11,6 +11,7 @@ import torch
 import torchvision
 import torchvision.transforms as T
 from collections import namedtuple
+
 fields = [
     "near_plane",
     "far_plane",
@@ -20,7 +21,7 @@ fields = [
 ]
 AnimArgs = namedtuple("AnimArgs", fields)
 
-import py3d_tools as p3d
+import depth.py3d_tools as p3d
 
 device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
 

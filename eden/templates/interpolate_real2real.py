@@ -40,7 +40,6 @@ def real2real(
             guidance_scale = random.choice([6]),
             n_anchor_imgs = random.choice([3]),
             sampler = "euler",
-            controlnet_path = "controlnet-luminance-sdxl-1.0",
             n_frames = 12*n,
             loop = True,
             smooth = True,

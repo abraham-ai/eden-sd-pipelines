@@ -10,6 +10,8 @@ CLIP_INTERROGATOR_MODEL_PATH = os.path.join(ROOT_PATH, 'cache')
 LORA_PATH = os.path.join(ROOT_PATH, 'lora')
 sys.path.append(LORA_PATH)
 
+sys.path.append('depth')
+
 #IP_ADAPTER_CODE_PATH = os.path.join(SD_PATH, 'eden/ip_adapter')
 #sys.path.append(IP_ADAPTER_CODE_PATH)
 #from attention_processor import IPAttnProcessor2_0 as IPAttnProcessor, AttnProcessor2_0 as AttnProcessor, CNAttnProcessor2_0 as CNAttnProcessor
@@ -104,6 +106,7 @@ def generate(
         args.text_input = prepare_prompt_for_lora(args.text_input, args.lora_path, verbose = True)
 
     if args.interpolator:
+        args.seed = args.interpolator.current_seed
         args.interpolator.latent_tracker.create_new_denoising_trajectory(args, pipe)
     
     # if init image strength == 1, just return the initial image
@@ -222,6 +225,20 @@ def generate(
     return prompt_embeds, pil_images
 
 
+
+
+
+
+###########################################################################################################
+###########################################################################################################
+
+
+
+
+
+
+
+
 @torch.no_grad()
 def make_interpolation(args, force_timepoints = None):
     # Always disbale upscaling for videos (since it introduces frame jitter)
@@ -235,8 +252,9 @@ def make_interpolation(args, force_timepoints = None):
         mode = "lerp"
 
     if mode == "real2real":
-        #args.controlnet_path = None
+        args.controlnet_path = None
         args.init_image_data = None
+        print("Disabling controlnet and init_image_data since interpolation_init_images are provided (real2real mode)")
     else: # mode == "lerp"
         if args.controlnet_path or args.init_image_data:
             args.latent_blending_skip_f = None # Disable LatentBlending with ControlNet
@@ -316,7 +334,7 @@ def make_interpolation(args, force_timepoints = None):
         if force_timepoints:
             force_t_raw = force_timepoints[f]
 
-        if 0: # catch errors and try to complete the video
+        if 1: # catch errors and try to complete the video
             try:
                 t, t_raw, prompt_embeds, init_noise, scale, keyframe_index, abort_render = args.interpolator.get_next_conditioning(verbose=0, save_distances_to_dir = args.save_distances_to_dir, t_raw = force_t_raw)
             except Exception as e:
@@ -382,6 +400,30 @@ def make_interpolation(args, force_timepoints = None):
 
     # Flush the final metadata to disk if needed:
     args.interpolator.latent_tracker.reset_buffer()
+
+
+
+
+
+
+
+
+
+
+
+###########################################################################################################
+###########################################################################################################
+
+
+
+
+
+
+
+
+
+
+
 
 def make_images(args):
     if args.mode == "remix" or args.mode == "upscale" or args.mode == "controlnet":

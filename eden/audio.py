@@ -237,7 +237,7 @@ def create_audio_features(audio_path, verbose = 0):
   final = final / np.mean(final)
   harmonic_energy = final
 
-  plot_signal(harmonic_energy, range = None, title = 'harmonic_energy', path = "harmonic_energy.png")
+  #plot_signal(harmonic_energy, range = None, title = 'harmonic_energy', path = "harmonic_energy.png")
   #plot_signal(base, range = None, title = 'base', path = "base.png")
 
   return harmonic_energy, final_percus_features, audio_features['metadata'], audio_path
