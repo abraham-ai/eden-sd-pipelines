@@ -45,7 +45,7 @@ def lerp(
         seed = seed,
         H = 1024 + 256,
         W = 1024 +256,
-        init_image_data = init_img,
+        init_image = init_img,
         init_image_strength = random.choice([0.45, 0.5, 0.55]),
         #control_guidance_end = random.choice([0.7]),
         #controlnet_path = random.choice(["controlnet-canny-sdxl-1.0-small"]),

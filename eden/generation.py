@@ -8,13 +8,10 @@ ROOT_PATH = SD_PATH.parents[0]
 CHECKPOINTS_PATH = os.path.join(SD_PATH, 'models/checkpoints')
 CLIP_INTERROGATOR_MODEL_PATH = os.path.join(ROOT_PATH, 'cache')
 LORA_PATH = os.path.join(ROOT_PATH, 'lora')
+DEPTH_PATH = os.path.join(SD_PATH, 'eden/depth')
+
 sys.path.append(LORA_PATH)
-
-sys.path.append('depth')
-
-#IP_ADAPTER_CODE_PATH = os.path.join(SD_PATH, 'eden/ip_adapter')
-#sys.path.append(IP_ADAPTER_CODE_PATH)
-#from attention_processor import IPAttnProcessor2_0 as IPAttnProcessor, AttnProcessor2_0 as AttnProcessor, CNAttnProcessor2_0 as CNAttnProcessor
+sys.path.append(DEPTH_PATH)
 
 from _thread import start_new_thread
 from queue import Queue
@@ -58,26 +55,36 @@ def generate(
     seed_everything(args.seed)
     args.init_image_strength = float(args.init_image_strength)
 
-    # Load init image
-    if args.init_image_data and args.init_image is None:
-        args.init_image = load_img(args.init_image_data, 'RGB')
+    if args.n_target_pixels is None:
+        args.n_target_pixels = args.W * args.H
 
-    if args.init_image:
-        if args.adopt_aspect_from_init_img:
-            if args.n_target_pixels is None:
-                args.n_target_pixels = args.W * args.H
-            args.W, args.H  = match_aspect_ratio(args.n_target_pixels, args.init_image)
-        args.init_image = args.init_image.resize((args.W, args.H), Image.LANCZOS)
+    # Load init images
+    if args.init_image is not None:
+        args.init_image = load_img(args.init_image)
 
+    if args.control_image is not None:
+        args.control_image = load_img(args.control_image)
+
+    if args.adopt_aspect_from_init_img:
+        if args.init_image is not None:
+            args.W, args.H = match_aspect_ratio(args.n_target_pixels, args.init_image)
+        elif args.control_image is not None:
+            args.W, args.H = match_aspect_ratio(args.n_target_pixels, args.control_image)
+    
     args.W = round_to_nearest_multiple(args.W, 8)
     args.H = round_to_nearest_multiple(args.H, 8)
+
+    if args.init_image is not None:
+        args.init_image = args.init_image.resize((args.W, args.H), Image.LANCZOS)
+    if args.control_image is not None:
+        args.control_image = args.control_image.resize((args.W, args.H), Image.LANCZOS)
 
     # Load model
     pipe = pipe_manager.get_pipe(args)
 
-    if args.ip_image_data and not args.lora_path:
-        print(f"Using ip_image from {args.ip_image_data}...")
-        args.ip_image = load_img(args.ip_image_data, 'RGB')
+    if args.ip_image and not args.lora_path:
+        print(f"Using ip_image from {args.ip_image}...")
+        args.ip_image = load_img(args.ip_image, 'RGB')
 
         if args.text_input is None or args.text_input == "":
             args.text_input = clip_interrogate(args.ckpt, args.ip_image, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
@@ -97,7 +104,8 @@ def generate(
     else:
         pipe_manager.disable_ip_adapter()
 
-    # args = sample_random_conditioning(args)
+    #from latent_magic import sample_random_conditioning
+    #args = sample_random_conditioning(args)
 
     if (args.interpolator is None) and (len(args.name) == 0):
         args.name = args.text_input # send this name back to the frontend
@@ -147,9 +155,6 @@ def generate(
     if args.init_latent is not None:
         args.init_latent = args.init_latent.half()
 
-    if args.controlnet_path and args.init_image is None:
-        raise ValueError("Must provide init_image if using controlnet")
-
     # SDXL is super sensitive to init_image, even with strength = 0.0, so in some cases we want to completely remove the init_img:
     if args.init_image_strength == 0.0 and args.mode == "remix":
         args.init_image = None
@@ -160,16 +165,13 @@ def generate(
         denoising_start = float(args.init_image_strength)
     elif (args.init_image is None) and (args.init_latent is None): # generate, no init_img
         shape = (1, pipe.unet.config.in_channels, args.H // pipe.vae_scale_factor, args.W // pipe.vae_scale_factor)
-        args.init_image = torch.randn(shape, generator=generator, device=_device)
+        args.init_image = torch.randn(shape, device=_device, generator=generator).half()
         args.init_image_strength = 0.0
         
     if args.lora_scale > 0.0 and args.lora_path:
         cross_attention_kwargs = {"scale": args.lora_scale}
     else:
         cross_attention_kwargs = None
-    
-    # for now, use init_image_strength to control the strength of the conditioning
-    args.controlnet_conditioning_scale = args.init_image_strength
          
     # Common SD arguments
     pipe_fn_args = {
@@ -193,12 +195,15 @@ def generate(
         })
 
     # Conditionally add arguments if controlnet is used
-    if args.controlnet_path and args.controlnet_conditioning_scale > 0 and args.init_image:
-        args.init_image = preprocess_controlnet_init_image(args.init_image, args)
+    if args.controlnet_path and args.control_image_strength > 0 and (args.control_image is not None):
+        args.control_image = preprocess_controlnet_init_image(args.control_image, args)
         #args.init_image.save("init_image.png")
+
         pipe_fn_args.update({
             'image': args.init_image,
-            'controlnet_conditioning_scale': args.controlnet_conditioning_scale,
+            'strength':  1 - args.init_image_strength,
+            'control_image': args.control_image,
+            'controlnet_conditioning_scale': args.control_image_strength,
             'control_guidance_start': args.control_guidance_start,
             'control_guidance_end': args.control_guidance_end,
         })
@@ -253,12 +258,12 @@ def make_interpolation(args, force_timepoints = None):
 
     if mode == "real2real":
         args.controlnet_path = None
-        args.init_image_data = None
-        print("Disabling controlnet and init_image_data since interpolation_init_images are provided (real2real mode)")
+        args.init_image = None
+        print("Disabling controlnet and init_image since interpolation_init_images are provided (real2real mode)")
     else: # mode == "lerp"
-        if args.controlnet_path or args.init_image_data:
+        if args.controlnet_path or args.init_image:
+            print("Using controlnet / init_img lerp ---> disabling LatentBlending")
             args.latent_blending_skip_f = None # Disable LatentBlending with ControlNet
-
 
     if not args.interpolation_init_images:
         args.interpolation_init_images = [None]
@@ -300,7 +305,6 @@ def make_interpolation(args, force_timepoints = None):
 
     # Load model
     pipe = pipe_manager.get_pipe(args)
-    
     args.name = " => ".join(args.interpolation_texts) # send this name back to frontend
 
     # Map LORA tokens:
@@ -326,6 +330,7 @@ def make_interpolation(args, force_timepoints = None):
 
     n_frames  = len(args.interpolator.ts) if force_timepoints is None else len(force_timepoints)
     active_lora_path = args.lora_paths[0] if args.lora_paths else None
+    interpolation_init_image = args.init_image
 
     ######################################
 
@@ -363,10 +368,8 @@ def make_interpolation(args, force_timepoints = None):
         # pipe.scheduler.set_timesteps(args.steps, device=_device)
         # print(f"Adjusted n_steps from {orig_n_steps} to {args.steps} to match min_steps {args.min_steps} and init_image_strength {args.init_image_strength}")
         
-        if args.init_image_data is None:
+        if args.init_image is None and (args.latent_blending_skip_f is not None):
             args.init_latent, args.init_image, args.init_image_strength = create_init_latent(args, t, interpolation_init_images, keyframe_index, init_noise, _device, pipe)
-        else:
-            args.init_image = None
 
         if args.lora_paths: # Maybe update the lora:
             if args.lora_paths[keyframe_index] != active_lora_path:
@@ -395,6 +398,8 @@ def make_interpolation(args, force_timepoints = None):
         args.interpolator.latent_tracker.add_frame(args, img_t, t, t_raw)
 
         #args.steps = orig_n_steps
+        
+        args.init_image = interpolation_init_image
 
         yield img_pil, t_raw
 
@@ -419,36 +424,33 @@ def make_interpolation(args, force_timepoints = None):
 
 
 
-
-
-
-
-
-
 def make_images(args):
     if args.mode == "remix" or args.mode == "upscale" or args.mode == "controlnet":
-
-        if args.init_image_data is None:
-            raise ValueError(f"Must provide an init image in order to use {args.mode}!")
-
+        
         if args.mode == "remix" or args.mode == "upscale":
-            img = load_img(args.init_image_data, 'RGB')
+            if args.init_image is None:
+                raise ValueError(f"Must provide an init image in order to use {args.mode}!")
+            img = load_img(args.init_image, 'RGB')
             w, h = img.size
 
-            if not args.ip_image_data and (w*h > 512*512): # only use the image conditioning when the input is large enough
+            if not args.ip_image and (min(w,h) > 224): # only use the image conditioning when the input is large enough
                 print("Setting init_image as ip_image!")
-                args.ip_image_data = args.init_image_data
+                args.ip_image = args.init_image
 
         if args.mode == "upscale" and args.lora_path:
             print("Disabling LoRA for upscaling!!")
             args.lora_path = None
+
+        if args.controlnet_path:
+            if not args.control_image:
+                raise ValueError(f"You must provide a control_image to use {args.mode}!")
 
         # remove text_input when a LoRA is active since this will trigger clip_interrogator instead of ip_adapter for now:
         if (args.mode == "remix") and args.lora_path:
             args.text_input = None
         
         if args.text_input is None or args.text_input == "":
-            init_image = load_img(args.init_image_data, 'RGB')
+            init_image = load_img(args.init_image, 'RGB')
             args.text_input = clip_interrogate(args.ckpt, init_image, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
             del_clip_interrogator_models()
             print("Using clip-interrogate prompt:")
@@ -540,8 +542,8 @@ def run_upscaler(args_, imgs,
 
 
 def interrogate(args):
-    if args.init_image_data:
-        args.init_image = load_img(args.init_image_data, 'RGB')
+    if args.init_image is not None:
+        args.init_image = load_img(args.init_image, 'RGB')
     
     assert args.init_image, "Must provide an init image"
     interrogated_prompt = clip_interrogate(args.ckpt, args.init_image, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)

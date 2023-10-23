@@ -519,6 +519,12 @@ def load_image_with_orientation(path, mode = "RGB"):
 
 
 def load_img(data, mode="RGB"):
+    if isinstance(data, list):
+        return [load_img(d, mode) for d in data]
+
+    if isinstance(data, PIL.Image.Image):
+        return data.convert(mode)
+        
     try:
         if data.startswith('http://') or data.startswith('https://'):
             image = load_image_with_orientation(requests.get(data, stream=True).raw)

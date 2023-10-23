@@ -12,6 +12,7 @@ from pathlib import Path
 import requests
 import os
 import mimetypes
+from tqdm import tqdm
 
 def run_and_kill_cmd(command, pipe_output=True):
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -48,7 +49,7 @@ def run_and_kill_cmd(command, pipe_output=True):
             print("cmd done, stderr:")
             print(stderr)
 
-def download(url, folder, filepath=None):    
+def download(url, folder, filepath=None, timeout=600):    
     """
     Robustly download a file from a given URL to the specified folder, automatically infering the file extension.
     
@@ -62,7 +63,6 @@ def download(url, folder, filepath=None):
 
     """
     try:
-        folder_path = Path(folder)
         
         if filepath is None:
             # Guess file extension from URL itself
@@ -76,16 +76,19 @@ def download(url, folder, filepath=None):
                 ext = mimetypes.guess_extension(content_type) or ''
             
             filename = parsed_url_path.stem + ext  # Append extension only if needed
+            folder_path = Path(folder)
             filepath = folder_path / filename
+        else:
+            folder_path = Path(os.path.dirname(filepath))
         
         os.makedirs(folder_path, exist_ok=True)
         
-        if filepath.exists():
+        if os.path.exists(filepath):
             print(f"{filepath} already exists, skipping download..")
             return filepath
         
         print(f"Downloading {url} to {filepath}...")
-        response = requests.get(url, stream=True, timeout=600)
+        response = requests.get(url, stream=True, timeout=timeout)
         response.raise_for_status()
         
         with open(filepath, 'wb') as f:

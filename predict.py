@@ -1,6 +1,6 @@
 # never push DEBUG_MODE = True to Replicate!
 DEBUG_MODE = False
-#DEBUG_MODE = True
+DEBUG_MODE = True
 
 import os
 import time
@@ -124,8 +124,8 @@ class Predictor(BasePredictor):
             ge=1, le=2, default=1
         ),
 
-        # Init image and mask
-        init_image_data: str = Input(
+        # Init image
+        init_image: str = Input(
             description="Load initial image from file, url, or base64 string", 
             default=None
         ),
@@ -137,12 +137,24 @@ class Predictor(BasePredictor):
             description="Adopt aspect ratio from init image",
             default=True
         ),
+
+        # controlnet image
         controlnet_type: str = Input(
             description="Controlnet type",
             default="off",
             choices=["off", "canny-edge", "depth", "luminance"]
         ),
-        ip_image_data: str = Input(
+        control_image: str = Input(
+            description="image for controlnet guidance", 
+            default=None
+        ),
+        control_image_strength: float = Input(
+            description="Strength of control image", 
+            ge=0.0, le=1.0, default=0.0
+        ),
+
+        # IP_adapter image
+        ip_image: str = Input(
             description="Load ip_adapter image from file, url, or base64 string", 
             default=None
         ),
@@ -209,6 +221,10 @@ class Predictor(BasePredictor):
             description="What fraction of the denoising trajectory to skip at the start and end of each interpolation phase, two floats, separated by a pipe (|)",
             default="0.05|0.6"
         ),
+        n_anchor_imgs: int = Input(
+            description="Number of anchor frames to render (including keyframes) before activating latent blending",
+            default=3, ge=3, le=6
+        ),
         n_film: int = Input(
             description="Number of times to smooth final frames with FILM (default is 0) (mode==interpolate)",
             default=1, ge=0, le=3
@@ -258,12 +274,16 @@ class Predictor(BasePredictor):
             guidance_scale = guidance_scale,
             upscale_f = float(upscale_f),
 
-            init_image_data = init_image_data,
+            init_image = init_image,
             init_image_strength = init_image_strength,
             adopt_aspect_from_init_img = adopt_aspect_from_init_img,
+
             controlnet_path = controlnet_options[controlnet_type],
+            control_image = control_image,
+            control_image_strength = control_image_strength,
+            
             ip_image_strength = ip_image_strength,
-            ip_image_data     = ip_image_data,
+            ip_image          = ip_image,
 
             text_input = text_input,
             uc_text = uc_text,
@@ -278,6 +298,7 @@ class Predictor(BasePredictor):
             interpolation_init_images_max_strength = interpolation_init_images_max_strength,
 
             latent_blending_skip_f = [float(i) for i in latent_blending_skip_f.split('|')],
+            n_anchor_imgs = n_anchor_imgs,
 
             n_frames = n_frames,
             loop = loop,
@@ -299,11 +320,23 @@ class Predictor(BasePredictor):
         if DEBUG_MODE:
             lora_str       = f"_lora_{lora_scale}" if lora_path else ""
             controlnet_str = f"_controlnet_{controlnet_type}_{init_image_strength}" if controlnet_type != "off" else ""
-            ip_adapter_str = f"_ip_adapter_{ip_image_strength}" if ip_image_data else ""
-            image_str      = f"_image_{init_image_strength:.2f}" if init_image_data else ""
+            ip_adapter_str = f"_ip_adapter_{ip_image_strength}" if ip_image else ""
+            image_str      = f"_image_{init_image_strength:.2f}" if init_image else ""
 
             prediction_name = f"{int(t_start)}_{mode}{lora_str}{controlnet_str}{ip_adapter_str}{image_str}_upf_{upscale_f:.2f}_"
             os.makedirs(debug_output_dir, exist_ok=True)
+
+            # save a black dummy image to disk so we can easily see which tests failed:
+            if mode == "generate" or mode == "remix" or mode == "controlnet" or mode == "upscale" or mode == "repaint":
+                for index in range(args.n_samples):
+                        save_path = os.path.join(debug_output_dir, prediction_name + f"_{index}.jpg")
+                        Image.new("RGB", (512, 512), "black").save(save_path)
+            elif mode == "blend":
+                save_path = os.path.join(debug_output_dir, prediction_name + ".jpg")
+                Image.new("RGB", (512, 512), "black").save(save_path)
+            else:
+                savepath = os.path.join(debug_output_dir, prediction_name + ".mp4")
+                Image.new("RGB", (512, 512), "black").save(save_path)
 
 
         if mode == "interrogate":
@@ -318,15 +351,18 @@ class Predictor(BasePredictor):
             else:
                 yield CogOutput(files=[out_path], name=interrogation, thumbnails=[out_path], attributes=attributes, isFinal=True, progress=1.0)
         
-        elif mode == "generate" or mode == "remix" or mode == "controlnet" or mode == "upscale":
-
-            if (mode == "upscale" or mode == "remix" or mode == "controlnet") and (args.init_image_data is None):
+        elif mode == "generate" or mode == "remix" or mode == "controlnet" or mode == "upscale" or mode == "repaint":
+            
+            if (mode == "upscale" or mode == "remix") and (not args.init_image):
                 raise ValueError(f"an init_image must be provided for mode = {mode}")
 
-            if args.controlnet_path and args.init_image_strength == 0.0:
-                raise ValueError("controlnet requires init_image_strength > 0.0")
-            
-            if args.init_image_data is None:
+            if args.controlnet_path:
+                if not args.control_image:
+                    raise ValueError(f"a control_image must be provided when using controlnet")
+                if args.control_image_strength == 0.0:
+                    raise ValueError("controlnet requires init_image_strength > 0.0")
+                
+            if args.init_image is None:
                 args.init_image_strength = 0.0
 
             attributes = None
@@ -357,7 +393,7 @@ class Predictor(BasePredictor):
 
         else: # mode == "interpolate" or mode == "real2real" or mode == "blend"
 
-            if args.controlnet_path and args.init_image_strength == 0.0:
+            if args.controlnet_path and args.control_image_strength == 0.0:
                 raise ValueError("controlnet requires init_image_strength > 0.0")
 
             if args.interpolation_seeds is None:

@@ -52,12 +52,12 @@ global ip_adapter
 ip_adapter = None
 
 def blend(
-    init_image_data,
+    init_image,
     outdir, 
     seed = int(time.time())):
 
-    assert isinstance(init_image_data, list)
-    assert len(init_image_data) > 1
+    assert isinstance(init_image, list)
+    assert len(init_image) > 1
 
     text_modifiers = [
         "",
@@ -105,8 +105,7 @@ def blend(
     c_sum, uc_sum, pc_sum, puc_sum = 0, 0, 0, 0
     source_imgs = []
 
-    for i, image in enumerate(init_image_data):
-        #print(f"Creating embeds for image {i+1} of {len(init_image_data)}..")
+    for i, image in enumerate(init_image):
         img = load_img(image, 'RGB')
         source_imgs.append(img)
         c, uc, pc, puc = ip_adapter.create_embeds(img, scale=1.0)
@@ -117,10 +116,10 @@ def blend(
         puc_sum += puc
 
     # Average all the individual elements of embeds
-    args.c   = c_sum / len(init_image_data)
-    args.uc  = uc_sum / len(init_image_data)
-    args.pc  = pc_sum / len(init_image_data)
-    args.puc = puc_sum / len(init_image_data)
+    args.c   = c_sum / len(init_image)
+    args.uc  = uc_sum / len(init_image)
+    args.pc  = pc_sum / len(init_image)
+    args.puc = puc_sum / len(init_image)
 
     name = f'remix_{args.seed}_{int(time.time())}_{args.ip_image_strength}_{args.text_input.replace(" ", "_")}'
     name = f'{args.init_image_strength:.2f}_{args.ip_image_strength:.2f}_{args.text_input.replace(" ", "_")}_{args.seed}'

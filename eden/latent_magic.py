@@ -1,8 +1,9 @@
 
-
+import os, torch, random
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from settings import _device
 
 def save_plots(ip_means, ip_stds, ip_mins, ip_maxs):
 
@@ -59,17 +60,73 @@ def save_plots(ip_means, ip_stds, ip_mins, ip_maxs):
     plt.close()
 
 
+raw_embeddings_path = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/prompts_raw.npy"
+stats_embeddings_path = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/prompts_stats.npy"
 
-conditioning_dict_path = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/text_inputs_v1.npy"
-conditioning_dict = np.load(conditioning_dict_path, allow_pickle=True).item()
+stats_dict = np.load(stats_embeddings_path, allow_pickle=True).item()
+
+def random_row_sampling(samples):
+    shape = samples.shape
+    n_rows = shape[0]
+    feature_shape = shape[1:]
+
+    # Generate random indices for each "column"
+    random_indices = torch.randint(0, n_rows, (1, *feature_shape), device=samples.device)
+
+    # Create the sampled tensor
+    sample = torch.gather(samples, 0, random_indices)
+
+    return sample
+
+def mix_latents(args):
+    """
+    randomly grabs n embeddings from the raw embeddings and mixes them (using genetic crossover)
+
+    # embeddings were saved like this (where each value is a stack torch tensor)
+    embeddings = {
+        "c": all_prompt_embeds,
+        "uc": all_negative_prompt_embeds,
+        "pc": all_pooled_prompt_embeds,
+        "puc": all_negative_pooled_prompt_embeds
+    }
+    torch.save(embeddings, save_path_raw)
+    print(f"Succesfully saved raw embeddings to {save_path_raw}")
+    """
+    embeddings = torch.load(raw_embeddings_path)
+
+    n = random.choice([2,4,8,16,32,64,128])
+    args.n_mixed = n
+    indices = np.random.choice(embeddings["c"].shape[0], n, replace=False)
+
+    # grab n random embeddings:
+    random_embeddings = {}
+    for key in embeddings.keys():
+        embeddings[key] = embeddings[key][indices]
+        random_embeddings[key] = embeddings[key].squeeze()
+
+        # sample randomly from the embeddings:
+        sampled_conditioning = random_row_sampling(random_embeddings[key])
+
+        # post process:
+        sampled_conditioning = sampled_conditioning*args.conditioning_sigma
+
+        if args.clamp_factor:
+            min_val = np.min(stats_dict[f"{key}_min"])
+            max_val = np.max(stats_dict[f"{key}_max"])
+            sampled_conditioning = torch.clamp(sampled_conditioning, args.clamp_factor * min_val, args.clamp_factor * max_val)
+
+        setattr(args, key, sampled_conditioning.to(_device))
+
+    return args
 
 
-def sample_random_conditioning(args):
+def sample_random_gaussian(args):
+
     for key in ["c", "uc", "pc", "puc"]:
-        mean = conditioning_dict[f"{key}_mean"]
-        std = args.conditioning_sigma * conditioning_dict[f"{key}_std"]
-        min_val = conditioning_dict[f"{key}_min"]
-        max_val = conditioning_dict[f"{key}_max"]
+        mean = stats_dict[f"{key}_mean"]
+        min_val = stats_dict[f"{key}_min"]
+        max_val = stats_dict[f"{key}_max"]
+        std = args.conditioning_sigma * stats_dict[f"{key}_std"]
 
         # Sample from Gaussian
         sample = np.random.normal(mean, std)
@@ -82,7 +139,13 @@ def sample_random_conditioning(args):
 
     return args
 
-condition_save_dir = os.path.join(ROOT_PATH, "ip_conditions_faces")
+
+def sample_random_conditioning(args):
+    #return sample_random_gaussian(args)
+    return mix_latents(args)
+
+
+#condition_save_dir = os.path.join(ROOT_PATH, "ip_conditions_faces")
 
 def save_ip_img_condition(args):
     ip_img_conditioning = args.c[0,77:,:].detach().clone().cpu().numpy()

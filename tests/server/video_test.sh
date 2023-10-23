@@ -53,7 +53,7 @@ if [ $RUN_INTERPOLATE -eq 1 ]; then
     "input": {
       "mode": "interpolate",
       "interpolation_texts": "$TEXT_INPUT1|$TEXT_INPUT2",
-      "init_image_data": "$INIT_IMAGE_URL1",
+      "init_image": "$INIT_IMAGE_URL1",
       "init_image_strength": $INIT_IMAGE_STRENGTH1,
       "steps": $STEPS,
       "width": $WIDTH,
@@ -109,14 +109,31 @@ else
 fi
 
 ###############################################################################
+  
+  curl -s -X POST -H "Authorization: Token $REPLICATE_API_TOKEN" -H 'Content-Type: application/json' "http://0.0.0.0:5000/predictions" -d @- <<EOF | jq '.' >> output.log 2>> error.log
+{
+    "input": {
+      "mode": "interpolate",
+      "interpolation_texts": "$TEXT_INPUT1|$TEXT_INPUT2",
+      "init_image": "$INIT_IMAGE_URL1",
+      "init_image_strength": $INIT_IMAGE_STRENGTH1,
+      "steps": $STEPS,
+      "width": $WIDTH,
+      "height": $HEIGHT,
+      "n_frames": $N_FRAMES,
+      "n_film": 1,
+      "seed": $SEED
+    }
+}
+EOF
 
   curl -s -X POST -H "Authorization: Token $REPLICATE_API_TOKEN" -H 'Content-Type: application/json' "http://0.0.0.0:5000/predictions" -d @- <<EOF | jq '.' >> output.log 2>> error.log
 {
     "input": {
       "mode": "interpolate",
       "interpolation_texts": "$TEXT_INPUT1|$TEXT_INPUT2",
-      "init_image_data": "$INIT_IMAGE_URL1",
-      "init_image_strength": $INIT_IMAGE_STRENGTH2,
+      "control_image": "$INIT_IMAGE_URL1",
+      "control_image_strength": $INIT_IMAGE_STRENGTH2,
       "controlnet_type": "luminance",
       "steps": $STEPS,
       "width": $WIDTH,
@@ -133,8 +150,8 @@ EOF
     "input": {
       "mode": "interpolate",
       "interpolation_texts": "$TEXT_INPUT1|$TEXT_INPUT2",
-      "init_image_data": "$INIT_IMAGE_URL1",
-      "init_image_strength": $INIT_IMAGE_STRENGTH2,
+      "control_image": "$INIT_IMAGE_URL1",
+      "control_image_strength": $INIT_IMAGE_STRENGTH2,
       "controlnet_type": "depth",
       "lora": "$LORA_URL",
       "steps": $STEPS,

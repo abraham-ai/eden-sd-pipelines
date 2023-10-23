@@ -24,7 +24,7 @@ import diffusers
 print("Importing diffusers from:")
 print(diffusers.__file__)
 from diffusers import DiffusionPipeline, StableDiffusionXLImg2ImgPipeline
-from diffusers import ControlNetModel, StableDiffusionXLControlNetPipeline, AutoencoderKL, StableDiffusionControlNetPipeline
+from diffusers import ControlNetModel, StableDiffusionXLControlNetPipeline, AutoencoderKL, StableDiffusionXLControlNetImg2ImgPipeline
 from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline, StableDiffusionDepth2ImgPipeline
 
 from diffusers import (
@@ -136,6 +136,24 @@ class PipeManager:
 pipe_manager = PipeManager()
 
 
+_download_dict = {
+    "models/controlnets/controlnet-luminance-sdxl-1.0": "https://edenartlab-lfs.s3.amazonaws.com/models/controlnets/controlnet-luminance-sdxl-1.0/diffusion_pytorch_model.bin",
+    "models/controlnets/controlnet-depth-sdxl-1.0-small": "https://edenartlab-lfs.s3.amazonaws.com/models/controlnets/controlnet-depth-sdxl-1.0-small/diffusion_pytorch_model.safetensors",
+}
+
+from io_utils import download
+def maybe_download(path):
+    for key in _download_dict:
+        if key in path:
+            download_url = _download_dict[key]
+            filename = os.path.basename(download_url)
+            local_path = os.path.join(path, filename)
+            download(download_url, "", filepath=local_path, timeout=20*60)
+            return
+
+    print("Warning, no download option found for path: ", path)
+
+
 def load_pipe(args):
     if 'eden-v1' in os.path.basename(args.ckpt):
         return load_pipe_v1(args)
@@ -163,17 +181,11 @@ def load_pipe(args):
         full_controlnet_path = os.path.join(CONTROLNET_PATH, args.controlnet_path)
         print(f"Loading SDXL controlnet-pipeline from {full_controlnet_path}")
 
-        # check if any "*.safetensors" file is inside full_controlnet_path dir:
-        use_safetensors = False
-        for file in os.listdir(full_controlnet_path):
-            if file.endswith(".safetensors"):
-                use_safetensors = True
-                break
-
+        maybe_download(full_controlnet_path)
         controlnet = ControlNetModel.from_pretrained(
             full_controlnet_path,
             torch_dtype=torch.float16,
-            use_safetensors = use_safetensors
+            use_safetensors = any(file.endswith(".safetensors") for file in os.listdir(full_controlnet_path))
         )
         
         if load_from_single_file:
@@ -182,7 +194,7 @@ def load_pipe(args):
                 location, safety_checker=None,
                 torch_dtype=torch.float16, use_safetensors=True)
 
-            pipe = StableDiffusionXLControlNetPipeline(
+            pipe = StableDiffusionXLControlNetImg2ImgPipeline(
                 vae = pipe.vae,
                 text_encoder = pipe.text_encoder,
                 text_encoder_2 = pipe.text_encoder_2,
@@ -194,7 +206,7 @@ def load_pipe(args):
             )
 
         else:
-            pipe = StableDiffusionXLControlNetPipeline.from_pretrained(
+            pipe = StableDiffusionXLControlNetImg2ImgPipeline.from_pretrained(
                 location,
                 controlnet=controlnet,
                 torch_dtype=torch.float16, use_safetensors=True, 

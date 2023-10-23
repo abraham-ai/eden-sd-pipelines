@@ -100,7 +100,7 @@ def upscale_directory_with_configs(input_cfg_dir, outdir,
 
 
                 args.W, args.H = compute_target_resolution(args.W, args.H, total_pixels)
-                args.init_image_data = img_files[i]
+                args.init_image = img_files[i]
                 args.init_image_strength = init_img_strength
                 args.seed = int(time.time())
                 args.steps = adjust_n_steps(args.steps, init_img_strength, min_max_steps)
@@ -112,7 +112,7 @@ def upscale_directory_with_configs(input_cfg_dir, outdir,
                     print(f"Skipping {filename}..")
                     continue
 
-                if not args.init_image_data.endswith(".jpg"):
+                if not args.init_image.endswith(".jpg"):
                     continue
 
                 _, new_images = generate(args)

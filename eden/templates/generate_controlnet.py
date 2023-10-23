@@ -17,7 +17,7 @@ def generate_basic(
     outdir, 
     seed = int(time.time()),
     debug = False,
-    init_image_data = None,
+    init_image = None,
     prefix = "",
     suffix = ""):
 
@@ -43,19 +43,20 @@ def generate_basic(
         seed = seed,
         n_samples = 1,
         lora_path = None,
-        init_image_data = get_random_imgpath_from_dir(img_dir),
-        ip_image_data   = ip_img,
-        #init_image_strength = random.choice([0.35, 0.4, 0.45, 0.5, 0.55]),
-        init_image_strength = random.choice([1.0]),
-        #controlnet_path = "controlnet-luminance-sdxl-1.0", 
-        controlnet_path = random.choice(["controlnet-canny-sdxl-1.0-small", "controlnet-luminance-sdxl-1.0"]),
+        init_image = get_random_imgpath_from_dir(img_dir),
+        init_image_strength = random.choice([0.1]),
+        control_image   = get_random_imgpath_from_dir(img_dir),
+        control_image_strength = random.choice([0.6]),
+
+        ip_image   = ip_img,
+        
+        controlnet_path = "controlnet-canny-sdxl-1.0-small", 
+        #controlnet_path = random.choice(["controlnet-canny-sdxl-1.0-small", "controlnet-luminance-sdxl-1.0"]),
         
     )
 
-    controlnet_img = load_img(args.init_image_data, "RGB")
-
     #name = f'{prefix}{args.text_input[:40]}_{os.path.basename(args.lora_path)}_{args.seed}_{int(time.time())}{suffix}'
-    init_img_name = os.path.basename(args.init_image_data).split(".")[0]
+    init_img_name = os.path.basename(args.init_image).split(".")[0]
     name = f'{prefix}{args.text_input[:40]}_{init_img_name}_{args.seed}_{int(time.time())}{suffix}'
     name = f'{prefix}_{args.text_input[:40]}_{args.init_image_strength}_{args.control_guidance_end}_{args.controlnet_path}_{args.seed}'
 
@@ -114,7 +115,7 @@ if __name__ == "__main__":
                 text_input = text_input + ", " + ", ".join(random.sample(style_modifiers, n_style_modifiers))
 
         print(text_input)
-        if 0:
+        if 1:
             generate_basic(text_input, outdir, seed = seed)
         else:
             try:

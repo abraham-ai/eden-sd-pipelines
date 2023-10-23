@@ -11,7 +11,7 @@ from eden_utils import *
 def generate_lora(text_input, outdir, 
     lora_path = None,
     seed = int(time.time()),
-    init_image_data = None,
+    init_image = None,
     prefix = "",
     suffix = ""):
 
@@ -28,7 +28,7 @@ def generate_lora(text_input, outdir,
         guidance_scale = 8,
         upscale_f = 1.0,
         text_input = text_input,
-        init_image_data = init_image_data,
+        init_image = init_image,
         seed = seed,
         n_samples = 2,
     )

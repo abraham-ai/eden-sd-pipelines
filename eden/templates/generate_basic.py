@@ -87,7 +87,7 @@ def generate_basic(
     steps_per_update = None, # None to disable intermediate frames
     seed = int(time.time()),
     debug = False,
-    init_image_data = None,
+    init_image = None,
     lora_path = None,
     prefix = "tile",
     suffix = ""):
@@ -103,10 +103,12 @@ def generate_basic(
         text_input = text_input,
         seed = seed,
         n_samples = 1,
-        init_image_data = init_image_data,
+        init_image = init_image,
         init_image_strength = 0.0,
         lora_path = lora_path,
     )
+
+    suffix = "_" + args.ckpt
     name = f'{prefix}{args.text_input[:80]}_{args.seed}_{int(time.time())}{suffix}'
     name = name.replace("/", "_")
 
@@ -126,10 +128,10 @@ if __name__ == "__main__":
     
     outdir = "results_basic"
 
-    for i in range(10):
+    for i in range(40):
         seed = int(time.time())
         seed = i
-        seed_everything(seed)
+        #seed_everything(seed)
         text_input = random.choice(text_inputs)
 
         generate_basic(text_input, outdir, seed = seed)

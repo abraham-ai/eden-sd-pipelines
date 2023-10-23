@@ -61,7 +61,7 @@ if __name__ == "__main__":
 
     # IO settings:
     outdir = "results/upscaled_imgs"
-    init_image_data = "../assets"
+    init_image = "../assets"
     
     # Upscaling settings:
     checkpoint_options      = ["eden:eden-v1", "dreamlike-art/dreamlike-photoreal-2.0"]
@@ -78,19 +78,19 @@ if __name__ == "__main__":
         steps                   = 60
         init_strengths_per_img  = [0.35,0.45,0.55]
         base_target_n_pixels    = int(1920*1080*1.5)
-        init_image_data = "/home/rednax/Pictures/gems/new_collection/BEST_random_C/to_upscale"
+        init_image = "/home/rednax/Pictures/gems/new_collection/BEST_random_C/to_upscale"
 
     ###########################################################
 
-    if os.path.isdir(init_image_data):
+    if os.path.isdir(init_image):
         # recursively grab all imgs in directory:
-        init_image_data = sorted([os.path.join(init_image_data, f) for f in os.listdir(init_image_data) if os.path.splitext(f)[1].lower() in img_extensions])
+        init_image = sorted([os.path.join(init_image, f) for f in os.listdir(init_image) if os.path.splitext(f)[1].lower() in img_extensions])
     else:
         # assume it's a single image:
-        init_image_data = [init_image_data]
+        init_image = [init_image]
 
     for checkpoint in checkpoint_options:
-        for init_img_data in init_image_data:
+        for init_img_data in init_image:
             init_image   = load_img(init_img_data, 'RGB')
             img_basename = os.path.splitext(os.path.basename(init_img_data))[0]
 

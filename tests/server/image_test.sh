@@ -120,7 +120,7 @@ EOF
     "input": {
       "mode": "generate",
       "text_input": "$TEXT_INPUT",
-      "init_image_data": "$INIT_IMAGE_URL1",
+      "init_image": "$INIT_IMAGE_URL1",
       "init_image_strength": $INIT_IMAGE_STRENGTH1,
       "seed": $SEED
     }
@@ -132,7 +132,7 @@ EOF
     "input": {
       "mode": "generate",
       "text_input": "$TEXT_INPUT",
-      "init_image_data": "$INIT_IMAGE_URL1",
+      "init_image": "$INIT_IMAGE_URL1",
       "init_image_strength": $INIT_IMAGE_STRENGTH2,
       "n_samples": $NSAMPLES,
       "seed": $SEED
@@ -155,7 +155,7 @@ if [ $RUN_REMIX -eq 1 ]; then
     "input": {
       "mode": "remix",
       "text_input": "",
-      "init_image_data": "$INIT_IMAGE_URL1",
+      "init_image": "$INIT_IMAGE_URL1",
       "init_image_strength": $INIT_IMAGE_STRENGTH1,
       "seed": $SEED
     }
@@ -180,7 +180,7 @@ EOF
     "input": {
       "mode": "remix",
       "text_input": "folded paper, origami",
-      "init_image_data": "$INIT_IMAGE_URL1",
+      "init_image": "$INIT_IMAGE_URL1",
       "init_image_strength": $INIT_IMAGE_STRENGTH2,
       "upscale_f": $UPSCALE_F,
       "ip_image_strength": 0.5,
@@ -194,7 +194,7 @@ EOF
     "input": {
       "mode": "remix",
       "text_input": "folded paper, origami",
-      "init_image_data": "$INIT_IMAGE_URL1",
+      "init_image": "$INIT_IMAGE_URL1",
       "init_image_strength": $INIT_IMAGE_STRENGTH1,
       "lora": "$LORA_URL",
       "seed": $SEED
@@ -218,8 +218,8 @@ if [ $RUN_CONTROLNET -eq 1 ]; then
     "input": {
       "mode": "controlnet",
       "text_input": "$TEXT_INPUT",
-      "init_image_data": "$INIT_IMAGE_URL1",
-      "init_image_strength": $INIT_IMAGE_STRENGTH_CONTROL2,
+      "control_image": "$INIT_IMAGE_URL1",
+      "control_image_strength": $INIT_IMAGE_STRENGTH_CONTROL2,
       "controlnet_type": "canny-edge",
       "seed": $SEED
     }
@@ -244,8 +244,8 @@ EOF
     "input": {
       "mode": "controlnet",
       "text_input": "a photo of <concept>",
-      "init_image_data": "$INIT_IMAGE_URL1",
-      "init_image_strength": $INIT_IMAGE_STRENGTH_CONTROL1,
+      "control_image": "$INIT_IMAGE_URL1",
+      "control_image_strength": $INIT_IMAGE_STRENGTH_CONTROL1,
       "lora": "$LORA_URL",
       "controlnet_type": "luminance",
       "seed": $SEED
@@ -294,8 +294,8 @@ if [ $RUN_UPSCALE -eq 1 ]; then
       "mode": "upscale",
       "width": 1600,
       "height": 1600,
-      "init_image_data": "$INIT_IMAGE_URL1",
-      "init_image_strength": $INIT_IMAGE_STRENGTH_CONTROL1,
+      "control_image": "$INIT_IMAGE_URL1",
+      "control_image_strength": $INIT_IMAGE_STRENGTH_CONTROL1,
       "controlnet_type": "canny-edge",
       "seed": $SEED
     }
@@ -308,7 +308,7 @@ EOF
       "mode": "upscale",
       "width": 1400,
       "height": 1400,
-      "init_image_data": "$INIT_IMAGE_URL1",
+      "init_image": "$INIT_IMAGE_URL1",
       "init_image_strength": $INIT_IMAGE_STRENGTH_CONTROL2,
       "seed": $SEED
     }

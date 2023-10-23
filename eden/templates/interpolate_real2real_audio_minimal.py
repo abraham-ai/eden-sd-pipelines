@@ -6,11 +6,17 @@ from templates.interpolate_real2real import real2real
 from planner import Planner
 from audio_post import post_process_audio_reactive_video_frames
 
-def get_random_img_paths_from_dir(directory_path, n_imgs):
+def get_random_img_paths_from_dir(directory_path, n_imgs, sorted = False):
     img_exts = [".jpg", ".png", ".jpeg", ".JPG", ".PNG", ".JPEG"]
     all_img_paths = [os.path.join(input_dir, f) for f in os.listdir(input_dir)]
     all_img_paths = [f for f in all_img_paths if os.path.splitext(f)[1] in img_exts]
-    return random.sample(all_img_paths, n_imgs)
+
+    paths = random.sample(all_img_paths, n_imgs)
+
+    if sorted: 
+        paths.sort()
+
+    return paths
 
 
 def real2real_x(W, H, args, input_images, outdir, n, 
@@ -60,41 +66,39 @@ if __name__ == "__main__":
     
     # main render settings (eg specified by the user)
     H,W          = 1024+256, 1024+256
-    n_steps      = 50       # n_diffusion steps per frame
-    output_fps   = 12      
-    seconds_between_keyframes = 7
-    n_imgs       = 8
-    inter_frames = int(seconds_between_keyframes * output_fps)
+    n_steps      = 50       # n_diffusion steps per frame  
+    seconds_between_keyframes = 9
+    n_imgs       = 30
 
     # audio_path is either a path of a .zip file, or a tuple of (audio_features_pickle, audio_mp3_path)
     audio_path = ("path_to_features.pkl", "path_to_audio.mp3")
-    audio_path = ("/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/tmp_unzip/features.pkl", "/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/tmp_unzip/music.mp3")
+    audio_path = ("/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/audio/versilov/versilov_audio_features_80_40.pkl", "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/audio/versilov/versilov.mp3")
     
     # Get random images from a directory: (this should be replaced with timeline imgs in WZRD)
-    input_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/init_imgs/diverse_real2real_seeds"
-    #input_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/init_imgs/tall"
+    input_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/init_imgs/materials"
+    input_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/init_imgs/club_long"
 
-    outdir    = 'results_real2real_audioreactive_demo'
+    outdir    = 'results_real2real_audioreactive_club_long'
 
     if 0: # debug: fast render settings
         H,W          = 512, 512
         n_imgs       = 2
         n_steps      = 20
-        output_fps   = 12
-        seconds_between_keyframes = 5
-        inter_frames = int(seconds_between_keyframes * output_fps)
+        seconds_between_keyframes = 0.5
 
-
-    exp_name = ""
-
-    for seed in [20,21]:
+    for seed in [0,1]:
 
         ##############################################################################
         seed_everything(seed)
-        img_paths = get_random_img_paths_from_dir(input_dir, n_imgs)
+        if seed % 2 == 0:
+            img_paths = get_random_img_paths_from_dir(input_dir, n_imgs, sorted=True)
+        else:
+            img_paths = get_random_img_paths_from_dir(input_dir, n_imgs, sorted=False)
 
-        seed_everything(seed+1)
         n = len(img_paths)
+        
+        fps = 14
+        inter_frames = int(seconds_between_keyframes * fps)
 
         args = StableDiffusionSettings(
             ckpt = "juggernaut_XL",
@@ -102,17 +106,17 @@ if __name__ == "__main__":
             W = W,
             steps = n_steps,
             n_frames = inter_frames*(n-1) + n,
-            guidance_scale = 7,
+            guidance_scale = 8,
             text_input = "real2real",  # text_input is also the title, but has no effect on interpolations
             interpolation_seeds = [random.randint(1, 1e8) for _ in range(n)],
             interpolation_init_images = img_paths,
             interpolation_init_images_min_strength = 0.05,
-            interpolation_init_images_max_strength = 0.85,
-            ip_image_strength = 0.65,
+            interpolation_init_images_max_strength = 0.80,
+            ip_image_strength = 1.0,
             n_anchor_imgs = 4,
-            latent_blending_skip_f = [0.0, 0.7],
+            latent_blending_skip_f = [0.0, 0.8],
             loop = True,
-            fps = output_fps,
+            fps = fps,
             seed = seed,
         )
 
@@ -122,9 +126,8 @@ if __name__ == "__main__":
         if args.loop:
             args.n_frames = inter_frames*((n+1)-1) + (n+1)
 
-        # Render the frames:
         real2real_x(W, H, args, img_paths, outdir, n,
-                    exp_name = exp_name, audio_path = audio_path, 
+                    audio_path = audio_path, 
                     do_post_process = False,
                     save_phase_data = 1,
                     save_distance_data = 1)

@@ -18,13 +18,13 @@ pipe = StableDiffusionInstructPix2PixPipeline.from_pretrained("timbrooks/instruc
 pipe = pipe.to("cuda")
 pipe.safety_checker = None
 
-def generate_pix2pix(init_image_data, text_input, outdir, 
+def generate_pix2pix(init_image, text_input, outdir, 
     steps_per_update = None, # None to disable intermediate frames
     seed = int(time.time()),
     debug = False):
 
     seed_everything(seed)
-    init_image = Image.open(init_image_data).convert("RGB")
+    init_image = Image.open(init_image).convert("RGB")
     args = StableDiffusionSettings(
         mode = "pix2pix",
         W = 640,
@@ -116,7 +116,7 @@ if __name__ == "__main__":
         seed = int(time.time())
         seed_everything(seed)
 
-        init_image_data = os.path.join(input_img_dir, random.choice(os.listdir(input_img_dir)))
+        init_image = os.path.join(input_img_dir, random.choice(os.listdir(input_img_dir)))
         
         text_input = random.choice(text_inputs)
-        generate_pix2pix(init_image_data, text_input, outdir, seed = seed)
+        generate_pix2pix(init_image, text_input, outdir, seed = seed)

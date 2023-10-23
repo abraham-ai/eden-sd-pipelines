@@ -32,6 +32,7 @@ build:
     - "invisible-watermark>=0.2.0"
     - "timm==0.6.7"           # needed for ZoeDepth model (depth controlnet), downgraded from timm==0.9.6
     - "omegaconf==2.3.0"      # needed to load .safetensors config files
+    - "tqdm==4.66.1"
 
   pre_install:
    - git clone -b sdxl https://www.github.com/abraham-ai/diffusers

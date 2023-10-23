@@ -14,7 +14,7 @@ from prompts import text_inputs
 from eden_utils import *
 
 
-def remix(init_image_data, outdir, 
+def remix(init_image, outdir, 
     steps_per_update = None, # None to disable intermediate frames
     seed = int(time.time()),
     debug = 0):
@@ -54,7 +54,7 @@ def remix(init_image_data, outdir,
         upscale_f = 1.0,
         init_image_strength = random.choice([0.0,0.05]),
         ip_image_strength = random.choice([0.65]),
-        init_image_data = init_image_data,
+        init_image = init_image,
     )
 
     if debug: # overwrite some args to make things go FAST
@@ -73,7 +73,7 @@ def remix(init_image_data, outdir,
 
     if 1:
         # Also save the original image:
-        init_img = load_img(args.init_image_data, 'RGB').resize((args.W, args.H))
+        init_img = load_img(args.init_image, 'RGB').resize((args.W, args.H))
         init_img.save(os.path.join(outdir, f'{name}_original.jpg'), quality=95)
 
     # save settings
@@ -95,6 +95,6 @@ if __name__ == "__main__":
 
     for i in range(10):
         seed = int(time.time())
-        init_image_data = random.choice(init_image_urls)
-        remix(init_image_data, outdir, seed=seed, debug = debug)
+        init_image = random.choice(init_image_urls)
+        remix(init_image, outdir, seed=seed, debug = debug)
 

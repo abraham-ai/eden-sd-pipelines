@@ -49,8 +49,13 @@ def predict_depth_map_midas(pil_image, depth_estimator, feature_extractor, depth
 
 
 def depth_warp(frames_dir, audio_planner, audio_reactivity_settings, 
-    depth_model = "zoe",
+    depth_type = "zoe",
     save_depth_maps = 0):
+
+    """
+    Warp the frames in frames_dir using a depth map predicted by the depth_model and the
+    3D motion parameters in audio_reactivity_settings.
+    """
 
     translate_xyz = audio_reactivity_settings['3d_motion_xyz']
     rotate_xyz =  audio_reactivity_settings['3d_rotation_xyz']
@@ -75,13 +80,13 @@ def depth_warp(frames_dir, audio_planner, audio_reactivity_settings,
         os.makedirs(depth_dir, exist_ok=True)
 
     torch.cuda.empty_cache()
-    if depth_model == "midas":
-        depth_estimator   = DPTForDepthEstimation.from_pretrained("Intel/dpt-hybrid-midas").to("cuda")
+    if depth_type == "midas":
+        depth_model       = DPTForDepthEstimation.from_pretrained("Intel/dpt-hybrid-midas").to("cuda")
         feature_extractor = DPTFeatureExtractor.from_pretrained("Intel/dpt-hybrid-midas")
     else:
         repo = "isl-org/ZoeDepth"
         #torch.hub.help("intel-isl/MiDaS", "DPT_BEiT_L_384", force_reload=True) 
-        model_zoe_nk = torch.hub.load(repo, "ZoeD_NK", pretrained=True).to(settings._device)
+        depth_model = torch.hub.load(repo, "ZoeD_NK", pretrained=True).to(settings._device)
 
     frame_paths = sorted([os.path.join(frames_dir, f) for f in os.listdir(frames_dir) if f.endswith(".jpg") and "_depth" not in f])
     print("Found %d frames!" % len(frame_paths))
@@ -92,22 +97,22 @@ def depth_warp(frames_dir, audio_planner, audio_reactivity_settings,
             translate_xyz_frame = translate_xyz.copy()
 
             frame = Image.open(frame_path)
-            if depth_model == "midas":
-                depth_map, depth_tensor = predict_depth_map_midas(frame, depth_estimator, feature_extractor, audio_reactivity_settings['depth_rescale'])
+            if depth_type == "midas":
+                depth_map, depth_tensor = predict_depth_map_midas(frame, depth_model, feature_extractor, audio_reactivity_settings['depth_rescale'])
             else:
-                depth_map, depth_tensor = predict_depth_map_zoe(frame, model_zoe_nk, audio_reactivity_settings['depth_rescale'])
+                depth_map, depth_tensor = predict_depth_map_zoe(frame, depth_model, audio_reactivity_settings['depth_rescale'])
 
             if save_depth_maps:
                 depth_map.save(os.path.join(depth_dir, os.path.basename(frame_path)), quality=95)
 
-            # apply a 3d depth warp to the frame using the depth map:
+            # apply a 3d depth warp to the frame using the depth map and the base audio feature:
             warp_factor = audio_planner.fps_adjusted_percus_features[0, i]
             warp_factor = np.clip(warp_factor, 0.0, 1.0)
 
             # make x,y rotate in a circle with amplitude A and period P:
             P = audio_reactivity_settings['circular_motion_period_s'] * audio_planner.fps
-            translate_xyz_frame[0] = rotate_xyz[0] * np.sin(2*np.pi*i/P)
-            translate_xyz_frame[1] = rotate_xyz[1] * np.cos(2*np.pi*i/P)
+            translate_xyz_frame[0] *= np.sin(2*np.pi*i/P)
+            translate_xyz_frame[1] *= np.cos(2*np.pi*i/P)
 
             # apply the warp_factor to translate_xyz and rotate_xyz:
             translate_xyz_frame[2] *= warp_factor
@@ -124,6 +129,10 @@ def depth_warp(frames_dir, audio_planner, audio_reactivity_settings,
                 orig_img_path = os.path.join(output_dir, os.path.basename(frame_path))
                 if not os.path.exists(orig_img_path):
                     frame.save(orig_img_path, quality=95)
+
+    # free up GPU memory:
+    del depth_model
+    torch.cuda.empty_cache()
 
     return output_dir
 
@@ -142,14 +151,14 @@ def make_audio_reactive(frames_dir, audio_planner, audio_reactivity_settings):
 
 def post_process_audio_reactive_video_frames(frames_dir, audio_path, fps, n_film, 
     update_audio_reactivity_settings = None):
-    
+
     audio_reactivity_settings = {
-                'depth_rescale'     : [105., 255.],
-                '3d_motion_xyz'     : [0.7, 0.7, -90],
-                'circular_motion_period_s': 15,  # the period of the circular xy motion around the center (in seconds)
+                'depth_rescale'     : [103., 255.],    # rescale depth map to this range # dont change!!
+                '3d_motion_xyz'     : [0.6, 0.6, -90], # camera motion limits
+                'circular_motion_period_s': 18,  # the period of the circular xy motion around the center (in seconds)
                 '3d_rotation_xyz'   : [0,0,0],
-                'brightness_factor' : 0.003,
-                'contrast_factor'   : 0.4,
+                'brightness_factor' : 0.0025,
+                'contrast_factor'   : 0.45,
                 'saturation_factor' : 0.5,
                 '2d_zoom_factor'    : 0.00,
                 'noise_factor'      : 0.0,
@@ -165,8 +174,6 @@ def post_process_audio_reactive_video_frames(frames_dir, audio_path, fps, n_film
         frame_paths = sorted([os.path.join(frames_dir, f) for f in os.listdir(frames_dir) if f.endswith(".jpg")])
         audio_planner = Planner(audio_path, fps, len(frame_paths))
         frames_dir = depth_warp(frames_dir, audio_planner, audio_reactivity_settings)
-
-    return
 
     if n_film > 0:
         frames_dir = os.path.abspath(frames_dir)
@@ -208,6 +215,7 @@ def post_process_audio_reactive_video_frames(frames_dir, audio_path, fps, n_film
         fin_video_path = video_path
 
     os.system(f"mv {fin_video_path} {os.path.join(output_video_dir, os.path.basename(fin_video_path))}")
+    fin_video_path = os.path.join(output_video_dir, os.path.basename(fin_video_path))
     print(f"final video is at {fin_video_path}")
 
     return fin_video_path
@@ -222,13 +230,14 @@ def post_process_audio_reactive_video_frames(frames_dir, audio_path, fps, n_film
 if __name__ == "__main__":
 
     audio_path = ("/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/tmp_unzip/features.pkl", "/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/tmp_unzip/music.mp3")
+    audio_path = ("/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/audio/versilov/versilov_audio_features_80_40.pkl", "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/audio/versilov/versilov.mp3")
     
-    fps = 12    # orig fps, before FILM
+    fps = 14    # orig fps, before FILM
     n_film = 1  # set n_film to 0 to disable FILM interpolation
 
-    frames_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/templates/results_real2real_audioreactive_demo"
+    frames_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/templates/results_real2real_audioreactive_club_long"
 
-    if 0:
+    if 1:
         # grab all the subdirectories of frames_dir:
         frames_dirs = [os.path.join(frames_dir, f) for f in os.listdir(frames_dir) if os.path.isdir(os.path.join(frames_dir, f))]
         for frames_dir in sorted(frames_dirs):
@@ -236,6 +245,7 @@ if __name__ == "__main__":
             post_process_audio_reactive_video_frames(frames_dir, audio_path, fps, n_film)
     else:
         frames_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/templates/results_test"
+        frames_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/templates/results_real2real_audioreactive_club_big"
         for i in range(1):
             post_process_audio_reactive_video_frames(frames_dir, audio_path, fps, n_film)
 

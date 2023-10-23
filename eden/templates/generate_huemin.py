@@ -20,7 +20,7 @@ def generate_basic(text_input, outdir,
     steps_per_update = None, # None to disable intermediate frames
     seed = int(time.time()),
     debug = False,
-    init_image_data = "../assets/huemin_init.jpeg",
+    init_image = "../assets/huemin_init.jpeg",
     prefix = "",
     suffix = ""):
 
@@ -40,7 +40,7 @@ def generate_basic(text_input, outdir,
         seed = seed,
         n_samples = 1,
         lora_path = None,
-        init_image_data = init_image_data,
+        init_image = init_image,
         init_image_strength = 0.2,
     )
     

@@ -10,6 +10,8 @@ models/checkpoints/stable-diffusion-xl-base-1.0
 
 models/controlnets/controlnet-canny-sdxl-1.0
 models/controlnets/controlnet-monster-v2
+models/controlnets/controlnet-depth-sdxl-1.0-small/diffusion_pytorch_model.safetensors
+models/controlnets/controlnet-luminance-sdxl-1.0/diffusion_pytorch_model.bin
 
 eden/templates
 eden/xander

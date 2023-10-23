@@ -67,7 +67,7 @@ if __name__ == "__main__":
     outdir = "unit_test_results"
     seed   = 0
     n      = 3  # n_prompts to sample for lerp
-    init_image_data = "https://storage.googleapis.com/public-assets-xander/A_workbox/init_imgs/img_00003.jpg"
+    init_image = "https://storage.googleapis.com/public-assets-xander/A_workbox/init_imgs/img_00003.jpg"
     input_images = [
         "https://storage.googleapis.com/public-assets-xander/A_workbox/init_imgs/img_00005.jpg",
         "https://storage.googleapis.com/public-assets-xander/A_workbox/init_imgs/img_00006.jpg",
@@ -84,7 +84,7 @@ if __name__ == "__main__":
 
     if "generate_remix" in functions_to_test:
         from generate_remix import remix
-        args   = (init_image_data, outdir)
+        args   = (init_image, outdir)
         kwargs = {"seed": seed, "debug": debug}
         test_function("remix", remix, args, kwargs, test_tracker)
 
