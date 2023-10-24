@@ -27,6 +27,7 @@ import torchvision.transforms.functional as TF
 
 from settings import _device
 from pipe import pipe_manager, prepare_prompt_for_lora
+from latent_magic import *
 from eden_utils import *
 from interpolator import *
 from clip_tools import *
@@ -104,8 +105,8 @@ def generate(
     else:
         pipe_manager.disable_ip_adapter()
 
-    #from latent_magic import sample_random_conditioning
     #args = sample_random_conditioning(args)
+    #save_ip_img_condition(args)
 
     if (args.interpolator is None) and (len(args.name) == 0):
         args.name = args.text_input # send this name back to the frontend
