@@ -6,6 +6,10 @@ import numpy as np
 import os
 import uuid
 import torch
+import packaging.version
+
+if packaging.version.parse(torch.__version__) >= packaging.version.parse('1.12.0'):
+    torch.backends.cuda.matmul.allow_tf32 = True
 
 def pick_best_gpu_id():
     # pick the GPU with the most free memory:
