@@ -2,10 +2,11 @@
 import os, torch, random, time, glob
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 from settings import _device
 
 def save_plots(ip_means, ip_stds, ip_mins, ip_maxs):
+
+    import seaborn as sns
 
     ip_means = ip_means.astype(np.float32)
     ip_stds = ip_stds.astype(np.float32)
