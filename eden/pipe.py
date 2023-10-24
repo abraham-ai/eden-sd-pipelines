@@ -237,9 +237,6 @@ def load_pipe(args):
     pipe = pipe.to(_device)
     #pipe.enable_model_cpu_offload()
 
-    if args.compile_unet:
-        pipe.unet = torch.compile(pipe.unet, mode="reduce-overhead", fullgraph=True)
-
     # Disable watermarking (causes red dot artifacts for SDXL pipelines)
     pipe.watermark = NoWatermark()
 
@@ -427,6 +424,7 @@ def load_pipe_v1(args):
 
     pipe.safety_checker = None
     pipe = pipe.to(_device)
+
     print(f"Created new pipe in {(time.time() - start_time):.2f} seconds")
     print_model_info(pipe)
     return pipe
