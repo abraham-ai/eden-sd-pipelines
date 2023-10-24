@@ -2,6 +2,7 @@ import sys
 sys.path.append('..')
 
 import json
+import time
 import os
 import random
 from PIL import Image
@@ -90,9 +91,11 @@ def generate_basic(
     init_image = None,
     lora_path = None,
     prefix = "tile",
-    suffix = ""):
+    suffix = "",
+    iteration = 0):
 
     args = StableDiffusionSettings(
+        #ckpt = "eden:eden-v1",
         mode = "generate",
         W = random.choice([1024]),
         H = random.choice([1024]),
@@ -108,11 +111,18 @@ def generate_basic(
         lora_path = lora_path,
     )
 
+    if iteration > 3:
+        args.W = 1024 + 256
+
     suffix = "_" + args.ckpt
     name = f'{prefix}{args.text_input[:80]}_{args.seed}_{int(time.time())}{suffix}'
     name = name.replace("/", "_")
+    start_time = time.time()
 
     _, imgs = generate(args)
+
+    time_delta = time.time() - start_time
+    print(f"Generated in {time_delta:.2f} seconds")
 
     for i, img in enumerate(imgs):
         save_name = f'{name}_{i}'
@@ -134,4 +144,4 @@ if __name__ == "__main__":
         #seed_everything(seed)
         text_input = random.choice(text_inputs)
 
-        generate_basic(text_input, outdir, seed = seed)
+        generate_basic(text_input, outdir, seed = seed, iteration = i)

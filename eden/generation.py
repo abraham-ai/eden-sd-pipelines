@@ -334,6 +334,13 @@ def make_interpolation(args, force_timepoints = None):
     interpolation_init_image = args.init_image
 
     ######################################
+    compile_time = 80  # seconds
+    speed_up_f   = 2.0 # A100
+    if n_frames > 60:
+        print(f"Compiling model for {n_frames} frames...")
+        pipe.unet = torch.compile(pipe.unet, mode="reduce-overhead", fullgraph=False)
+
+    ######################################
 
     for f in range(n_frames):
         force_t_raw = None
