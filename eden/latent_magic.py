@@ -3,77 +3,82 @@ import os, torch, random, time, glob
 import numpy as np
 import matplotlib.pyplot as plt
 from settings import _device
+import seaborn as sns
 
-def save_plots(ip_means, ip_stds, ip_mins, ip_maxs):
+def visualize_distribution(args, savename):
+    plot(args.c, savename + "_c.png")
 
-    import seaborn as sns
-
-    ip_means = ip_means.astype(np.float32)
-    ip_stds = ip_stds.astype(np.float32)
-    ip_mins = ip_mins.astype(np.float32)
-    ip_maxs = ip_maxs.astype(np.float32)
-
-    # Set up the figure size
-    plt.figure(figsize=(12, 8))
+def plot(vector, name):
+    # Ensure the array is a numpy array
+    vector = np.array(vector.cpu().numpy())
     
-    # Line Plots for Mean, Std, Min, Max
-    plt.subplot(2, 2, 1)
-    for i in range(ip_means.shape[0]):
-        plt.plot(ip_means[i], label=f"Feature {i+1} Mean")
-    plt.title('Means Across Feature Dimensions')
-    plt.legend()
+    # Plotting
+    fig, axs = plt.subplots(3, 2, figsize=(24, 12))
+    
+    # Mean and std for each of the 77 tokens
+    ax1 = axs[0, 0]
+    ax1_2 = ax1.twinx()
+    l1 = ax1.errorbar(range(77), np.mean(vector, axis=2)[0], fmt='o', label='Mean')[0]
+    l2 = ax1_2.errorbar(range(77), np.std(vector, axis=2)[0], fmt='xr', label='Std Dev')[0]
+    ax1.set_ylabel('Mean')
+    ax1_2.set_ylabel('Std Dev')
+    #ax1.set_ylim([0, 50])
+    #ax1_2.set_ylim([0, 50])
+    ax1.legend([l1, l2], ['Mean', 'Std Dev'])
+    ax1.set_title("Mean and Std Dev for 77 Tokens")
+    
+    # Mean and std for each of the 2048 dimensions
+    ax2 = axs[0, 1]
+    ax2_2 = ax2.twinx()
+    l1 = ax2.errorbar(range(2048), np.mean(vector, axis=1)[0], fmt='o', label='Mean')[0]
+    l2 = ax2_2.errorbar(range(2048), np.std(vector, axis=1)[0], fmt='xr', label='Std Dev')[0]
+    ax2.set_ylabel('Mean')
+    ax2_2.set_ylabel('Std Dev')
+    ax2.legend([l1, l2], ['Mean', 'Std Dev'])
+    ax2.set_title("Mean and Std Dev for 2048 Dimensions")
 
-    plt.subplot(2, 2, 2)
-    for i in range(ip_stds.shape[0]):
-        plt.plot(ip_stds[i], label=f"Feature {i+1} Std")
-    plt.title('Standard Deviations Across Feature Dimensions')
-    plt.legend()
+    # Norm of each of the 77 tokens
+    axs[1, 0].plot(np.linalg.norm(vector, axis=2)[0])
+    axs[1, 0].set_ylim([0, 50])
+    axs[1, 0].set_title("Norms of 77 Tokens")
+    
+    # Norm of each of the 2048 dimensions
+    axs[1, 1].plot(np.linalg.norm(vector, axis=1)[0])
+    axs[1, 1].set_ylim([0, 15])
+    axs[1, 1].set_title("Norms of 2048 Dimensions")
 
-    # Histogram
-    plt.subplot(2, 2, 3)
-    sns.histplot(ip_means.flatten(), kde=True, label='Mean')
-    sns.histplot(ip_stds.flatten(), kde=True, label='Std')
-    plt.title('Histogram of Means and Stds')
-    plt.legend()
-
-    # Box Plot
-    plt.subplot(2, 2, 4)
-    sns.boxplot(data=ip_means)
-    plt.title('Box Plot of Means')
+    axs[2, 0].boxplot(vector[0].flatten())
+    axs[2, 0].set_yscale('log')
+    axs[2, 0].set_title("Boxplot for Outliers (Log Scale)")
+        
+    # Additional: Heatmap of the 77 tokens across 2048 dimensions
+    sns.heatmap(vector[0], cmap="coolwarm", ax=axs[2, 1], vmin=-4, vmax=4)
+    axs[2, 1].set_title("Heatmap of 77 Tokens Across 2048 Dimensions")
     
     plt.tight_layout()
-    plt.savefig('basic_stats_plots.png')
+    plt.savefig(name)
     plt.close()
-
-    # Heatmap
-    plt.figure(figsize=(12, 8))
-    sns.heatmap(ip_means, annot=True, fmt=".2f")
-    plt.title('Heatmap of Means')
-    plt.savefig('heatmap_means.png')
-    plt.close()
-
-    # Correlation Matrix
-    correlation_matrix = np.corrcoef(ip_means)
-    plt.figure(figsize=(12, 8))
-    sns.heatmap(correlation_matrix, annot=True, fmt=".2f")
-    plt.title('Correlation Matrix of Means')
-    plt.savefig('correlation_matrix.png')
-    plt.close()
-
+    plt.clf()
 
 try:
     raw_embeddings_path = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/latent_hacking/prompts_mini_raw.npy"
     stats_embeddings_path = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/latent_hacking/prompts_mini_stats.npy"
     raw_embeddings_path = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/latent_hacking/prompts_raw.npy"
     stats_embeddings_path = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/latent_hacking/prompts_stats.npy"
-
-
+    
     raw_embeddings = torch.load(raw_embeddings_path)
     n_elem = raw_embeddings["c"].shape[0]
     print(f"Loaded {n_elem} raw embeddings")
 
 
-    stats_dict = np.load(stats_embeddings_path, allow_pickle=True).item()
+    #stats_dict = np.load(stats_embeddings_path, allow_pickle=True).item()
+
+    means = raw_embeddings["c"].mean(dim=0).squeeze().float()
+    stds = raw_embeddings["c"].std(dim=0).squeeze().float()
+    print(means.shape)
+    print(stds.shape)
+
+
 
     # get embeddings stats:
     q_low, q_high = 0.05, 0.95
@@ -101,8 +106,8 @@ except Exception as e:
 
 
 def sample_random_conditioning(args):
-    #return sample_random_gaussian(args)
-    return mix_latents(args)
+    return sample_random_gaussian(args)
+    #return mix_latents(args)
     #return sample_random_ip_conditioning(args)
 
 
@@ -170,14 +175,14 @@ def mix_latents(args):
 
 def sample_random_gaussian(args):
 
-    for key in ["c", "uc", "pc", "puc"]:
+    for key in ["c"]:
         mean = stats_dict[f"{key}_mean"]
         min_val = stats_dict[f"{key}_min"]
         max_val = stats_dict[f"{key}_max"]
         std = args.conditioning_sigma * stats_dict[f"{key}_std"]
 
         # Sample from Gaussian
-        sampled_conditioning = torch.normal(mean, std).unsqueeze(0)
+        sampled_conditioning = torch.normal(mean, std).unsqueeze(0)/3
 
         if args.clamp_factor:
             sampled_conditioning = torch.clamp(sampled_conditioning, args.clamp_factor * stats_dict[f"{key}_min"], args.clamp_factor * stats_dict[f"{key}_max"])

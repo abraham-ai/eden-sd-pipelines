@@ -250,6 +250,9 @@ from diffusers.models.attention_processor import LoRAAttnProcessor2_0
 from dataset_and_utils import TokenEmbeddingsHandler
 
 def prepare_prompt_for_lora(prompt, lora_path, interpolation=False, verbose=True):
+    if "_no_token" in lora_path:
+        return prompt
+        
     orig_prompt = prompt
 
     # Helper function to read JSON
@@ -339,7 +342,11 @@ def load_lora(pipe, args):
     
     start_time = time.time()
 
-    if "pytorch_lora_weights.bin" in os.listdir(args.lora_path): # trained with diffusers trainer
+    if args.lora_path.endswith(".safetensors"):
+        pipe.load_lora_weights(args.lora_path)
+        args.lora_path += "_no_token"
+
+    elif "pytorch_lora_weights.bin" in os.listdir(args.lora_path): # trained with diffusers trainer
         pipe.load_lora_weights(args.lora_path)
 
     else: # trained with closeofismo trainer

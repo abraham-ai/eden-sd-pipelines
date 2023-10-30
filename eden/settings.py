@@ -51,6 +51,7 @@ class StableDiffusionSettings:
 
     # controlnet
     control_image: Image = None
+    control_image_path: str = None
     control_image_strength: float = 0.0
     control_guidance_start: float = 0.0
     control_guidance_end:   float = 1.0
@@ -90,6 +91,7 @@ class StableDiffusionSettings:
     
     # input_image
     init_image: str = None
+    init_image_path: str = None
     init_image_strength: float = 0.0
     adopt_aspect_from_init_img: bool = True
     
@@ -99,6 +101,7 @@ class StableDiffusionSettings:
     
     # conditioning vectors:
     ip_image: str = None
+    ip_image_path: str = None
     ip_image_strength: float  = 0.65     # 1.0 will only use the image prompt, 0.0 will only use the text prompt
 
     c: str = None   # force a specific prompt conditioning vector
@@ -115,6 +118,7 @@ class StableDiffusionSettings:
     #uc_text: str = "nude, naked, poorly drawn face, ugly, tiling, out of frame, extra limbs, disfigured, deformed body, blurry, blurred, watermark, text, grainy, signature, cut off, draft"  # negative prompting
     uc_text: str = "nude, naked, text, watermark, low-quality, signature, padding, margins, white borders, padded border, moiré pattern, downsampling, aliasing, distorted, blurry, blur, jpeg artifacts, compression artifacts, poorly drawn, low-resolution, bad, grainy, error, bad-contrast"
     seed: int = 0
+    noise_sigma: float = 0.0 # adds random noise to the conditioning vector
     n_samples: int = 1
 
     # if mode is interpolate or animate (video)

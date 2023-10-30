@@ -27,7 +27,6 @@ import torchvision.transforms.functional as TF
 
 from settings import _device
 from pipe import pipe_manager, prepare_prompt_for_lora
-from latent_magic import *
 from eden_utils import *
 from interpolator import *
 from clip_tools import *
@@ -61,9 +60,11 @@ def generate(
 
     # Load init images
     if args.init_image is not None:
+        args.init_image_path = args.init_image
         args.init_image = load_img(args.init_image)
 
     if args.control_image is not None:
+        args.control_image_path = args.control_image
         args.control_image = load_img(args.control_image)
 
     if args.adopt_aspect_from_init_img:
@@ -85,6 +86,7 @@ def generate(
 
     if args.ip_image and not args.lora_path:
         print(f"Using ip_image from {args.ip_image}...")
+        args.ip_image_path = args.ip_image
         args.ip_image = load_img(args.ip_image, 'RGB')
 
         if args.text_input is None or args.text_input == "":
@@ -105,8 +107,34 @@ def generate(
     else:
         pipe_manager.disable_ip_adapter()
 
-    #args = sample_random_conditioning(args)
-    #save_ip_img_condition(args)
+    if args.c is None and args.text_input is not None and args.text_input != "" and 1:
+                args.c, args.uc, args.pc, args.puc = pipe.encode_prompt(
+                    args.text_input,
+                    do_classifier_free_guidance = args.guidance_scale > 1,
+                    negative_prompt = args.uc_text,
+                    lora_scale = args.lora_scale,
+                    )
+    if 1:
+        from latent_magic import sample_random_conditioning, save_ip_img_condition
+        args = sample_random_conditioning(args)
+        #save_ip_img_condition(args)
+
+    if args.noise_sigma > 0.0: # apply random noise to the conditioning vectors:
+        if args.c is None:
+            args.c, args.uc, args.pc, args.puc = pipe.encode_prompt(
+                args.text_input,
+                do_classifier_free_guidance = args.guidance_scale > 1,
+                negative_prompt = args.uc_text,
+                lora_scale = args.lora_scale,
+                )
+
+        args_c_clone = args.c.clone()
+        args_c_clone[0,1:-2,:] += torch.randn_like(args.c[0,1:-2,:]) * args.noise_sigma
+        args.c = args_c_clone
+        #args.c[0,1:-2,:] += torch.randn_like(args.c[0,1:-2,:]) * args.noise_sigma
+
+    from latent_magic import visualize_distribution
+    visualize_distribution(args, os.path.join(args.outdir, args.name))
 
     if (args.interpolator is None) and (len(args.name) == 0):
         args.name = args.text_input # send this name back to the frontend
@@ -334,10 +362,9 @@ def make_interpolation(args, force_timepoints = None):
     interpolation_init_image = args.init_image
 
     ######################################
-    compile_time = 80  # seconds
-    speed_up_f   = 2.0 # A100
-    if n_frames > 60:
-        print(f"Compiling model for {n_frames} frames...")
+
+    if n_frames > 99:
+        print(f"Compiling model for {args.W}x{args.H}...")
         pipe.unet = torch.compile(pipe.unet, mode="reduce-overhead", fullgraph=False)
 
     ######################################
@@ -488,7 +515,7 @@ def run_upscaler(args_, imgs,
         init_image_strength    = 0.55,
         upscale_guidance_scale = 6.0,
         min_upscale_steps      = 16,  # never do less than this many steps
-        max_n_pixels           = 1800**2, # max number of pixels to avoid OOM
+        max_n_pixels           = 1600**2, # max number of pixels to avoid OOM
     ):
     args = copy(args_)
 
@@ -551,6 +578,7 @@ def run_upscaler(args_, imgs,
 
 def interrogate(args):
     if args.init_image is not None:
+        args.init_image_path = args.init_image
         args.init_image = load_img(args.init_image, 'RGB')
     
     assert args.init_image, "Must provide an init image"

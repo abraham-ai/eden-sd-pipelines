@@ -16,7 +16,7 @@ def real2real(
     save_video = True,
     remove_frames_dir = False,
     save_phase_data = False,  # save condition vectors and scale for each frame (used for later upscaling)
-    save_distance_data = 0,  # save distance plots to disk
+    save_distance_data = 1,  # save distance plots to disk
     debug = 0):
 
     random.seed(seed)
@@ -40,15 +40,15 @@ def real2real(
             guidance_scale = random.choice([6]),
             n_anchor_imgs = random.choice([3]),
             sampler = "euler",
-            n_frames = 12*n,
+            n_frames = 16*n,
             loop = True,
             smooth = True,
             n_film = 1,
             fps = 12,
             steps = 30,
             seed = seed,
-            H = 1024,
-            W = 1024,
+            H = random.choice([960]),
+            W = random.choice([640]),
             ip_image_strength = random.choice([0.65]),
         )
 
@@ -117,12 +117,16 @@ def real2real(
     
 if __name__ == "__main__":
 
+    outdir = "results_real2real"
+
     init_imgs = [
         "https://minio.aws.abraham.fun/creations-stg/7f5971f24bc5c122aed6c1298484785b4d8c90bce41cc6bfc97ad29cc179c53f.jpg",
         "https://minio.aws.abraham.fun/creations-stg/445eebc944a2d44bb5e0337ed4198ebf54217c7c17729b245663cf5c4fea182c.jpg",
         "https://minio.aws.abraham.fun/creations-stg/049848c63707293cddc766b2cbd230d9cde71f5075e48e9e02c6da03566ddae7.jpg",
         ]
 
-    outdir = "results_real2real"
+    #img_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/init_imgs/01_great_inits"
+    #init_imgs = [os.path.join(img_dir, f) for f in os.listdir(img_dir)]
 
+    init_imgs = random.sample(init_imgs, 3)
     real2real(init_imgs, outdir, seed = 0)

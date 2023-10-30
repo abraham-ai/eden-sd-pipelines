@@ -24,31 +24,27 @@ def lerp(
     frames_dir = os.path.join(outdir, name)
     os.makedirs(frames_dir, exist_ok=True)
 
-
-    img_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/eden_black_white"
-    #img_dir = "/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/init_imgs/test"
-    init_img = os.path.join(img_dir, random.sample(os.listdir(img_dir), 1)[0])
+    control_image = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/people/chebel.jpg"
     
+
     args = StableDiffusionSettings(
         text_input = interpolation_texts[0],
         interpolation_texts = interpolation_texts,
         interpolation_seeds = interpolation_seeds if interpolation_seeds else [random.randint(1, 1e8) for i in range(n)],
-        n_frames = 32*n,
+        n_frames = 16*n,
         guidance_scale = random.choice([8]),
         loop = True,
         smooth = True,
-        latent_blending_skip_f = random.choice([[0.15, 0.65]]),
+        latent_blending_skip_f = random.choice([[0.05, 0.65]]),
         n_anchor_imgs = random.choice([3]),
         n_film = 0,
         fps = 12,
-        steps = 50,
+        steps = 35,
         seed = seed,
-        H = 1024 + 256,
-        W = 1024 +256,
-        init_image = init_img,
-        init_image_strength = random.choice([0.45, 0.5, 0.55]),
-        #control_guidance_end = random.choice([0.7]),
-        #controlnet_path = random.choice(["controlnet-canny-sdxl-1.0-small"]),
+        H = 1024,
+        W = 1024,
+        control_image = control_image,
+        control_image_strength = random.choice([0.45]),
         controlnet_path = "controlnet-luminance-sdxl-1.0",
     
     )
@@ -100,24 +96,30 @@ def lerp(
 if __name__ == "__main__":
 
     outdir = "results_controlnet_video_test"
-    n = 3
-
-    text_inputs = list(set(get_prompts_from_json_dir("/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/good_controlnet_jsons")))
-
+    n = 4
     text_inputs = [
-            "incredible photo of a medieval village scene with busy streets, buildings, rooftops, clouds in the sky, castle in the distance",
-            "A twisting creature of reflective dragonglass swirling above a scorched field amidst a large clearing in a dark forest, radiating with beams of firelight, high quality professional photography, nikon d850 50mm",
-            "Title: \"Eternal Renewal\" Description: A large, circular tapestry featuring a majestic oak tree at its center, its branches reaching up towards a glowing sun. The surrounding fabric blends intricate patterns of autumn leaves, rippling water, and delicate flowers. The colors transition from vibrant reds and oranges to muted browns and grays, symbol",
+            "a beautiful, meandering river, running through a mountainous landscape",
+            "a stunning photograph of a river flowing through a mountainous landscape, wild nature, moonlight, Long Exposure Night Photography",
+            "a stunning photograph of a towering red-rock monolith, backlit by the golden rays of the setting sun, surrounded by a sea of lush green pine trees, punctuated by the serenade of a hidden waterfall crashing onto a smooth boulder bed below, HDR Macro, Create High Dynamic Range macro shot, Canon EF 100mm f/2.8L Macro IS USM lens",
+            "an icy wonderland where jagged, turquoise glaciers meet dark granite cliffs, as cascades of melting ice form ephemeral waterfalls that plummet into an aquamarine glacial lake",
+        ]
+    
+
+    n = 2
+    text_inputs = [
+            "a beautiful, meandering river, running through a mountainous landscape",
+            "a stunning photograph of a river flowing through a mountainous landscape, wild nature, moonlight, Long Exposure Night Photography",
+            "a stunning photograph of a towering red-rock monolith, backlit by the golden rays of the setting sun, surrounded by a sea of lush green pine trees, punctuated by the serenade of a hidden waterfall crashing onto a smooth boulder bed below, HDR Macro, Create High Dynamic Range macro shot, Canon EF 100mm f/2.8L Macro IS USM lens",
+            "an icy wonderland where jagged, turquoise glaciers meet dark granite cliffs, as cascades of melting ice form ephemeral waterfalls that plummet into an aquamarine glacial lake",
         ]
 
-    for i in range(10):
+    for i in range(2):
         seed = np.random.randint(0, 1000)
         seed = i
         
         seed_everything(seed)
 
         interpolation_texts = random.sample(text_inputs, n)
-        # = text_inputs
 
         for txt in interpolation_texts:
             print(txt)
