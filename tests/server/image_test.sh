@@ -294,8 +294,10 @@ if [ $RUN_UPSCALE -eq 1 ]; then
       "mode": "upscale",
       "width": 1600,
       "height": 1600,
+      "init_image": "$INIT_IMAGE_URL1",
+      "init_image_strength": 0.1,
       "control_image": "$INIT_IMAGE_URL1",
-      "control_image_strength": $INIT_IMAGE_STRENGTH_CONTROL1,
+      "control_image_strength": 0.7,
       "controlnet_type": "canny-edge",
       "seed": $SEED
     }

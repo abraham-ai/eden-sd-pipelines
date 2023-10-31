@@ -38,12 +38,12 @@ def plot(vector, name):
     ax2.set_title("Mean and Std Dev for 2048 Dimensions")
 
     # Norm of each of the 77 tokens
-    axs[1, 0].plot(np.linalg.norm(vector, axis=2)[0])
+    axs[1, 0].plot(np.linalg.norm(vector, axis=2)[0], marker='o')
     axs[1, 0].set_ylim([0, 50])
     axs[1, 0].set_title("Norms of 77 Tokens")
     
     # Norm of each of the 2048 dimensions
-    axs[1, 1].plot(np.linalg.norm(vector, axis=1)[0])
+    axs[1, 1].plot(np.linalg.norm(vector, axis=1)[0], marker='o')
     axs[1, 1].set_ylim([0, 15])
     axs[1, 1].set_title("Norms of 2048 Dimensions")
 
@@ -65,20 +65,12 @@ try:
     stats_embeddings_path = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/latent_hacking/prompts_mini_stats.npy"
     raw_embeddings_path = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/latent_hacking/prompts_raw.npy"
     stats_embeddings_path = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/latent_hacking/prompts_stats.npy"
-    
+
     raw_embeddings = torch.load(raw_embeddings_path)
     n_elem = raw_embeddings["c"].shape[0]
     print(f"Loaded {n_elem} raw embeddings")
 
-
     #stats_dict = np.load(stats_embeddings_path, allow_pickle=True).item()
-
-    means = raw_embeddings["c"].mean(dim=0).squeeze().float()
-    stds = raw_embeddings["c"].std(dim=0).squeeze().float()
-    print(means.shape)
-    print(stds.shape)
-
-
 
     # get embeddings stats:
     q_low, q_high = 0.05, 0.95
@@ -109,8 +101,6 @@ def sample_random_conditioning(args):
     return sample_random_gaussian(args)
     #return mix_latents(args)
     #return sample_random_ip_conditioning(args)
-
-
 
 def random_row_sampling(samples):
     shape = samples.shape
@@ -182,7 +172,11 @@ def sample_random_gaussian(args):
         std = args.conditioning_sigma * stats_dict[f"{key}_std"]
 
         # Sample from Gaussian
-        sampled_conditioning = torch.normal(mean, std).unsqueeze(0)/3
+        sampled_conditioning = torch.normal(mean, std).unsqueeze(0)
+        sampled_conditioning[0,0,:] = args.c[0,0,:]
+        #sampled_conditioning[0,50:,:] = args.c[0,50:,:]
+        
+        #sampled_conditioning = torch.clamp(sampled_conditioning, -10, 10)
 
         if args.clamp_factor:
             sampled_conditioning = torch.clamp(sampled_conditioning, args.clamp_factor * stats_dict[f"{key}_min"], args.clamp_factor * stats_dict[f"{key}_max"])

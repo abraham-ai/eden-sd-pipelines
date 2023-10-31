@@ -59,17 +59,6 @@ modifiers = [
     'cgsociety',
 ]
 
-checkpoint_options = [
-    "runwayml:stable-diffusion-v1-5",
-    "dreamlike-art:dreamlike-photoreal-2.0",
-    "huemin:fxhash_009",
-    "eden:eden-v1"
-]
-
-# checkpoint_options = ["runwayml:stable-diffusion-v1-5"]
-#checkpoint_options = ["eden:eden-v1"]
-checkpoint_options = ["stabilityai/stable-diffusion-xl-base-1.0"]
-
 def get_all_img_files(directory_root):
     """
     Recursively get all image files from a directory.
@@ -90,32 +79,29 @@ def generate_basic(
     debug = False,
     init_image = None,
     lora_path = None,
-    prefix = "tile",
+    prefix = "",
     suffix = "",
     iteration = 0):
 
     args = StableDiffusionSettings(
-        #ckpt = "eden:eden-v1",
+        ckpt = "juggernaut_XL2",
         mode = "generate",
-        W = random.choice([1024]),
+        W = random.choice([1024+512]),
         H = random.choice([1024]),
         sampler = random.choice(["euler"]),
-        steps = 30,
-        guidance_scale = random.choice([7]),
-        upscale_f = 1.0,
+        steps = 50,
+        guidance_scale = random.choice([5,7,9]),
+        upscale_f = 1.4,
         text_input = text_input,
         seed = seed,
         n_samples = 1,
         init_image = init_image,
         init_image_strength = 0.0,
         lora_path = lora_path,
+        uc_text = "text, watermark, low-quality, signature, padding, margins, white borders, padded border, moiré pattern, downsampling, aliasing, distorted, blurry, blur, jpeg artifacts, compression artifacts, poorly drawn, low-resolution, bad, grainy, error, bad-contrast"
     )
 
-    if iteration > 3:
-        args.W = 1024 + 256
-
-    suffix = "_" + args.ckpt
-    name = f'{prefix}{args.text_input[:80]}_{args.seed}_{int(time.time())}{suffix}'
+    name = f'{args.text_input[:60]}_{args.guidance_scale}_{args.seed}_{args.ckpt}_{int(time.time())}'
     name = name.replace("/", "_")
     start_time = time.time()
 
@@ -138,10 +124,14 @@ if __name__ == "__main__":
     
     outdir = "results_basic"
 
+    prompt_file = "../random_prompts.txt"
+    text_inputs = open(prompt_file).read().split("\n")
+
     for i in range(40):
         seed = int(time.time())
-        seed = i
+        #seed = i
         #seed_everything(seed)
         text_input = random.choice(text_inputs)
+        text_input = text_inputs[i%len(text_inputs)]
 
         generate_basic(text_input, outdir, seed = seed, iteration = i)

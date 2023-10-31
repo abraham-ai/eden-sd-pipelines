@@ -32,28 +32,69 @@ RUN_REMIX=1
 RUN_CONTROLNET=1
 RUN_BLEND=1
 RUN_UPSCALE=1
+RUN_REAL2REAL=1
 
-
-###########################################################
-
-# Delete output.log if it exists
-[ -e "output.log" ] && rm output.log
-
-# Delete error.log if it exists
-[ -e "error.log" ] && rm error.log
+if [ $RUN_REAL2REAL -eq 1 ]; then
+  echo "Running real2real commands..."
 
   curl -s -X POST -H "Authorization: Token $REPLICATE_API_TOKEN" -H 'Content-Type: application/json' "http://0.0.0.0:5000/predictions" -d @- <<EOF | jq '.' >> output.log 2>> error.log
 {
     "input": {
-      "mode": "upscale",
-      "width": 1600,
-      "height": 1600,
-      "init_image": "$INIT_IMAGE_URL1",
-      "init_image_strength": 0.2,
-      "control_image": "$INIT_IMAGE_URL1",
-      "control_image_strength": 0.7,
-      "controlnet_type": "canny-edge",
+      "mode": "real2real",
+      "interpolation_init_images": "$INIT_IMAGE_URL1|$INIT_IMAGE_URL2",
+      "lora": "$LORA_URL",
+      "steps": $STEPS,
+      "width": 512,
+      "height": 640,
+      "n_frames": 20,
       "seed": $SEED
     }
 }
 EOF
+
+  curl -s -X POST -H "Authorization: Token $REPLICATE_API_TOKEN" -H 'Content-Type: application/json' "http://0.0.0.0:5000/predictions" -d @- <<EOF | jq '.' >> output.log 2>> error.log
+{
+    "input": {
+      "mode": "real2real",
+      "interpolation_init_images": "$INIT_IMAGE_URL1|$INIT_IMAGE_URL2",
+      "steps": $STEPS,
+      "width": 500,
+      "height": 500,
+      "n_frames": 120,
+      "seed": $SEED
+    }
+}
+EOF
+
+  curl -s -X POST -H "Authorization: Token $REPLICATE_API_TOKEN" -H 'Content-Type: application/json' "http://0.0.0.0:5000/predictions" -d @- <<EOF | jq '.' >> output.log 2>> error.log
+{
+    "input": {
+      "mode": "real2real",
+      "interpolation_init_images": "$INIT_IMAGE_URL1|$INIT_IMAGE_URL2",
+      "steps": $STEPS,
+      "width": 640,
+      "height": 640,
+      "n_frames": 130,
+      "seed": $SEED
+    }
+}
+EOF
+
+
+  curl -s -X POST -H "Authorization: Token $REPLICATE_API_TOKEN" -H 'Content-Type: application/json' "http://0.0.0.0:5000/predictions" -d @- <<EOF | jq '.' >> output.log 2>> error.log
+{
+    "input": {
+      "mode": "real2real",
+      "interpolation_init_images": "$INIT_IMAGE_URL1|$INIT_IMAGE_URL2",
+      "steps": $STEPS,
+      "width": 640,
+      "height": 500,
+      "n_frames": 60,
+      "seed": $SEED
+    }
+}
+EOF
+
+else
+  echo "Skipping real2real commands"
+fi

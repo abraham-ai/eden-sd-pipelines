@@ -1,6 +1,6 @@
 # never push DEBUG_MODE = True to Replicate!
 DEBUG_MODE = False
-DEBUG_MODE = True
+#DEBUG_MODE = True
 
 import os
 import time
@@ -323,7 +323,7 @@ class Predictor(BasePredictor):
             ip_adapter_str = f"_ip_adapter_{ip_image_strength}" if ip_image else ""
             image_str      = f"_image_{init_image_strength:.2f}" if init_image else ""
 
-            prediction_name = f"{int(t_start)}_{mode}{lora_str}{controlnet_str}{ip_adapter_str}{image_str}_upf_{upscale_f:.2f}_"
+            prediction_name = f"{int(t_start)}_{mode}{lora_str}{controlnet_str}{ip_adapter_str}{image_str}_upf_{upscale_f:.2f}_{n_frames}_frames"
             os.makedirs(debug_output_dir, exist_ok=True)
 
             # save a black dummy image to disk so we can easily see which tests failed:
@@ -331,12 +331,22 @@ class Predictor(BasePredictor):
                 for index in range(args.n_samples):
                         save_path = os.path.join(debug_output_dir, prediction_name + f"_{index}.jpg")
                         Image.new("RGB", (512, 512), "black").save(save_path)
-            elif mode == "blend":
+            else:
                 save_path = os.path.join(debug_output_dir, prediction_name + ".jpg")
                 Image.new("RGB", (512, 512), "black").save(save_path)
-            else:
-                savepath = os.path.join(debug_output_dir, prediction_name + ".mp4")
-                Image.new("RGB", (512, 512), "black").save(save_path)
+
+
+        # throw general user warnings:
+        if args.controlnet_type != "off":
+            if args.control_image is None:
+                raise ValueError(f"You must provide a shape guidance image when using {args.controlnet_type} ControlNet!")
+            if args.control_image_strength == 0:
+                raise ValueError(f"Shape guidance image strength must be > 0.0 when using {args.controlnet_type} ControlNet!")
+        if args.control_image is not None:
+            if args.controlnet_type == "off":
+                raise ValueError(f"You provided a shape guidance image, but ControlNet type is off!")
+            if args.control_image_strength == 0:
+                raise ValueError(f"Shape guidance image strength must be > 0.0 when using {args.controlnet_type} ControlNet!")
 
 
         if mode == "interrogate":

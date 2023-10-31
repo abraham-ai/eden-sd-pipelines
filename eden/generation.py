@@ -107,14 +107,14 @@ def generate(
     else:
         pipe_manager.disable_ip_adapter()
 
-    if args.c is None and args.text_input is not None and args.text_input != "" and 1:
+    if args.c is None and args.text_input is not None and args.text_input != "" and 0:
                 args.c, args.uc, args.pc, args.puc = pipe.encode_prompt(
                     args.text_input,
                     do_classifier_free_guidance = args.guidance_scale > 1,
                     negative_prompt = args.uc_text,
                     lora_scale = args.lora_scale,
                     )
-    if 1:
+    if 0:
         from latent_magic import sample_random_conditioning, save_ip_img_condition
         args = sample_random_conditioning(args)
         #save_ip_img_condition(args)
@@ -133,8 +133,8 @@ def generate(
         args.c = args_c_clone
         #args.c[0,1:-2,:] += torch.randn_like(args.c[0,1:-2,:]) * args.noise_sigma
 
-    from latent_magic import visualize_distribution
-    visualize_distribution(args, os.path.join(args.outdir, args.name))
+    #from latent_magic import visualize_distribution
+    #visualize_distribution(args, os.path.join(args.outdir, args.name))
 
     if (args.interpolator is None) and (len(args.name) == 0):
         args.name = args.text_input # send this name back to the frontend
@@ -536,7 +536,7 @@ def run_upscaler(args_, imgs,
     x_samples_upscaled, x_images_upscaled = [], []
 
     # Load the upscaling model:
-    args.ckpt = args.upscale_ckpt
+    #args.ckpt = args.upscale_ckpt
 
     if (args.c is not None) and (args.uc is not None) and args.ckpt != "sdxl-refiner-v1.0":
         args.uc_text, args.text_input = None, None

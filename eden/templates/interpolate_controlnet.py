@@ -45,7 +45,8 @@ def lerp(
         W = 1024,
         control_image = control_image,
         control_image_strength = random.choice([0.45]),
-        controlnet_path = "controlnet-luminance-sdxl-1.0",
+        #controlnet_path = "controlnet-luminance-sdxl-1.0",
+        controlnet_path = "controlnet-monster-civitai",
     
     )
 
