@@ -697,6 +697,7 @@ class LatentTracker():
 
         # grab the index in the denoising trajectory that corresponds to the previous timestep:
         # the latents at this level will be used to generate the starting latents for the current frame
+        target_trajectory_index = 0
         for i,t in enumerate(self.pipe.scheduler.timesteps.cpu().numpy()):
             if t < timestep_cutoff:
                 target_trajectory_index = i

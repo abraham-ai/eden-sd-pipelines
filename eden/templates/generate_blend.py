@@ -12,6 +12,7 @@ from settings import StableDiffusionSettings, _device
 from generation import *
 from prompts import text_inputs
 from eden_utils import *
+from pipe import pipe_manager
 
 from PIL import Image
 import math
@@ -47,9 +48,23 @@ def save_img_overview(img_list, save_path='overview.png', cell_size=1024):
 
     canvas.save(save_path)
 
+def crop_to_square(img):
+    w, h = img.size
+    if w == h:
+        return img
 
-global ip_adapter
-ip_adapter = None
+    if w > h:
+        left = (w - h) // 2
+        right = w - left
+        top = 0
+        bottom = h
+    else:
+        top = (h - w) // 2
+        bottom = h - top
+        left = 0
+        right = w
+
+    return img.crop((left, top, right, bottom))
 
 def blend(
     init_image,
@@ -59,45 +74,22 @@ def blend(
     assert isinstance(init_image, list)
     assert len(init_image) > 1
 
-    text_modifiers = [
-        "",
-        "",
-        "",
-        "",
-        "tilt shift photo, macrophotography",
-        "pixel art, 16-bit, pixelated",
-        "cubism, abstract art",
-        "on the beach",
-        "butterfly, 🦋",
-        "low poly, geometric shapes",
-        "origami, paper folds",
-        "drawing by M.C. Escher",
-        "painting by Salvador Dalí",
-        "painting by Wassily Kandinsky",
-        "H. R. Giger, biomechanical",
-        "topographical map, contour lines",
-        "starry night, Van Gogh swirls",
-        "ASCII art, monospace",
-    ]
-
     args = StableDiffusionSettings(
         mode = "generate",
         clip_interrogator_mode = "fast",
-        W = random.choice([2048]),
-        H = random.choice([1152]),
+        text_input = "HD photo",
+        W = random.choice([1024+512]),
+        H = random.choice([1024+512]),
         sampler = random.choice(["euler", "euler_ancestral"]),
         steps = 40,
         guidance_scale = random.choice([6,8,10]),
         seed = seed,
         upscale_f = 1.0,
-        init_image_strength = random.choice([0.0]),
+        init_image_strength = random.choice([0.0, 0.05, 0.1]),
     )
 
-    global pipe
-    pipe = eden_pipe.get_pipe(args)
-    global ip_adapter
-    if ip_adapter is None:
-        ip_adapter = IPAdapterXL(pipe, eden_pipe.IP_ADAPTER_IMG_ENCODER_PATH, eden_pipe.IP_ADAPTER_PATH, _device)
+    pipe = pipe_manager.get_pipe(args)
+    ip_adapter = pipe_manager.enable_ip_adapter()
 
     #args.text_input = clip_interrogate(args.ckpt, args.init_image, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
     #del_clip_interrogator_models()
@@ -107,8 +99,12 @@ def blend(
 
     for i, image in enumerate(init_image):
         img = load_img(image, 'RGB')
+
+        # get square centre crop:
+        img = crop_to_square(img)
+        
         source_imgs.append(img)
-        c, uc, pc, puc = ip_adapter.create_embeds(img, scale=1.0)
+        c, uc, pc, puc = pipe_manager.ip_adapter.create_embeds(img, scale=1.0, negative_prompt=args.uc_text)
 
         c_sum += c
         uc_sum += uc
@@ -124,14 +120,19 @@ def blend(
     name = f'remix_{args.seed}_{int(time.time())}_{args.ip_image_strength}_{args.text_input.replace(" ", "_")}'
     name = f'{args.init_image_strength:.2f}_{args.ip_image_strength:.2f}_{args.text_input.replace(" ", "_")}_{args.seed}'
 
-    generator = make_images(args)
-    for i, img in enumerate(generator):
+    _, images_pil = generate(args)
+    for i, img in enumerate(images_pil):
         frame = f'{name}_{i}.jpg'
         os.makedirs(outdir, exist_ok = True)
         img.save(os.path.join(outdir, frame), quality=95)
 
-    # Also save the original images:
-    save_img_overview(source_imgs, save_path=os.path.join(outdir, f'{name}_source.jpg'))
+    # save the original images:
+    #save_img_overview(source_imgs, save_path=os.path.join(outdir, f'{name}_source.jpg'))
+
+    # Also save the original images separately:
+    for i, img in enumerate(source_imgs):
+        frame = f'{name}_source_{i}.jpg'
+        img.save(os.path.join(outdir, frame), quality=95)
 
     # save settings
     settings_filename = f'{outdir}/{name}.json'
@@ -141,11 +142,11 @@ def blend(
 if __name__ == "__main__":
 
     outdir = "results_blend"
-    input_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/01_great_inits"
+    input_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/init_imgs/01_great_inits"
 
     for i in range(200):
         seed = int(time.time())
-        n = random.choice([2,3,4])
+        n = random.choice([2])
 
         # sample n random image paths from input_dir:
         all_img_paths = [os.path.join(input_dir, f) for f in os.listdir(input_dir)]

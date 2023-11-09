@@ -84,21 +84,20 @@ def generate_basic(
     iteration = 0):
 
     args = StableDiffusionSettings(
-        ckpt = "juggernaut_XL2",
+        #ckpt = "juggernaut_XL2",
         mode = "generate",
-        W = random.choice([1024+512]),
+        W = random.choice([1024]),
         H = random.choice([1024]),
         sampler = random.choice(["euler"]),
-        steps = 50,
-        guidance_scale = random.choice([5,7,9]),
-        upscale_f = 1.4,
+        steps = 40,
+        guidance_scale = random.choice([7]),
+        upscale_f = 1.0,
         text_input = text_input,
         seed = seed,
         n_samples = 1,
-        init_image = init_image,
-        init_image_strength = 0.0,
-        lora_path = lora_path,
-        uc_text = "text, watermark, low-quality, signature, padding, margins, white borders, padded border, moiré pattern, downsampling, aliasing, distorted, blurry, blur, jpeg artifacts, compression artifacts, poorly drawn, low-resolution, bad, grainy, error, bad-contrast"
+        #init_image = init_image,
+        #init_image_strength = 0.0,
+        
     )
 
     name = f'{args.text_input[:60]}_{args.guidance_scale}_{args.seed}_{args.ckpt}_{int(time.time())}'
@@ -122,10 +121,16 @@ def generate_basic(
 
 if __name__ == "__main__":
     
-    outdir = "results_basic"
+    outdir = "results_basic_2000"
 
     prompt_file = "../random_prompts.txt"
     text_inputs = open(prompt_file).read().split("\n")
+    
+    text_inputs = [
+        "a photo of plantoid",
+        "a photo of plantoid surfing a wave in hawai",
+        "a photo of plantoid on top of Mount Everest",
+    ]
 
     for i in range(40):
         seed = int(time.time())

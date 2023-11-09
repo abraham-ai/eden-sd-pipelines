@@ -1,3 +1,6 @@
+import sys
+print(sys.version)
+
 import importlib.util
 import operator as op
 import os
