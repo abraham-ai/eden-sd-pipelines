@@ -26,27 +26,31 @@ def lerp(
     os.makedirs(frames_dir, exist_ok=True)
     
     args = StableDiffusionSettings(
+        #ckpt = "juggernaut_XL2",
+        ckpt = "segmind/SSD-1B",
         text_input = interpolation_texts[0],
         interpolation_texts = interpolation_texts,
         interpolation_seeds = interpolation_seeds if interpolation_seeds else [random.randint(1, 1e8) for i in range(n)],
-        n_frames = 12*n,
+        n_frames = 10*n,
         guidance_scale = random.choice([7]),
         loop = True,
-        smooth = True,
+        smooth = False,
         latent_blending_skip_f = random.choice([[0.05, 0.65]]),
         n_anchor_imgs = random.choice([3]),
         #init_image = "/data/xander/Projects/cog/eden-sd-pipelines/eden/assets/abraham_logo_hires.png",
         #init_image_strength = 0.0,
-        control_image = "/data/xander/Projects/cog/eden-sd-pipelines/eden/assets/abraham_logo_hires.png",
-        control_image_strength = 0.35,
-        controlnet_path = "controlnet-luminance-sdxl-1.0",
+        #control_image = "/data/xander/Projects/cog/eden-sd-pipelines/eden/assets/abraham_logo_hires.png",
+        #control_image_strength = 0.35,
+        #controlnet_path = "controlnet-luminance-sdxl-1.0",
         n_film = 0,
         fps = 12,
-        steps = 35,
+        steps = 4,
         seed = seed,
         W = 768,
         H = 768,
     )
+
+    args.use_lcm = True
 
     # always make sure these args are properly set:
     args.frames_dir = frames_dir
@@ -63,7 +67,8 @@ def lerp(
     # run the interpolation and save each frame
     frame_counter = 0
     for frame, t_raw in make_interpolation(args):
-        frame.save(os.path.join(frames_dir, "frame_%018.14f_%05d.jpg"%(t_raw, frame_counter)), quality=95)
+        #frame.save(os.path.join(frames_dir, "frame_%018.14f_%05d.jpg"%(t_raw, frame_counter)), quality=95)
+        frame.save("out.jpg", quality=95)
         frame_counter += 1
         
     # run FILM
@@ -95,20 +100,27 @@ def lerp(
 if __name__ == "__main__":
 
     outdir = "results"
-    n = 3
+    n = 14
+
+    # save a black square img to out.jpg:
+    Image.new('RGB', (768,768), (0,0,0)).save("out.jpg")
 
     for i in [1,2,3,4]:
         seed = np.random.randint(0, 1000)
-        seed = i
+        seed = i+2
 
         seed_everything(seed)
         interpolation_texts = random.sample(text_inputs, n)
 
-        interpolation_texts = [
+        interpolation_texts2 = [
             "a photo of a single lone sprout grows in a barren desert, the horizon is visible in the background, low angle 8k HD nature photo",
             "a photo of a lone sappling growing in a field of mud, high quality professional photography, nikon d850 50mm",
             "a photo of a huge, green tree in a forest, the tree is covered in moss, 8k HD nature photo",
             "a photo of an old, crumbled Tree of life, intricate wood folds, 8K professional nature photography, HDR",
+            "a photo of an old tree of life floating above the ground, rising into the air",
+            "a photo of the tree of Life in outer space, cosmic background, stars, nebulae, 8K HD professional photography",
+            "a photo of outer space, nebulae, stars, black void, black hole, 8K HD professional photography",
+            "a photo of a small acorn laying on the ground, 8K HD professional photography",
         ]
 
         for txt in interpolation_texts:

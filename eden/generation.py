@@ -105,7 +105,7 @@ def generate(
             scale=args.ip_image_strength  # scale = 1.0 will mostly use the image prompt, 0.0 will only use the text prompt
             )
     else:
-        print("Disabling ip_adapter..")
+        #print("Disabling ip_adapter..")
         pipe_manager.disable_ip_adapter()
 
     if args.c is None and args.text_input is not None and args.text_input != "" and 0:
@@ -136,6 +136,9 @@ def generate(
 
     #from latent_magic import visualize_distribution
     #visualize_distribution(args, os.path.join(args.outdir, args.name))
+
+    if args.use_lcm:
+        args.guidance_scale = 0.0
 
     if (args.interpolator is None) and (len(args.name) == 0):
         args.name = args.text_input # send this name back to the frontend
@@ -170,7 +173,6 @@ def generate(
     generator = torch.Generator(device=_device).manual_seed(args.seed)
     
     if args.c is not None:
-        assert args.uc is not None, "Must provide negative prompt conditioning if providing positive prompt conditioning"
         prompt, prompt_2, negative_prompt = None, None, None
     else:
         prompt, prompt_2, negative_prompt = args.text_input, args.text_input_2, args.uc_text
@@ -364,7 +366,7 @@ def make_interpolation(args, force_timepoints = None):
 
     ######################################
 
-    if n_frames > 99:
+    if n_frames > 140:
         print(f"Compiling model for {args.W}x{args.H}...")
         pipe.unet = torch.compile(pipe.unet, mode="reduce-overhead", fullgraph=False)
 

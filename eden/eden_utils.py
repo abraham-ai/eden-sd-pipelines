@@ -572,6 +572,7 @@ def get_random_imgpath_from_dir(dir_path, n=1, extensions = [".jpg", ".png", ".j
                     img_paths.append(os.path.join(root, file))
 
     # pick n random images:
+    img_paths = sorted(img_paths)
     img_paths = random.sample(img_paths, n)
 
     if n==1:
@@ -670,6 +671,10 @@ def lerp(t, v0, v1):
     Returns:
         v2 (np.ndarray): Interpolation vector between v0 and v1
     '''
+
+    if v0 is None or v1 is None:
+        return None
+        
     inputs_are_torch = False
     if not isinstance(v0, np.ndarray):
         inputs_are_torch = True
@@ -698,6 +703,8 @@ def slerp(t, v0, v1, flatten = 0, normalize = 0, DOT_THRESHOLD=0.9995, long_arc 
     Returns:
         v2 (np.ndarray): Interpolation vector between v0 and v1
     '''
+    if v0 is None or v1 is None:
+        return None
 
     inputs_are_torch = False
     if not isinstance(v0, np.ndarray):

@@ -7,6 +7,12 @@ import os
 import uuid
 import torch
 import packaging.version
+import transformers
+
+print("-------- Default HF download path: ---------------")
+print(transformers.file_utils.default_cache_path)
+print("--------------------------------------------------")
+
 
 if packaging.version.parse(torch.__version__) >= packaging.version.parse('1.12.0'):
     torch.backends.cuda.matmul.allow_tf32 = True
@@ -81,6 +87,7 @@ class StableDiffusionSettings:
     steps: int = 40
     min_steps: int = 7  # low_n steps often give artifacts, so adopt a min-n-steps
     guidance_scale: float = 7.5
+    use_lcm: bool = False
     
     C: int = 4
     f: int = 8   

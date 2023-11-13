@@ -85,11 +85,13 @@ def generate_basic(
 
     args = StableDiffusionSettings(
         #ckpt = "juggernaut_XL2",
+        ckpt = "segmind/SSD-1B",
         mode = "generate",
+        use_lcm = True,
         W = random.choice([1024]),
         H = random.choice([1024]),
         sampler = random.choice(["euler"]),
-        steps = 40,
+        steps = 35,
         guidance_scale = random.choice([7]),
         upscale_f = 1.0,
         text_input = text_input,
@@ -97,10 +99,16 @@ def generate_basic(
         n_samples = 1,
         #init_image = init_image,
         #init_image_strength = 0.0,
-        
     )
 
-    name = f'{args.text_input[:60]}_{args.guidance_scale}_{args.seed}_{args.ckpt}_{int(time.time())}'
+    if args.use_lcm:
+        args.steps = int(args.steps / 4)
+        args.guidance_scale = 0.0
+        addstr = f"_LCM_{args.steps}_steps"
+    else:
+        addstr = f"_no_LCM_base_{args.steps}_steps"
+
+    name = f'{args.text_input[:60]}{addstr}_{args.guidance_scale}_{args.seed}_{args.ckpt}_{int(time.time())}'
     name = name.replace("/", "_")
     start_time = time.time()
 
@@ -121,21 +129,15 @@ def generate_basic(
 
 if __name__ == "__main__":
     
-    outdir = "results_basic_2000"
+    outdir = "results_basic"
 
     prompt_file = "../random_prompts.txt"
     text_inputs = open(prompt_file).read().split("\n")
-    
-    text_inputs = [
-        "a photo of plantoid",
-        "a photo of plantoid surfing a wave in hawai",
-        "a photo of plantoid on top of Mount Everest",
-    ]
 
     for i in range(40):
         seed = int(time.time())
-        #seed = i
-        #seed_everything(seed)
+        seed = i
+        seed_everything(seed)
         text_input = random.choice(text_inputs)
         text_input = text_inputs[i%len(text_inputs)]
 

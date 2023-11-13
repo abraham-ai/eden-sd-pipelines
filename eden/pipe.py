@@ -11,6 +11,7 @@ print("ROOT_PATH: ", ROOT_PATH)
 DIFFUSERS_PATH = os.path.join(ROOT_PATH, 'diffusers')
 CHECKPOINTS_PATH = os.path.join(SD_PATH, 'models/checkpoints')
 CONTROLNET_PATH = os.path.join(SD_PATH, 'models/controlnets')
+LORA_PATH  = os.path.join(SD_PATH, 'models/loras')
 IP_ADAPTER_PATH = os.path.join(SD_PATH, 'models/ip_adapter/ip-adapter_sdxl.bin')
 IP_ADAPTER_IMG_ENCODER_PATH = os.path.join(SD_PATH, 'models/ip_adapter/image_encoder')
 
@@ -23,7 +24,7 @@ from safetensors.torch import safe_open, save_file
 import diffusers
 print("Importing diffusers from:")
 print(diffusers.__file__)
-from diffusers import DiffusionPipeline, StableDiffusionXLImg2ImgPipeline
+from diffusers import DiffusionPipeline, StableDiffusionXLImg2ImgPipeline, LCMScheduler
 from diffusers import ControlNetModel, StableDiffusionXLControlNetPipeline, AutoencoderKL, StableDiffusionXLControlNetImg2ImgPipeline
 from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline, StableDiffusionDepth2ImgPipeline
 
@@ -101,9 +102,20 @@ class PipeManager:
             self.last_controlnet_path = args.controlnet_path
             self.ip_adapter = None
 
+            if args.use_lcm:
+                self.pipe.scheduler = LCMScheduler.from_config(self.pipe.scheduler.config)
+                self.pipe.to(_device)
+                args.lcm_lora = "lcm_sdxl_lora.safetensors"
+                adapter_id = os.path.join(LORA_PATH, args.lcm_lora)
+                adapter_id = "latent-consistency/lcm-lora-ssd-1b"
+                print(f"Loading lcm-loa from {adapter_id}...")
+                self.pipe.load_lora_weights(adapter_id)
+                self.pipe.fuse_lora()
+
         self.update_pipe_with_lora(args)
 
-        self.pipe = set_sampler(args.sampler, self.pipe)
+        if not args.use_lcm:
+            self.pipe = set_sampler(args.sampler, self.pipe)
 
         return self.pipe
 
@@ -170,7 +182,8 @@ def load_pipe(args):
         else:
             load_from_single_file = False
     else:
-        raise ValueError(f"Invalid checkpoint path: {location}")
+        # load from hf hub:
+        load_from_single_file = False
 
     print("#############################################")
     print(f"Loading new SD pipeline from {location}..")
@@ -219,6 +232,7 @@ def load_pipe(args):
                 location,
                 torch_dtype=torch.float16, use_safetensors=True)
         else:
+            #location = "segmind/SSD-1B"
             print(f"Loading SDXL from pretrained: {location}...")
             pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
                 location, 

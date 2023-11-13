@@ -29,6 +29,7 @@ def real2real(
     if args is None:
         args = StableDiffusionSettings(
             #watermark_path = "../assets/eden_logo.png",
+            ckpt = "juggernaut_XL2",
             text_input = "real2real",  # text_input is also the title, but has no effect on interpolations
             interpolation_seeds = [random.randint(1, 1e8) for _ in range(n)],
             interpolation_texts = input_texts,
@@ -42,14 +43,13 @@ def real2real(
             sampler = "euler",
             n_frames = 16*n,
             loop = True,
-            smooth = True,
+            smooth = False,
             n_film = 1,
             fps = 12,
-            steps = 30,
+            steps = 35,
             seed = seed,
             H = random.choice([960]),
             W = random.choice([640]),
-            ip_image_strength = random.choice([0.65]),
         )
 
     # always make sure these args are properly set:
