@@ -46,6 +46,16 @@ def maybe_apply_watermark(args, x_images):
         x_images = args.watermarker.apply_watermark(x_images)
     return x_images
 
+def make_callback(
+    latent_tracker=None,
+    extra_callback=None,
+):
+    def diffusers_callback(i, t, latents, pre_timestep = 0):
+        if latent_tracker:
+            latent_tracker.add_latent(i, t, latents, pre_timestep = pre_timestep)
+              
+    return diffusers_callback
+
 @torch.no_grad()
 def generate(
     args, 
@@ -257,7 +267,7 @@ def generate(
         prompt_embeds = {key: getattr(args, key).cpu().numpy() for key in ["c", "uc", "pc", "puc"]}
     except:
         prompt_embeds = None
-    
+
     return prompt_embeds, pil_images
 
 
@@ -459,8 +469,6 @@ def make_interpolation(args, force_timepoints = None):
 
 
 
-
-
 def make_images(args):
     if args.mode == "remix" or args.mode == "upscale" or args.mode == "controlnet":
         
@@ -470,9 +478,17 @@ def make_images(args):
             img = load_img(args.init_image, 'RGB')
             w, h = img.size
 
-            if not args.ip_image and (min(w,h) > 224): # only use the image conditioning when the input is large enough
+            if not args.ip_image:
                 print("Setting init_image as ip_image!")
                 args.ip_image = args.init_image
+                n_1024   = 1024 * 1024  # Number of pixels in a 1024x1024 image
+                n_264    = 264 * 264    # Number of pixels in a 264x264 image
+                n_pixels = w * h        # Your current image size
+
+                # Attenuate the ip_image_strenght for low_res ip_images (since that will result in blurry imgs)
+                ip_image_strength_multiplier = (n_pixels - n_264) / (n_1024 - n_264)
+                ip_image_strength_multiplier = max(0.0, min(1.0, ip_image_strength_multiplier))
+                args.ip_image_strength *= ip_image_strength_multiplier
 
         if args.mode == "upscale" and args.lora_path:
             print("Disabling LoRA for upscaling!!")
@@ -503,15 +519,7 @@ def make_images(args):
     return images_pil
 
 
-def make_callback(
-    latent_tracker=None,
-    extra_callback=None,
-):
-    def diffusers_callback(i, t, latents, pre_timestep = 0):
-        if latent_tracker:
-            latent_tracker.add_latent(i, t, latents, pre_timestep = pre_timestep)
-              
-    return diffusers_callback
+
 
 def run_upscaler(args_, imgs, 
         init_image_strength    = 0.55,
