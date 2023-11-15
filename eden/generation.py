@@ -179,7 +179,7 @@ def generate(
     else:
         callback_ = None
 
-    generator = torch.Generator(device=_device).manual_seed(args.seed)
+    generator = torch.Generator(device=_device).manual_seed(int(args.seed))
     
     if args.c is not None:
         prompt, prompt_2, negative_prompt = None, None, None
