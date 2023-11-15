@@ -316,10 +316,14 @@ def prepare_prompt_for_lora(prompt, lora_path, interpolation=False, verbose=True
     print(f"lora name: {lora_name}")
     lora_name_encapsulated = "<" + lora_name + ">"
     trigger_text = training_args["trigger_text"]
+
     try:
         mode = training_args["concept_mode"]
-    except:
-        mode = training_args["mode"]
+    except KeyError:
+        try:
+            mode = training_args["mode"]
+        except KeyError:
+            mode = "object"
 
     # Helper function for multiple replacements
     def replace_in_string(s, replacements):
