@@ -1201,7 +1201,7 @@ def preprocess_controlnet_init_image(pil_control_image, args):
     if "canny" in args.controlnet_path:
         return preprocess_canny(pil_control_image)
 
-    if "luminance" in args.controlnet_path:
+    if "luminance" in args.controlnet_path: #or "QR" in args.controlnet_path:
         if args.interpolator is not None: # video
             threshold = False
             target_width_range = [512,512]
@@ -1210,6 +1210,8 @@ def preprocess_controlnet_init_image(pil_control_image, args):
             target_width_range = [264,264]
             #target_width_range = [48,264]
         return preprocess_luminance(pil_control_image, threshold = threshold, target_width_range=target_width_range)
+
+    return pil_control_image
 
 def compute_brightness_map(image):
     """Compute the perceptual brightness map of an image."""

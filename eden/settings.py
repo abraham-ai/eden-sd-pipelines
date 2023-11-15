@@ -13,7 +13,6 @@ print("-------- Default HF download path: ---------------")
 print(transformers.file_utils.default_cache_path)
 print("--------------------------------------------------")
 
-
 if packaging.version.parse(torch.__version__) >= packaging.version.parse('1.12.0'):
     torch.backends.cuda.matmul.allow_tf32 = True
 

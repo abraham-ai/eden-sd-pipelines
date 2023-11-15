@@ -25,13 +25,13 @@ def generate_basic(
     control_img = os.path.join(img_dir, random.choice(all_imgs))
 
     args = StableDiffusionSettings(
-        ckpt = "juggernaut_XL2",
+        #ckpt = "juggernaut_XL2",
         #upscale_ckpt = "sdxl-refiner-v1.0",
         W = random.choice([1024+512]),
         H = random.choice([1024]),
         sampler = random.choice(["euler", "euler_ancestral"]),
-        steps = 30,
-        use_lcm = True,
+        steps = 40,
+        #use_lcm = True,
         guidance_scale = random.choice([8]),
         upscale_f = random.choice([1.0]),
         text_input = text_input,
@@ -41,10 +41,11 @@ def generate_basic(
         #init_image = get_random_imgpath_from_dir(img_dir),
         #init_image_strength = random.choice([0.1]),
         control_image   = control_img,
-        control_image_strength = random.choice([0.6]),
+        control_image_strength = random.choice([0.6,0.8,1.0]),
         #ip_image   = ip_img,
-        #controlnet_path = "controlnet-canny-sdxl-1.0-small", 
-        controlnet_path = random.choice(["controlnet-canny-sdxl-1.0-small", "controlnet-luminance-sdxl-1.0"]),
+        controlnet_path = "ControlNet-QR-XL_v2", 
+        #controlnet_path = "controlnet-luminance-sdxl-1.0",
+        #controlnet_path = random.choice(["controlnet-canny-sdxl-1.0-small", "controlnet-luminance-sdxl-1.0"]),
     )
 
     if args.use_lcm:
@@ -56,12 +57,12 @@ def generate_basic(
     #name = f'{prefix}{args.text_input[:40]}_{os.path.basename(args.lora_path)}_{args.seed}_{int(time.time())}{suffix}'
     #init_img_name = os.path.basename(args.init_image).split(".")[0]
     #name = f'{prefix}{args.text_input[:40]}_{init_img_name}_{args.seed}_{int(time.time())}{suffix}'
-    name = f'{args.text_input[:40]}_{args.init_image_strength}_{args.control_guidance_end}_{args.controlnet_path}_{args.seed}{addstr}'
+    name = f'{args.text_input[:40]}_{args.control_image_strength}_{args.controlnet_path}_{args.ckpt}_{args.seed}{addstr}'
 
     name = name.replace("/", "_")
     os.makedirs(outdir, exist_ok = True)
 
-    save_control_img, save_ip_img = 0,0
+    save_control_img, save_ip_img = 1,0
 
     generator = make_images(args)
 
@@ -69,7 +70,8 @@ def generate_basic(
         frame = f'{name}_{i}.jpg'
         img.save(os.path.join(outdir, frame), quality=95)
         if save_control_img:
-            controlnet_img.save(os.path.join(outdir, f'{name}_{i}_cond.jpg'), quality=95)
+            control_img = load_img(args.control_image_path)
+            control_img.save(os.path.join(outdir, f'{name}_{i}_cond.jpg'), quality=95)
         if save_ip_img and args.ip_image is not None:
             # apply center square crop to the ip_image:
             ip_image = args.ip_image.crop((args.ip_image.width/2 - args.ip_image.height/2, 0, args.ip_image.width/2 + args.ip_image.height/2, args.ip_image.height))

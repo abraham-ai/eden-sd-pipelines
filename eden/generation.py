@@ -228,7 +228,7 @@ def generate(
     # Conditionally add arguments if controlnet is used
     if args.controlnet_path and args.control_image_strength > 0 and (args.control_image is not None):
         args.control_image = preprocess_controlnet_init_image(args.control_image, args)
-        #args.init_image.save("init_image.png")
+        #args.control_image.save("control_image.png")
 
         pipe_fn_args.update({
             'image': args.init_image,

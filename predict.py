@@ -1,6 +1,6 @@
 # never push DEBUG_MODE = True to Replicate!
 DEBUG_MODE = False
-#DEBUG_MODE = True
+DEBUG_MODE = True
 
 import os
 import time
@@ -401,6 +401,7 @@ class Predictor(BasePredictor):
 
             if DEBUG_MODE:
                 for index, out_path in enumerate(out_paths):
+                    print(f"Saving image to {debug_output_dir}..")
                     shutil.copyfile(out_path, os.path.join(debug_output_dir, prediction_name + f"_{index}.jpg"))
                 yield out_paths[0]
             else:

@@ -1,18 +1,19 @@
-.huggingface/hub/models--stabilityai--stable-diffusion-xl-refiner-1.0
-.huggingface/hub/models--stabilityai--sd-vae-ft-mse
+.huggingface
+eden/templates
+eden/xander
+tests
 
-models/checkpoints/juggernaut_XL
+models/checkpoints/juggernaut_XL2
 models/checkpoints/eden:eden-v1
 models/checkpoints/gordon-berger:gordon-berger-figurative
 models/checkpoints/dreamshaper.safetensors
 models/checkpoints/sdxl-refiner-v1.0
 models/checkpoints/stable-diffusion-xl-base-1.0
+models/checkpoints/sdxl-ssd-1b
 
 models/controlnets/controlnet-canny-sdxl-1.0
 models/controlnets/controlnet-monster-v2
-models/controlnets/controlnet-depth-sdxl-1.0-small/diffusion_pytorch_model.safetensors
-models/controlnets/controlnet-luminance-sdxl-1.0/diffusion_pytorch_model.bin
+models/controlnets/controlnet-depth-sdxl-1.0-small/diffusion_pytorch_model.safetensors  # download this model on the fly
+models/controlnets/controlnet-luminance-sdxl-1.0/diffusion_pytorch_model.bin # download this model on the fly
 
-eden/templates
-eden/xander
-tests/logs
+
