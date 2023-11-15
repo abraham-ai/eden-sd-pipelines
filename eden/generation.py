@@ -132,7 +132,6 @@ def generate(
         args_c_clone = args.c.clone()
         args_c_clone[0,1:-2,:] += torch.randn_like(args.c[0,1:-2,:]) * args.noise_sigma
         args.c = args_c_clone
-        #args.c[0,1:-2,:] += torch.randn_like(args.c[0,1:-2,:]) * args.noise_sigma
 
     #from latent_magic import visualize_distribution
     #visualize_distribution(args, os.path.join(args.outdir, args.name))
@@ -345,7 +344,7 @@ def make_interpolation(args, force_timepoints = None):
             args.interpolation_texts[i] = prepare_prompt_for_lora(args.interpolation_texts[i], args.lora_path, interpolation = True, verbose = True)
 
     # Release CLIP memory:
-    del_clip_interrogator_models()
+    #del_clip_interrogator_models()
 
     args.interpolator = Interpolator(
         pipe, 
@@ -366,7 +365,7 @@ def make_interpolation(args, force_timepoints = None):
 
     ######################################
 
-    if n_frames > 140:
+    if n_frames > 100:
         print(f"Compiling model for {args.W}x{args.H}...")
         pipe.unet = torch.compile(pipe.unet, mode="reduce-overhead", fullgraph=False)
 

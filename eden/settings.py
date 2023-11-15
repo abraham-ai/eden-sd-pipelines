@@ -125,7 +125,7 @@ class StableDiffusionSettings:
     #uc_text: str = "nude, naked, poorly drawn face, ugly, tiling, out of frame, extra limbs, disfigured, deformed body, blurry, blurred, watermark, text, grainy, signature, cut off, draft"  # negative prompting
     uc_text: str = "nude, naked, text, watermark, low-quality, signature, padding, margins, white borders, padded border, moiré pattern, downsampling, aliasing, distorted, blurry, blur, jpeg artifacts, compression artifacts, poorly drawn, low-resolution, bad, grainy, error, bad-contrast"
     seed: int = 0
-    noise_sigma: float = 0.0 # adds random noise to the conditioning vector
+    noise_sigma: float = 0.0 # adds random noise to the conditioning vector (values of around 0.1 - 0.5 are OK)
     n_samples: int = 1
 
     # if mode is interpolate or animate (video)

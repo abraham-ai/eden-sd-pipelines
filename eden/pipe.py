@@ -105,9 +105,8 @@ class PipeManager:
             if args.use_lcm:
                 self.pipe.scheduler = LCMScheduler.from_config(self.pipe.scheduler.config)
                 self.pipe.to(_device)
-                args.lcm_lora = "lcm_sdxl_lora.safetensors"
-                adapter_id = os.path.join(LORA_PATH, args.lcm_lora)
-                adapter_id = "latent-consistency/lcm-lora-ssd-1b"
+                adapter_id = os.path.join(LORA_PATH, "lcm_sdxl_lora.safetensors")
+                #adapter_id = "latent-consistency/lcm-lora-ssd-1b"
                 print(f"Loading lcm-loa from {adapter_id}...")
                 self.pipe.load_lora_weights(adapter_id)
                 self.pipe.fuse_lora()

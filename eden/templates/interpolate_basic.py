@@ -26,16 +26,17 @@ def lerp(
     os.makedirs(frames_dir, exist_ok=True)
     
     args = StableDiffusionSettings(
-        #ckpt = "juggernaut_XL2",
-        ckpt = "segmind/SSD-1B",
+        ckpt = "juggernaut_XL2",
+        #ckpt = "segmind/SSD-1B",
         text_input = interpolation_texts[0],
         interpolation_texts = interpolation_texts,
         interpolation_seeds = interpolation_seeds if interpolation_seeds else [random.randint(1, 1e8) for i in range(n)],
-        n_frames = 10*n,
+        n_frames = 8*n,
         guidance_scale = random.choice([7]),
         loop = True,
-        smooth = False,
-        latent_blending_skip_f = random.choice([[0.05, 0.65]]),
+        smooth = True,
+        #latent_blending_skip_f = random.choice([[0.05, 0.65]]),
+        latent_blending_skip_f = None,
         n_anchor_imgs = random.choice([3]),
         #init_image = "/data/xander/Projects/cog/eden-sd-pipelines/eden/assets/abraham_logo_hires.png",
         #init_image_strength = 0.0,
@@ -46,7 +47,7 @@ def lerp(
         fps = 12,
         steps = 4,
         seed = seed,
-        W = 768,
+        W = 960,
         H = 768,
     )
 

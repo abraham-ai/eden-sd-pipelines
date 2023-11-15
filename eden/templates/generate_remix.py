@@ -50,22 +50,26 @@ def remix(init_image, outdir,
 
     args = StableDiffusionSettings(
         mode = "remix",
-        text_input = random.choice(text_modifiers),
+        text_input = "",
         clip_interrogator_mode = "fast",
-        W = random.choice([1024+512, 2048]),
-        H = random.choice([1024+512]),
+        W = random.choice([1024]),
+        H = random.choice([1024]),
         sampler = random.choice(["euler", "euler_ancestral"]),
-        steps = 60,
-        guidance_scale = random.choice([4,6,7,8]),
+        steps = 35,
+        guidance_scale = random.choice([8]),
         adopt_aspect_from_init_img = True,
+        #use_lcm = True,
+        noise_sigma = 0.0, #0.25
         seed = seed,
         n_samples = 1,
         upscale_f = 1.0,
-        #init_image_strength = random.choice([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]),
-        init_image_strength = random.choice([0.8, 0.85, 0.9]),
-        ip_image_strength = random.choice([0.4,0.6,0.8]),
+        #init_image_strength = random.choice([0.0, 0.05, 0.1]),
+        ip_image_strength = random.choice([0.6]),
         init_image = init_image,
     )
+
+    if args.use_lcm:
+        args.steps = int(args.steps / 4)
 
     #args.H = int(args.W * 3 / 4)
 
@@ -75,9 +79,12 @@ def remix(init_image, outdir,
         args.n_samples = 1
         args.upscale_f = 1.0
 
-    name = f'remix_{args.init_image_strength:.2f}_{args.ip_image_strength:.2f}_{args.text_input.replace(" ", "_").replace("/", "")}_{args.seed}'
+    lcm_string = "_lcm" if args.use_lcm else ""
 
+    prompt_name = args.text_input[:60].replace(" ", "_").replace("/", "")
+    name = f'remix{lcm_string}_{args.init_image_strength:.2f}_{args.ip_image_strength:.2f}_{prompt_name}_{args.seed}'
     generator = make_images(args)
+
     for i, img in enumerate(generator):
         frame = f'{name}_{i}.jpg'
         os.makedirs(outdir, exist_ok = True)
@@ -85,7 +92,7 @@ def remix(init_image, outdir,
 
     if 0:
         # Also save the original image:
-        init_img = load_img(args.init_image, 'RGB').resize((args.W, args.H))
+        init_img = load_img(init_image, 'RGB').resize((args.W, args.H))
         init_img.save(os.path.join(outdir, f'{name}_original.jpg'), quality=95)
 
     # save settings
@@ -105,11 +112,11 @@ if __name__ == "__main__":
     ]
     debug = False
 
-    for i in range(20):
+    for i in range(40):
         seed = int(time.time())
         init_image = random.choice(init_image_urls)
 
-        init_image = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/poster/WhatsApp Image 2023-10-21 at 15.30.55.jpeg"
-        init_image = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/destelbergen/to_remix/1ac0fbdf-45bf-48fc-83e2-1283d48d9282.jpeg"
+        #init_imgs = ["/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/poster/WhatsApp Image 2023-10-21 at 15.30.55.jpeg", "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/destelbergen/to_remix/1ac0fbdf-45bf-48fc-83e2-1283d48d9282.jpeg"]
+        
         remix(init_image, outdir, seed=seed, debug = debug)
 

@@ -337,16 +337,16 @@ class Predictor(BasePredictor):
 
 
         # throw general user warnings:
-        if args.controlnet_type != "off":
+        if controlnet_type != "off":
             if args.control_image is None:
-                raise ValueError(f"You must provide a shape guidance image when using {args.controlnet_type} ControlNet!")
+                raise ValueError(f"You must provide a shape guidance image when using {controlnet_type} ControlNet!")
             if args.control_image_strength == 0:
-                raise ValueError(f"Shape guidance image strength must be > 0.0 when using {args.controlnet_type} ControlNet!")
+                raise ValueError(f"Shape guidance image strength must be > 0.0 when using {controlnet_type} ControlNet!")
         if args.control_image is not None:
-            if args.controlnet_type == "off":
+            if controlnet_type == "off":
                 raise ValueError(f"You provided a shape guidance image, but ControlNet type is off!")
             if args.control_image_strength == 0:
-                raise ValueError(f"Shape guidance image strength must be > 0.0 when using {args.controlnet_type} ControlNet!")
+                raise ValueError(f"Shape guidance image strength must be > 0.0 when using {controlnet_type} ControlNet!")
 
 
         if mode == "interrogate":
@@ -393,7 +393,12 @@ class Predictor(BasePredictor):
             
             if (mode == "remix" or mode == "upscale") and (args.text_input is None):
                 attributes = {"interrogation": batch_i_args.text_input}
-            
+
+            print("-------------------------------------------")
+            print("Returning creation with name:")
+            print(batch_i_args.name)
+            print("-------------------------------------------")
+
             if DEBUG_MODE:
                 for index, out_path in enumerate(out_paths):
                     shutil.copyfile(out_path, os.path.join(debug_output_dir, prediction_name + f"_{index}.jpg"))
