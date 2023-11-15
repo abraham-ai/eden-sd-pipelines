@@ -84,14 +84,14 @@ def generate_basic(
     iteration = 0):
 
     args = StableDiffusionSettings(
-        #ckpt = "juggernaut_XL2",
-        ckpt = "segmind/SSD-1B",
+        ckpt = "juggernaut_XL2",
+        #ckpt = "segmind/SSD-1B",
         mode = "generate",
-        use_lcm = True,
-        W = random.choice([1024]),
-        H = random.choice([1024]),
+        #use_lcm = True,
+        W = random.choice([768]),
+        H = random.choice([768]),
         sampler = random.choice(["euler"]),
-        steps = 35,
+        steps = 20,
         guidance_scale = random.choice([7]),
         upscale_f = 1.0,
         text_input = text_input,

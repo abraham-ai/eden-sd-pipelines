@@ -28,6 +28,9 @@ from diffusers import DiffusionPipeline, StableDiffusionXLImg2ImgPipeline, LCMSc
 from diffusers import ControlNetModel, StableDiffusionXLControlNetPipeline, AutoencoderKL, StableDiffusionXLControlNetImg2ImgPipeline
 from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline, StableDiffusionDepth2ImgPipeline
 
+from diffusers.pipelines.stable_diffusion.safety_checker import StableDiffusionSafetyChecker
+from transformers import CLIPConfig
+
 from diffusers import (
     DDIMScheduler, 
     DDPMScheduler,
@@ -70,6 +73,23 @@ def set_sampler(sampler_name, pipe):
     return pipe
 
 
+_download_dict = {
+    "models/controlnets/controlnet-luminance-sdxl-1.0": "https://edenartlab-lfs.s3.amazonaws.com/models/controlnets/controlnet-luminance-sdxl-1.0/diffusion_pytorch_model.bin",
+    "models/controlnets/controlnet-depth-sdxl-1.0-small": "https://edenartlab-lfs.s3.amazonaws.com/models/controlnets/controlnet-depth-sdxl-1.0-small/diffusion_pytorch_model.safetensors",
+}
+
+from io_utils import download
+def maybe_download(path):
+    for key in _download_dict:
+        if key in path:
+            download_url = _download_dict[key]
+            filename = os.path.basename(download_url)
+            local_path = os.path.join(path, filename)
+            download(download_url, "", filepath=local_path, timeout=20*60)
+            return
+
+    print("Warning, no download option found for path: ", path)
+
 class NoWatermark:
     def apply_watermark(self, img):
         return img
@@ -78,6 +98,7 @@ class PipeManager:
     # utility class to manage a consistent pipe object
     def __init__(self):
         self.pipe = None
+        self.safety_checker = None
         self.last_checkpoint = None
         self.last_lora_path = None
         self.last_controlnet_path = None
@@ -96,7 +117,7 @@ class PipeManager:
             if args.activate_tileable_textures:
                 patch_conv(padding_mode='circular')
 
-            self.pipe = load_pipe(args)
+            self.pipe, self.safety_checker = load_pipe(args)
             self.last_checkpoint = args.ckpt
             self.last_lora_path = None # load_pipe does not set lora
             self.last_controlnet_path = args.controlnet_path
@@ -117,6 +138,30 @@ class PipeManager:
             self.pipe = set_sampler(args.sampler, self.pipe)
 
         return self.pipe
+
+    def run_safety_checker(self, image):
+        if self.safety_checker is not None:
+            safety_checker_input = self.pipe.feature_extractor(self.pipe.numpy_to_pil(image), return_tensors="pt").to(_device)
+            image, nsfw_detected, watermark_detected = self.safety_checker(
+                images=image,
+                clip_input=safety_checker_input.pixel_values, #.to(dtype=dtype),
+            )
+        return nsfw_detected
+
+
+    def check_is_nsfw(self, image):
+        if self.safety_checker is not None:
+            safety_checker_input = self.pipe.feature_extractor(self.pipe.numpy_to_pil(image), return_tensors="pt").to(device)
+            image, has_nsfw_concept = self.safety_checker(
+                images=image, clip_input=safety_checker_input.pixel_values.to(dtype)
+            )
+        else:
+            has_nsfw_concept = None
+
+        if has_nsfw_concept:
+            print("Detected nsfw concept!!")
+
+        return has_nsfw_concept
 
     def update_pipe_with_lora(self, args):
         if (args.lora_path != self.last_lora_path) and args.lora_path:
@@ -146,28 +191,9 @@ class PipeManager:
 
 pipe_manager = PipeManager()
 
-
-_download_dict = {
-    "models/controlnets/controlnet-luminance-sdxl-1.0": "https://edenartlab-lfs.s3.amazonaws.com/models/controlnets/controlnet-luminance-sdxl-1.0/diffusion_pytorch_model.bin",
-    "models/controlnets/controlnet-depth-sdxl-1.0-small": "https://edenartlab-lfs.s3.amazonaws.com/models/controlnets/controlnet-depth-sdxl-1.0-small/diffusion_pytorch_model.safetensors",
-}
-
-from io_utils import download
-def maybe_download(path):
-    for key in _download_dict:
-        if key in path:
-            download_url = _download_dict[key]
-            filename = os.path.basename(download_url)
-            local_path = os.path.join(path, filename)
-            download(download_url, "", filepath=local_path, timeout=20*60)
-            return
-
-    print("Warning, no download option found for path: ", path)
-
-
 def load_pipe(args):
     if 'eden-v1' in os.path.basename(args.ckpt):
-        return load_pipe_v1(args)
+        return load_pipe_v1(args), None
 
     start_time = time.time()
 
@@ -203,8 +229,7 @@ def load_pipe(args):
         if load_from_single_file:
             print("Loading from single file...")
             pipe = StableDiffusionXLImg2ImgPipeline.from_single_file(
-                location, safety_checker=None,
-                torch_dtype=torch.float16, use_safetensors=True)
+                location, torch_dtype=torch.float16, use_safetensors=True)
 
             pipe = StableDiffusionXLControlNetImg2ImgPipeline(
                 vae = pipe.vae,
@@ -246,7 +271,10 @@ def load_pipe(args):
         register_free_crossattn_upblock2d(pipe, b1=b1, b2=b2, s1=s1, s2=s2)
         # -------- freeu block registration
 
+    safety_checker = None
+    #safety_checker = StableDiffusionSafetyChecker(CLIPConfig())
     pipe.safety_checker = None
+
     pipe = pipe.to(_device)
     #pipe.enable_model_cpu_offload()
 
@@ -255,7 +283,7 @@ def load_pipe(args):
 
     print(f"Created new pipe in {(time.time() - start_time):.2f} seconds")
     print_model_info(pipe)
-    return pipe
+    return pipe, safety_checker
 
 from safetensors import safe_open
 from safetensors.torch import load_file
@@ -288,7 +316,10 @@ def prepare_prompt_for_lora(prompt, lora_path, interpolation=False, verbose=True
     print(f"lora name: {lora_name}")
     lora_name_encapsulated = "<" + lora_name + ">"
     trigger_text = training_args["trigger_text"]
-    mode = training_args["mode"]
+    try:
+        mode = training_args["concept_mode"]
+    except:
+        mode = training_args["mode"]
 
     # Helper function for multiple replacements
     def replace_in_string(s, replacements):
@@ -439,10 +470,7 @@ def load_pipe_v1(args):
         )
     else:
         pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
-                    location, safety_checker=None, #local_files_only=_local_files_only,
-                    torch_dtype=torch.float16, use_safetensors=True, variant="fp16")
-
-    pipe.safety_checker = None
+                    location, torch_dtype=torch.float16, use_safetensors=True, variant="fp16")
     pipe = pipe.to(_device)
 
     print(f"Created new pipe in {(time.time() - start_time):.2f} seconds")

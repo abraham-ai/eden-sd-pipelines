@@ -43,7 +43,6 @@ def generate_basic(
         control_image   = control_img,
         control_image_strength = random.choice([0.6,0.8,1.0]),
         #ip_image   = ip_img,
-        controlnet_path = "ControlNet-QR-XL_v2", 
         #controlnet_path = "controlnet-luminance-sdxl-1.0",
         #controlnet_path = random.choice(["controlnet-canny-sdxl-1.0-small", "controlnet-luminance-sdxl-1.0"]),
     )

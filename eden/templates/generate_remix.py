@@ -52,19 +52,22 @@ def remix(init_image, outdir,
         mode = "remix",
         text_input = "",
         clip_interrogator_mode = "fast",
-        W = random.choice([1024]),
+        W = random.choice([2048]),
         H = random.choice([1024]),
         sampler = random.choice(["euler", "euler_ancestral"]),
-        steps = 35,
+        steps = 50,
         guidance_scale = random.choice([8]),
         adopt_aspect_from_init_img = True,
         #use_lcm = True,
-        noise_sigma = 0.0, #0.25
+        noise_sigma = 0.2, #0.25
         seed = seed,
         n_samples = 1,
         upscale_f = 1.0,
-        #init_image_strength = random.choice([0.0, 0.05, 0.1]),
+        control_image = init_image,
+        controlnet_path = random.choice(["controlnet-canny-sdxl-1.0-small", "controlnet-luminance-sdxl-1.0"]),
+        control_image_strength = random.choice([0.6, 0.7, 0.8]),
         ip_image_strength = random.choice([0.6]),
+        init_image_strength = random.choice([0.0, 0.05, 0.1, 0.65, 0.7,]),
         init_image = init_image,
     )
 
@@ -110,13 +113,13 @@ if __name__ == "__main__":
         "https://storage.googleapis.com/public-assets-xander/A_workbox/init_imgs/img_00006.jpg",
         "https://storage.googleapis.com/public-assets-xander/A_workbox/init_imgs/img_00014.jpg",
     ]
+
+    init_image_urls = ["/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/poster/WhatsApp Image 2023-10-21 at 15.30.55.jpeg", "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/destelbergen/to_remix/1ac0fbdf-45bf-48fc-83e2-1283d48d9282.jpeg"]
+
     debug = False
 
     for i in range(40):
         seed = int(time.time())
         init_image = random.choice(init_image_urls)
-
-        #init_imgs = ["/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/poster/WhatsApp Image 2023-10-21 at 15.30.55.jpeg", "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/destelbergen/to_remix/1ac0fbdf-45bf-48fc-83e2-1283d48d9282.jpeg"]
-        
         remix(init_image, outdir, seed=seed, debug = debug)
 

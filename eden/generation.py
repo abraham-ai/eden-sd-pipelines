@@ -257,7 +257,7 @@ def generate(
         prompt_embeds = {key: getattr(args, key).cpu().numpy() for key in ["c", "uc", "pc", "puc"]}
     except:
         prompt_embeds = None
-
+    
     return prompt_embeds, pil_images
 
 
