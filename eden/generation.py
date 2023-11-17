@@ -502,7 +502,7 @@ def make_images(args):
         if (args.mode == "remix") and args.lora_path:
             args.text_input = None
         
-        if args.text_input is None or args.text_input == "":
+        if args.text_input is None or args.text_input == "" or args.text_input == "Untitled":
             init_image = load_img(args.init_image, 'RGB')
             args.text_input = clip_interrogate(args.ckpt, init_image, args.clip_interrogator_mode, CLIP_INTERROGATOR_MODEL_PATH)
             del_clip_interrogator_models()
