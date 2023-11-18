@@ -342,7 +342,7 @@ class Predictor(BasePredictor):
                 raise ValueError(f"You must provide a shape guidance image when using {controlnet_type} ControlNet!")
             if args.control_image_strength == 0:
                 raise ValueError(f"Shape guidance image strength must be > 0.0 when using {controlnet_type} ControlNet!")
-        if args.control_image is not None:
+        if args.control_image is not None and args.control_image != "":
             if controlnet_type == "off":
                 raise ValueError(f"You provided a shape guidance image, but ControlNet type is off!")
             if args.control_image_strength == 0:
