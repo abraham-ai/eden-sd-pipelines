@@ -9,7 +9,7 @@ INIT_IMAGE_URL1="https://storage.googleapis.com/public-assets-xander/A_workbox/i
 INIT_IMAGE_URL2="https://storage.googleapis.com/public-assets-xander/A_workbox/init_imgs/img_00005.jpg"
 INIT_IMAGE_URL3="https://storage.googleapis.com/public-assets-xander/A_workbox/init_imgs/img_00006.jpg"
 
-LORA_URL="https://storage.googleapis.com/public-assets-xander/A_workbox/marzipan_lora_oct_16.tar"
+LORA_URL="https://edenartlab-prod-data.s3.us-east-1.amazonaws.com/4572c58a765e9c0206fbe20f7225ca3369d6b5203bad3b6e6a97cc56531f0f25.tar"
 
 INIT_IMAGE_STRENGTH1=0.0
 INIT_IMAGE_STRENGTH2=0.2

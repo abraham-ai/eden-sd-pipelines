@@ -8,9 +8,7 @@ sudo sh image_test.sh
 sudo sh all_tests.sh 
 
 
-
 To Test:
-
 - lerp with init_image
 - real2real with controlnet
 - controlnet with init_img and control_img and ip_image

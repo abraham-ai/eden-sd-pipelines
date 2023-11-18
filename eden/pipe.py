@@ -2,6 +2,7 @@ import os
 import sys
 import shutil
 from pathlib import Path
+import gc
 
 SD_PATH = Path(os.path.dirname(os.path.realpath(__file__))).parents[0]
 ROOT_PATH = SD_PATH.parents[0]
@@ -182,11 +183,16 @@ class PipeManager:
 
     def clear(self):
         del self.pipe
+        del self.last_checkpoint
+        del self.last_lora_path
+        del self.last_controlnet_path
+        del self.ip_adapter
         self.pipe = None
         self.last_checkpoint = None
         self.last_lora_path = None
         self.last_controlnet_path = None
         self.ip_adapter = None
+        gc.collect()
         torch.cuda.empty_cache()
 
 pipe_manager = PipeManager()

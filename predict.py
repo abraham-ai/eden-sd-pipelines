@@ -241,6 +241,11 @@ class Predictor(BasePredictor):
 
         print(f"cog:predict: {mode}")
         t_start = time.time()
+        
+        if init_image == "":
+            init_image = None
+        if interpolation_init_images == "":
+            interpolation_init_images = None
 
         interpolation_texts = interpolation_texts.split('|') if interpolation_texts else None
         interpolation_seeds = [float(i) for i in interpolation_seeds.split('|')] if interpolation_seeds else None

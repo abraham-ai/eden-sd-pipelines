@@ -357,7 +357,7 @@ def make_interpolation(args, force_timepoints = None):
             args.interpolation_texts[i] = prepare_prompt_for_lora(args.interpolation_texts[i], args.lora_path, interpolation = True, verbose = True)
 
     # Release CLIP memory:
-    #del_clip_interrogator_models()
+    del_clip_interrogator_models()
 
     args.interpolator = Interpolator(
         pipe, 
