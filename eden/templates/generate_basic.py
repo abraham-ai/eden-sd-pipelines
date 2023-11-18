@@ -88,11 +88,11 @@ def generate_basic(
         #ckpt = "segmind/SSD-1B",
         mode = "generate",
         #use_lcm = True,
-        W = random.choice([768]),
-        H = random.choice([768]),
+        W = random.choice([1024]),
+        H = random.choice([1024]),
         sampler = random.choice(["euler"]),
-        steps = 20,
-        guidance_scale = random.choice([7]),
+        steps = 35,
+        guidance_scale = random.choice([8]),
         upscale_f = 1.0,
         text_input = text_input,
         seed = seed,
@@ -136,9 +136,16 @@ if __name__ == "__main__":
 
     for i in range(40):
         seed = int(time.time())
-        seed = i
+        #seed = i
         seed_everything(seed)
         text_input = random.choice(text_inputs)
         text_input = text_inputs[i%len(text_inputs)]
+
+        fruits = [
+            "strawberry",
+            ]
+
+        fruit = random.choice(fruits)
+        text_input = f"Human head morphs smoothly into a {fruit}, natural skin details, red strawberry skin, highly detailed skin texture, human face hanging from a {fruit} plant, soil, rain, drops, photo realistic, surrealism, highly detailed, 8k macrophotography"
 
         generate_basic(text_input, outdir, seed = seed, iteration = i)

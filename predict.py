@@ -104,7 +104,7 @@ class Predictor(BasePredictor):
         ),
         lora_scale: float = Input(
             description="Lora scale (how much of the Lora finetuning to apply)",
-            ge=0.0, le=1.2, default=0.8
+            ge=0.0, le=1.5, default=0.8
         ),
         sampler: str = Input(
             description="Which sampler to use", 

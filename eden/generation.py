@@ -64,6 +64,9 @@ def generate(
 ):
     seed_everything(args.seed)
     args.init_image_strength = float(args.init_image_strength)
+    
+    if args.init_image == "":
+        args.init_image = None
 
     if args.n_target_pixels is None:
         args.n_target_pixels = args.W * args.H
