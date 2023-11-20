@@ -69,7 +69,6 @@ def get_all_img_files(directory_root):
             if file.endswith(".jpg") or file.endswith(".png"):
                 all_img_paths.append(os.path.join(root, file))
     return all_img_paths
-    
 
 def generate_basic(
     text_input, 
@@ -88,13 +87,14 @@ def generate_basic(
         #ckpt = "segmind/SSD-1B",
         mode = "generate",
         #use_lcm = True,
-        W = random.choice([1024]),
-        H = random.choice([1024]),
+        W = random.choice([1024, 960, 768]),
+        H = random.choice([1024, 1024+256]),
         sampler = random.choice(["euler"]),
-        steps = 35,
-        guidance_scale = random.choice([8]),
+        steps = 30,
+        guidance_scale = random.choice([6,7,8,9,10,11]),
         upscale_f = 1.0,
         text_input = text_input,
+        noise_sigma = 0.25,
         seed = seed,
         n_samples = 1,
         #init_image = init_image,
@@ -120,7 +120,14 @@ def generate_basic(
     for i, img in enumerate(imgs):
         save_name = f'{name}_{i}'
         os.makedirs(outdir, exist_ok = True)
-        img.save(os.path.join(outdir, save_name + '.jpg'), quality=95)
+        filepath = os.path.join(outdir, save_name + '.jpg')
+        img.save(filepath, quality=95)
+
+        output = nsfw_net.predict(filepath)
+        nsfw_score = output[filepath]['Score']
+
+        new_filename = os.path.join(outdir, f"nsfw_{nsfw_score:.3f}_" + save_name + '.jpg')
+        os.rename(os.path.join(outdir, save_name + '.jpg'), new_filename)
 
     # save settings
     settings_filename = f'{outdir}/{name}.json'
@@ -140,12 +147,5 @@ if __name__ == "__main__":
         seed_everything(seed)
         text_input = random.choice(text_inputs)
         text_input = text_inputs[i%len(text_inputs)]
-
-        fruits = [
-            "strawberry",
-            ]
-
-        fruit = random.choice(fruits)
-        text_input = f"Human head morphs smoothly into a {fruit}, natural skin details, red strawberry skin, highly detailed skin texture, human face hanging from a {fruit} plant, soil, rain, drops, photo realistic, surrealism, highly detailed, 8k macrophotography"
 
         generate_basic(text_input, outdir, seed = seed, iteration = i)

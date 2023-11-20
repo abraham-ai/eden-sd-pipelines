@@ -15,7 +15,7 @@ def lerp(
     name_str = "",
     save_phase_data = False,     # save condition vectors and scale for each frame (used for later upscaling)
     save_distance_data = False,  # save distance plots to disk
-    debug = 0):
+    debug = 1):
 
     seed_everything(seed)
     n = len(interpolation_texts)
@@ -24,29 +24,35 @@ def lerp(
     frames_dir = os.path.join(outdir, name)
     os.makedirs(frames_dir, exist_ok=True)
 
-    control_image = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/people/chebel.jpg"
+    #control_image = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/people/chebel.jpg"
+
+    img_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/init_imgs/01_great_inits"
+    init_image = random.choice(os.listdir(img_dir))
+    init_image = os.path.join(img_dir, init_image)
     
 
     args = StableDiffusionSettings(
+        ckpt = "juggernaut_XL2",
         text_input = interpolation_texts[0],
         interpolation_texts = interpolation_texts,
         interpolation_seeds = interpolation_seeds if interpolation_seeds else [random.randint(1, 1e8) for i in range(n)],
-        n_frames = 16*n,
+        n_frames = 48*n,
         guidance_scale = random.choice([8]),
         loop = True,
         smooth = True,
         latent_blending_skip_f = random.choice([[0.05, 0.65]]),
         n_anchor_imgs = random.choice([3]),
-        n_film = 0,
+        n_film = 1,
         fps = 12,
-        steps = 35,
+        steps = 40,
         seed = seed,
-        H = 1024,
+        H = 1024+512,
         W = 1024,
-        control_image = control_image,
-        control_image_strength = random.choice([0.45]),
-        #controlnet_path = "controlnet-luminance-sdxl-1.0",
-        controlnet_path = "controlnet-monster-civitai",
+        init_image = init_image,
+        init_image_strength = random.choice([0.15,0.2,0.25]),
+        #control_image = control_image,
+        #control_image_strength = random.choice([0.45,0.55,0.65,0.75]),
+        #controlnet_path = random.choice(["controlnet-canny-sdxl-1.0-small", "controlnet-luminance-sdxl-1.0"]),
     
     )
 
@@ -58,7 +64,8 @@ def lerp(
     if debug: # overwrite some args to make things go FAST
         args.W, args.H = 640, 640
         args.steps = 20
-        args.n_frames = 8*n
+        args.n_frames = 6*n
+        args.init_image_strength = 0.3
 
     start_time = time.time()
 
@@ -96,27 +103,12 @@ def lerp(
 
 if __name__ == "__main__":
 
-    outdir = "results_controlnet_video_test"
-    n = 4
-    text_inputs = [
-            "a beautiful, meandering river, running through a mountainous landscape",
-            "a stunning photograph of a river flowing through a mountainous landscape, wild nature, moonlight, Long Exposure Night Photography",
-            "a stunning photograph of a towering red-rock monolith, backlit by the golden rays of the setting sun, surrounded by a sea of lush green pine trees, punctuated by the serenade of a hidden waterfall crashing onto a smooth boulder bed below, HDR Macro, Create High Dynamic Range macro shot, Canon EF 100mm f/2.8L Macro IS USM lens",
-            "an icy wonderland where jagged, turquoise glaciers meet dark granite cliffs, as cascades of melting ice form ephemeral waterfalls that plummet into an aquamarine glacial lake",
-        ]
-    
-
+    outdir = "results_controlnet_video"
     n = 2
-    text_inputs = [
-            "a beautiful, meandering river, running through a mountainous landscape",
-            "a stunning photograph of a river flowing through a mountainous landscape, wild nature, moonlight, Long Exposure Night Photography",
-            "a stunning photograph of a towering red-rock monolith, backlit by the golden rays of the setting sun, surrounded by a sea of lush green pine trees, punctuated by the serenade of a hidden waterfall crashing onto a smooth boulder bed below, HDR Macro, Create High Dynamic Range macro shot, Canon EF 100mm f/2.8L Macro IS USM lens",
-            "an icy wonderland where jagged, turquoise glaciers meet dark granite cliffs, as cascades of melting ice form ephemeral waterfalls that plummet into an aquamarine glacial lake",
-        ]
 
-    for i in range(2):
+    for i in range(3):
         seed = np.random.randint(0, 1000)
-        seed = i
+        #seed = i
         
         seed_everything(seed)
 
@@ -126,7 +118,7 @@ if __name__ == "__main__":
             print(txt)
             print("-----------------------")
         
-        if 1:
+        if 0:
             lerp(interpolation_texts, outdir, seed=seed, save_distance_data=True, interpolation_seeds=None)
         else:
             try:
