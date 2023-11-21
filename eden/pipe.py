@@ -361,10 +361,10 @@ def prepare_prompt_for_lora(prompt, lora_path, interpolation=False, verbose=True
         }
         prompt = replace_in_string(prompt, style_replacements)
         if "in the style of TOK" not in prompt:
-            prompt = prompt + ", in the style of TOK"
+            prompt = "in the style of TOK, " + prompt
         
     # Final cleanup
-        prompt = replace_in_string(prompt, {"<concept>": "TOK", lora_name_encapsulated: "TOK"})
+    prompt = replace_in_string(prompt, {"<concept>": "TOK", lora_name_encapsulated: "TOK"})
 
     if interpolation and mode != "style":
         prompt = "TOK, " + prompt

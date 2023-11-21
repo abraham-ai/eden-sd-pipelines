@@ -21,16 +21,15 @@ def generate_lora(text_input, outdir,
         lora_path = lora_path,
         lora_scale = 0.8,
         mode = "generate",
-        W = 1024,
+        W = 1024+512,
         H = 1024,
-        sampler = "euler",
         steps = 40,
         guidance_scale = 8,
         upscale_f = 1.0,
         text_input = text_input,
         init_image = init_image,
         seed = seed,
-        n_samples = 2,
+        n_samples = 1,
     )
     
     name = f'{prefix}{args.text_input[:40]}_{args.seed}_{int(time.time())}{suffix}'
@@ -50,10 +49,11 @@ def generate_lora(text_input, outdir,
 
 if __name__ == "__main__":
 
-    outdir = "results"
-    seed = 1
-    lora_path = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/container_lora"
-    text_input = "a picture of <concept> drinking coca cola"
+    outdir = "results_lora_does"
+    lora_path = "/data/xander/Projects/cog/GitHub_repos/cog-sdxl/lora_models/does/checkpoints/checkpoint-4000"
     
-    seed_everything(seed)
-    generate_lora(text_input, outdir, lora_path, seed = seed)
+    for i in range(20):
+        seed = int(time.time())
+        seed_everything(seed)
+        text_input = random.choice(text_inputs)
+        generate_lora(text_input, outdir, lora_path, seed = seed)
