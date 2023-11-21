@@ -51,8 +51,8 @@ class StableDiffusionSettings:
     uid: str = str(uuid.uuid4())
     
     # model settings
-    ckpt: str = "sdxl-v1.0"
-    upscale_ckpt: str = "sdxl-v1.0"   # "sdxl-refiner-v1.0"
+    ckpt: str = "juggernaut_XL2"
+    upscale_ckpt: str = "juggernaut_XL2"   # "sdxl-refiner-v1.0"
 
     # controlnet
     control_image: Image = None

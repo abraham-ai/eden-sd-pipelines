@@ -1,1 +1,1 @@
-cog predict -i mode=upscale -i init_image_strength=0.45 -i init_image="https://generations.krea.ai/images/3cd0b8a8-34e5-4647-9217-1dc03a886b6a.webp" -i width=1512 -i height=1512 -i n_samples=1
+cog predict -i mode=upscale -i init_image_strength=0.2 -i init_image="https://storage.googleapis.com/public-assets-xander/A_workbox/201de5db90fb616f33fa4b53ece8c17612df08d2e833e31b901fb749fd6b9b08.png" -i width=1512 -i height=1512 -i n_samples=1

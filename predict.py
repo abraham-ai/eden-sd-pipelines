@@ -15,7 +15,7 @@ from typing import Iterator, Optional
 from dotenv import load_dotenv
 from copy import deepcopy
 from PIL import Image
-
+import numpy as np
 from cog import BasePredictor, BaseModel, File, Input, Path as cogPath
 
 load_dotenv()
@@ -40,6 +40,10 @@ from settings import StableDiffusionSettings
 import eden_utils
 import generation
 
+
+from nsfw_detection import Model
+nsfw_net = Model()
+
 if DEBUG_MODE:
     debug_output_dir = "/src/tests/server/debug_output"
     if os.path.exists(debug_output_dir):
@@ -48,8 +52,9 @@ if DEBUG_MODE:
 
 checkpoint_options = [
     "sdxl-v1.0",
+    "juggernaut_XL2",
 ]
-checkpoint_default = "sdxl-v1.0"
+checkpoint_default = "juggernaut_XL2"
 
 class CogOutput(BaseModel):
     files: Optional[list[cogPath]] = []
@@ -380,7 +385,7 @@ class Predictor(BasePredictor):
             if args.init_image is None:
                 args.init_image_strength = 0.0
 
-            attributes = None
+            attributes = {}
             out_paths = []
 
             # slight overhead here to do iterative batching (avoid OOM):
@@ -399,11 +404,12 @@ class Predictor(BasePredictor):
             if (mode == "remix" or mode == "upscale") and (args.text_input is None):
                 attributes = {"interrogation": batch_i_args.text_input}
 
-            print("-------------------------------------------")
-            print(attributes)
-            print("Returning creation with name:")
-            print(batch_i_args.name)
-            print("-------------------------------------------")
+            # Run nsfw-detection:
+            attributes['nsfw_scores'] = []
+            for img_path in out_paths:
+                nsfw_output = nsfw_net.predict(str(img_path))
+                nsfw_score = nsfw_output[str(img_path)]['Score']
+                attributes['nsfw_scores'].append(np.round(nsfw_score,2))
 
             if DEBUG_MODE:
                 for index, out_path in enumerate(out_paths):
@@ -448,7 +454,7 @@ class Predictor(BasePredictor):
                 args.n_frames = args.n_frames // 2
             
             generator = generation.make_interpolation(args, force_timepoints=force_timepoints)
-            attributes = None
+            attributes = {}
             thumbnail = None
 
             # generate frames
@@ -510,6 +516,12 @@ class Predictor(BasePredictor):
 
                 if mode == "real2real":
                     attributes = {"interrogation": args.interpolation_texts}
+
+            # run NSFW detection on thumbnail:
+            attributes['nsfw_scores'] = []
+            nsfw_output = nsfw_net.predict(str(thumbnail))
+            nsfw_score = nsfw_output[str(thumbnail)]['Score']
+            attributes['nsfw_scores'].append(np.round(nsfw_score,2))
 
             if DEBUG_MODE:
                 if mode == "blend":
