@@ -296,6 +296,21 @@ from safetensors.torch import load_file
 from diffusers.models.attention_processor import LoRAAttnProcessor2_0
 from dataset_and_utils import TokenEmbeddingsHandler
 
+import re
+
+def replace_in_string(s, replacements):
+    # Repeat until no more replacements can be made
+    while True:
+        replaced = False
+        for target, replacement in replacements.items():
+            new_s = re.sub(target, replacement, s)
+            if new_s != s:
+                s = new_s
+                replaced = True
+        if not replaced:
+            break
+    return s
+
 def prepare_prompt_for_lora(prompt, lora_path, interpolation=False, verbose=True):
     if "_no_token" in lora_path:
         return prompt
@@ -330,12 +345,6 @@ def prepare_prompt_for_lora(prompt, lora_path, interpolation=False, verbose=True
             mode = training_args["mode"]
         except KeyError:
             mode = "object"
-
-    # Helper function for multiple replacements
-    def replace_in_string(s, replacements):
-        for target, replacement in replacements.items():
-            s = s.replace(target, replacement)
-        return s
 
     # Handle different modes
     print(f"lora mode: {mode}")
@@ -374,10 +383,10 @@ def prepare_prompt_for_lora(prompt, lora_path, interpolation=False, verbose=True
 
     # Fix common mistakes
     fix_replacements = {
-        ",,": ",",
-        "  ": " ",
-        " .": ".",
-        " ,": ","
+        r",,": ",",
+        r"\s\s+": " ",  # Replaces one or more whitespace characters with a single space
+        r"\s\.": ".",
+        r"\s,": ","
     }
     prompt = replace_in_string(prompt, fix_replacements)
 

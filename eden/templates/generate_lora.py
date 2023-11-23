@@ -2,10 +2,9 @@ import sys
 sys.path.append('..')
 
 import os
-
 from settings import StableDiffusionSettings
 from generation import *
-from prompts import text_inputs, style_modifiers
+from prompts import text_inputs, style_modifiers, lora_prompts
 from eden_utils import *
 
 def generate_lora(text_input, outdir, 
@@ -19,12 +18,13 @@ def generate_lora(text_input, outdir,
 
     args = StableDiffusionSettings(
         lora_path = lora_path,
-        lora_scale = 0.8,
+        lora_scale = random.choice([0.6, 0.7, 0.8, 0.9]),
         mode = "generate",
-        W = 1024+512,
-        H = 1024,
-        steps = 40,
-        guidance_scale = 8,
+        W = random.choice([1024]),
+        H = random.choice([1024]),
+        steps = 35,
+        noise_sigma = 0.0,
+        guidance_scale = random.choice([8,10]),
         upscale_f = 1.0,
         text_input = text_input,
         init_image = init_image,
@@ -49,11 +49,23 @@ def generate_lora(text_input, outdir,
 
 if __name__ == "__main__":
 
-    outdir = "results_lora_does"
-    lora_path = "/data/xander/Projects/cog/GitHub_repos/cog-sdxl/lora_models/does/checkpoints/checkpoint-4000"
-    
-    for i in range(20):
+    outdir = "results_lora_xander"
+    lora_paths = [
+        "/data/xander/Projects/cog/GitHub_repos/cog-sdxl/lora_models/objects_banny_best.zip_002_4959/checkpoints/checkpoint-1200"
+    ]
+
+    prompt_file = "../random_prompts.txt"
+    text_inputs = open(prompt_file).read().split("\n")
+    text_inputs = lora_prompts
+
+    for i in range(200):
         seed = int(time.time())
         seed_everything(seed)
         text_input = random.choice(text_inputs)
-        generate_lora(text_input, outdir, lora_path, seed = seed)
+        lora_path  = random.choice(lora_paths)
+        try:
+            generate_lora(text_input, outdir, lora_path, seed = seed)
+        except Exception as e:
+            print(str(e))
+            time.sleep(0.5)
+            continue

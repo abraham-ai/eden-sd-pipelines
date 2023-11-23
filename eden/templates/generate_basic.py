@@ -13,63 +13,6 @@ from generation import *
 from prompts import text_inputs, style_modifiers
 from eden_utils import *
 
-def download_an_untar(tar_url, output_folder, tar_name):
-    """
-    Download a tar file from a url, and untar it.
-    """
-    output_dir = os.path.join(output_folder, tar_name)
-    os.makedirs(output_dir, exist_ok = True)
-    tar_path = os.path.join(output_folder, tar_name + ".tar")
-    if not os.path.exists(tar_path):
-        print(f"Downloading {tar_url} to {tar_path}")
-        os.system(f"wget {tar_url} -O {tar_path}")
-
-    print(f"Untarring {tar_path}")
-    os.system(f"tar -xvf {tar_path} -C {output_dir}")
-
-    print(f"Untarred {tar_path} to {output_dir}")
-
-    return output_dir
-
-
-modifiers = [
-    "trending on artstation",
-    "fish eye lens",
-    "polaroid photo",
-    "poster by ilya kuvshinov katsuhiro", 
-    "by magali villeneuve",
-    "by jeremy lipkin",
-    'by jeremy mann',
-    'by jenny saville', 
-    'by lucian freud', 
-    'by riccardo federici', 
-    'by james jean', 
-    'by craig mullins', 
-    'by jeremy mann', 
-    'by makoto shinkai', 
-    'by krenz cushart', 
-    'by greg rutkowski', 
-    'by huang guangjian',
-    'by gil elvgren',
-    'by lucian poster',
-    'by lucian freud',
-    'by Conrad roset',
-    'by yoshitaka amano',
-    'by ruan jia',
-    'cgsociety',
-]
-
-def get_all_img_files(directory_root):
-    """
-    Recursively get all image files from a directory.
-    """
-    all_img_paths = []
-    for root, dirs, files in os.walk(directory_root):
-        for file in files:
-            if file.endswith(".jpg") or file.endswith(".png"):
-                all_img_paths.append(os.path.join(root, file))
-    return all_img_paths
-
 def generate_basic(
     text_input, 
     outdir, 
@@ -83,18 +26,14 @@ def generate_basic(
     iteration = 0):
 
     args = StableDiffusionSettings(
-        ckpt = "juggernaut_XL2",
-        #ckpt = "segmind/SSD-1B",
         mode = "generate",
         #use_lcm = True,
-        W = random.choice([1024, 960, 768]),
-        H = random.choice([1024, 1024+256]),
+        W = random.choice([1024]),
+        H = random.choice([1024]),
         sampler = random.choice(["euler"]),
         steps = 30,
-        guidance_scale = random.choice([6,7,8,9,10,11]),
-        upscale_f = 1.0,
+        guidance_scale = 8,
         text_input = text_input,
-        noise_sigma = 0.25,
         seed = seed,
         n_samples = 1,
         #init_image = init_image,
@@ -123,12 +62,6 @@ def generate_basic(
         filepath = os.path.join(outdir, save_name + '.jpg')
         img.save(filepath, quality=95)
 
-        output = nsfw_net.predict(filepath)
-        nsfw_score = output[filepath]['Score']
-
-        new_filename = os.path.join(outdir, f"nsfw_{nsfw_score:.3f}_" + save_name + '.jpg')
-        os.rename(os.path.join(outdir, save_name + '.jpg'), new_filename)
-
     # save settings
     settings_filename = f'{outdir}/{name}.json'
     save_settings(args, settings_filename)
@@ -138,14 +71,9 @@ if __name__ == "__main__":
     
     outdir = "results_basic"
 
-    prompt_file = "../random_prompts.txt"
-    text_inputs = open(prompt_file).read().split("\n")
-
-    for i in range(40):
+    for i in range(5):
         seed = int(time.time())
         #seed = i
         seed_everything(seed)
         text_input = random.choice(text_inputs)
-        text_input = text_inputs[i%len(text_inputs)]
-
         generate_basic(text_input, outdir, seed = seed, iteration = i)

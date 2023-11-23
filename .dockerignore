@@ -4,6 +4,7 @@ eden/xander
 tests
 
 #models/checkpoints/juggernaut_XL2
+models/checkpoints/sdxl-v1.0
 models/checkpoints/eden:eden-v1
 models/checkpoints/gordon-berger:gordon-berger-figurative
 models/checkpoints/dreamshaper.safetensors

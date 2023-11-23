@@ -12,22 +12,17 @@ from generation import *
 from prompts import *
 from eden_utils import *
 
-def generate_basic(
+def generate_controlnet(
     text_input, 
+    control_img,
     outdir, 
     seed = int(time.time()),
     debug = False,
     init_image = None,
     suffix = ""):
 
-    img_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/controlnet_inputs/neww"
-    all_imgs = sorted(os.listdir(img_dir))
-    control_img = os.path.join(img_dir, random.choice(all_imgs))
-
     args = StableDiffusionSettings(
-        #ckpt = "juggernaut_XL2",
-        #upscale_ckpt = "sdxl-refiner-v1.0",
-        W = random.choice([1024+512]),
+        W = random.choice([1024]),
         H = random.choice([1024]),
         sampler = random.choice(["euler", "euler_ancestral"]),
         steps = 40,
@@ -38,14 +33,17 @@ def generate_basic(
         seed = seed,
         n_samples = 1,
         lora_path = None,
-        #init_image = get_random_imgpath_from_dir(img_dir),
-        #init_image_strength = random.choice([0.1]),
+        init_image = control_img,
+        init_image_strength = random.choice([0.1]),
         control_image   = control_img,
         control_image_strength = random.choice([0.6,0.8,1.0]),
         #ip_image   = ip_img,
-        #controlnet_path = "controlnet-luminance-sdxl-1.0",
-        #controlnet_path = random.choice(["controlnet-canny-sdxl-1.0-small", "controlnet-luminance-sdxl-1.0"]),
+        controlnet_path = "controlnet-luminance-sdxl-1.0",
     )
+
+    args.init_image_strength = (1.0 - args.control_image_strength)/random.choice([2.0, 3.0])
+    if random.choice([True, False]):
+        args.init_image = None
 
     if args.use_lcm:
         args.steps = int(args.steps / 4)
@@ -53,11 +51,7 @@ def generate_basic(
     else:
         addstr = ""
 
-    #name = f'{prefix}{args.text_input[:40]}_{os.path.basename(args.lora_path)}_{args.seed}_{int(time.time())}{suffix}'
-    #init_img_name = os.path.basename(args.init_image).split(".")[0]
-    #name = f'{prefix}{args.text_input[:40]}_{init_img_name}_{args.seed}_{int(time.time())}{suffix}'
     name = f'{args.text_input[:40]}_{args.control_image_strength}_{args.controlnet_path}_{args.ckpt}_{args.seed}{addstr}'
-
     name = name.replace("/", "_")
     os.makedirs(outdir, exist_ok = True)
 
@@ -86,34 +80,14 @@ if __name__ == "__main__":
     
     outdir = "results_controlnet"
 
-    for i in range(2000):
+    img_dir = "../assets"
+    all_imgs = [f for f in sorted(os.listdir(img_dir)) if f.endswith(".jpg")]
+    control_img = os.path.join(img_dir, random.choice(all_imgs))
+
+    for i in range(5):
         seed = int(time.time())
-        seed = i
+        #seed = i
         
         seed_everything(seed)
-
-        p1 = list(set(get_prompts_from_json_dir("/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/good_controlnet_jsons")))
-        p2 = list(set(get_prompts_from_json_dir("/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/good_controlnet_jsons2")))
-        p3 = list(set(get_prompts_from_json_dir("/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/good_controlnet_jsons3")))
-        p4 = list(set(get_prompts_from_json_dir("/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/good_controlnet_jsons_effect")))
-        all_p = sorted(list(set(text_inputs + sdxl_prompts + p2)))
-
-        text_input = random.choice(all_p)
-
-        if 0:
-            n_style_modifiers = random.choice([0,0,1,2])
-            if n_style_modifiers > 0:
-                text_input = text_input + ", " + ", ".join(random.sample(style_modifiers, n_style_modifiers))
-
-        print(text_input)
-        if 1:
-            generate_basic(text_input, outdir, seed = seed)
-        else:
-            try:
-                generate_basic(text_input, outdir, seed = seed)
-            except KeyboardInterrupt:
-                print("Interrupted by user")
-                exit()  # or sys.exit()
-            except Exception as e:
-                print(f"Error: {e}")  # Optionally print the error
-                continue
+        text_input = random.choice(text_inputs)
+        generate_controlnet(text_input, control_img, outdir, seed = seed)
