@@ -375,7 +375,7 @@ def prepare_prompt_for_lora(prompt, lora_path, interpolation=False, verbose=True
     # Final cleanup
     prompt = replace_in_string(prompt, {"<concept>": "TOK", lora_name_encapsulated: "TOK"})
 
-    if interpolation and mode != "style":
+    if interpolation and mode != "style" and "TOK" not in prompt:
         prompt = "TOK, " + prompt
 
     # Replace tokens based on token map

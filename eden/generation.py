@@ -378,7 +378,7 @@ def make_interpolation(args, force_timepoints = None):
 
     ######################################
 
-    if n_frames > 100:
+    if n_frames > 100 and False: # disable for now
         print(f"Compiling model for {args.W}x{args.H}...")
         pipe.unet = torch.compile(pipe.unet, mode="reduce-overhead", fullgraph=False)
 
