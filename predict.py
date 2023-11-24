@@ -1,6 +1,6 @@
 # never push DEBUG_MODE = True to Replicate!
 DEBUG_MODE = False
-DEBUG_MODE = True
+#DEBUG_MODE = True
 
 import os
 import time
@@ -238,7 +238,10 @@ class Predictor(BasePredictor):
             description="Frames per second (mode==interpolate & real2real)",
             default=12, ge=1, le=30
         ),
-
+        use_lcm: bool = Input(
+            description="Smooth (mode==interpolate & real2real)",
+            default=False
+        ),
     ) -> Iterator[GENERATOR_OUTPUT_TYPE]:
     
         for i in range(5):
@@ -281,6 +284,7 @@ class Predictor(BasePredictor):
             H = height - (height % 8),
             sampler = sampler,
             steps = steps,
+            use_lcm = use_lcm,
             guidance_scale = guidance_scale,
             upscale_f = float(upscale_f),
 
