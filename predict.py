@@ -536,5 +536,10 @@ class Predictor(BasePredictor):
             else:
                 yield CogOutput(files=[out_path], name=args.name, thumbnails=[thumbnail], attributes=attributes, isFinal=True, progress=1.0)
 
+        if DEBUG_MODE:
+            print("--------------------------------")
+            print("--- cog was in DEBUG mode!!! ---")
+            print("--------------------------------")
+
         t_end = time.time()
         print(f"predict.py: done in {t_end - t_start:.2f} seconds")

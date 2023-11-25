@@ -299,11 +299,11 @@ from dataset_and_utils import TokenEmbeddingsHandler
 import re
 
 def replace_in_string(s, replacements):
-    # Repeat until no more replacements can be made
     while True:
         replaced = False
         for target, replacement in replacements.items():
-            new_s = re.sub(target, replacement, s)
+            # Using re.IGNORECASE to make the replacement case-insensitive
+            new_s = re.sub(target, replacement, s, flags=re.IGNORECASE)
             if new_s != s:
                 s = new_s
                 replaced = True
