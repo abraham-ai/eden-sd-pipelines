@@ -21,12 +21,6 @@ else:
 try:
     _torch_version = importlib_metadata.version("torch")
     print(f"PyTorch version {_torch_version} available.")
-
-    # check if cuda is available:
-    _torch_cuda_available = importlib.util.find_spec("torch.cuda") is not None
-    if _torch_cuda_available:
-        print("CUDA is available!")
-
     import torch
     print("PyTorch version:")
     print(torch.__version__)
