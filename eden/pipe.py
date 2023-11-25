@@ -25,7 +25,7 @@ from safetensors.torch import safe_open, save_file
 import diffusers
 print("Importing diffusers from:")
 print(diffusers.__file__)
-from diffusers import DiffusionPipeline, StableDiffusionXLImg2ImgPipeline, LCMScheduler
+from diffusers import DiffusionPipeline, StableDiffusionXLImg2ImgPipeline
 from diffusers import ControlNetModel, StableDiffusionXLControlNetPipeline, AutoencoderKL, StableDiffusionXLControlNetImg2ImgPipeline
 from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline, StableDiffusionDepth2ImgPipeline
 
@@ -125,6 +125,7 @@ class PipeManager:
             self.ip_adapter = None
 
             if args.use_lcm:
+                from diffusers import LCMScheduler
                 self.pipe.scheduler = LCMScheduler.from_config(self.pipe.scheduler.config)
                 self.pipe.to(_device)
                 adapter_id = os.path.join(LORA_PATH, "lcm_sdxl_lora.safetensors")
