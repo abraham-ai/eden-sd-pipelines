@@ -104,20 +104,28 @@ def download(url, folder, filepath=None, timeout=600):
         print(f"An error occurred: {e}")
         return None
 
-
+import os
+import zipfile
 import tarfile
 
 def is_zip_file(file_path):
-    with open(file_path, 'rb') as file:
-        return file.read(4) == b'\x50\x4b\x03\x04'
+    return zipfile.is_zipfile(file_path)
 
-def extract_to_folder(file_path, target_folder, remove_archive = False):
+def extract_to_folder(file_path, target_folder, remove_archive=False):
     """
-    Extract either a .zip or .tar file to the target folder.
+    Extract either a .zip or .tar file to the target folder if the folder
+    does not exist or is empty.
     """
 
+    # Check if the target folder exists and is not empty
+    if os.path.exists(target_folder) and len(os.listdir(target_folder)) > 0:
+        print(f"Target folder {target_folder} already exists and is not empty.")
+        return
+
+    # Create the target folder if it doesn't exist
     os.makedirs(target_folder, exist_ok=True)
 
+    # Extract files
     if is_zip_file(file_path):
         with zipfile.ZipFile(file_path, 'r') as zip_ref:
             zip_ref.extractall(target_folder)
@@ -127,6 +135,7 @@ def extract_to_folder(file_path, target_folder, remove_archive = False):
     else:
         raise ValueError(f"The file {file_path} is not a .zip / .tar file!")
     
+    # Remove the archive if requested
     if remove_archive:
         os.remove(file_path)
 

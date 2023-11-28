@@ -493,30 +493,35 @@ def pil_img_to_latent(img, args, device, pipe, noise_seed = 0):
 
     return latent
 
-def load_image_with_orientation(path, mode = "RGB"):
-    img = Image.open(path)
 
+def load_image_with_orientation(path, mode="RGB"):
+    image = Image.open(path)
+
+    # Try to get the Exif orientation tag (0x0112), if it exists
     try:
-        # Get orientation tag (if available)
-        for orientation in ExifTags.TAGS.keys():
-            if ExifTags.TAGS[orientation] == 'Orientation':
-                break
-        exif = img._getexif()
-        orientation_value = exif.get(orientation)
-
-        # Apply rotation based on orientation
-        if orientation_value == 3:
-            img = img.rotate(180, expand=True)
-        elif orientation_value == 6:
-            img = img.rotate(270, expand=True)
-        elif orientation_value == 8:
-            img = img.rotate(90, expand=True)
+        exif_data = image._getexif()
+        orientation = exif_data.get(0x0112)
     except (AttributeError, KeyError, IndexError):
-        # No EXIF data or invalid orientation value; do nothing
-        pass
+        orientation = None
 
-    return img.convert(mode)
+    # Apply the orientation, if it's present
+    if orientation:
+        if orientation == 2:
+            image = image.transpose(Image.FLIP_LEFT_RIGHT)
+        elif orientation == 3:
+            image = image.rotate(180, expand=True)
+        elif orientation == 4:
+            image = image.transpose(Image.FLIP_TOP_BOTTOM)
+        elif orientation == 5:
+            image = image.rotate(-90, expand=True).transpose(Image.FLIP_LEFT_RIGHT)
+        elif orientation == 6:
+            image = image.rotate(-90, expand=True)
+        elif orientation == 7:
+            image = image.rotate(90, expand=True).transpose(Image.FLIP_LEFT_RIGHT)
+        elif orientation == 8:
+            image = image.rotate(90, expand=True)
 
+    return image.convert(mode)
 
 def load_img(data, mode="RGB"):
     if isinstance(data, list):

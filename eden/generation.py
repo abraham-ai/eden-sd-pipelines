@@ -64,7 +64,9 @@ def generate(
 ):
     seed_everything(args.seed)
     args.init_image_strength = float(args.init_image_strength)
-    
+    free_memory, tot_mem = torch.cuda.mem_get_info(device=_device)
+    print(f"Start of generate, free memory: {free_memory / 1e9:.2f} GB")
+
     if args.init_image == "":
         args.init_image = None
 
@@ -118,7 +120,7 @@ def generate(
             scale=args.ip_image_strength  # scale = 1.0 will mostly use the image prompt, 0.0 will only use the text prompt
             )
     else:
-        #print("Disabling ip_adapter..")
+        print("Disabling ip_adapter..")
         pipe_manager.disable_ip_adapter()
 
     if args.c is None and args.text_input is not None and args.text_input != "" and 0:
@@ -270,6 +272,9 @@ def generate(
         prompt_embeds = {key: getattr(args, key).cpu().numpy() for key in ["c", "uc", "pc", "puc"]}
     except:
         prompt_embeds = None
+
+    free_memory, tot_mem = torch.cuda.mem_get_info(device=_device)
+    print(f"End of generate, free memory: {free_memory / 1e9:.2f} GB")
 
     return prompt_embeds, pil_images
 

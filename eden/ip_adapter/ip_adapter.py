@@ -118,10 +118,10 @@ class IPAdapter:
                 self._ip_adapter_controlnet_attention_processors = {}
                 for controlnet in self.pipe.controlnet.nets:
                     self._ip_adapter_controlnet_attention_processors[controlnet] = controlnet.attn_processors
-                    controlnet.set_attn_processor(**self._default_controlnet_attention_processors[controlnet])
+                    controlnet.set_attn_processor({**self._default_controlnet_attention_processors[controlnet]})
             else:
                 self._ip_adapter_controlnet_attention_processors = self.pipe.controlnet.attn_processors
-                self.pipe.controlnet.set_attn_processor(**self._default_controlnet_attention_processors)
+                self.pipe.controlnet.set_attn_processor(processor = self._default_controlnet_attention_processors)
 
         self.is_active = False
 
@@ -143,7 +143,7 @@ class IPAdapter:
                 for controlnet in self.pipe.controlnet.nets:
                     controlnet.set_attn_processor(**self._ip_adapter_controlnet_attention_processors[controlnet])
             else:
-                self.pipe.controlnet.set_attn_processor(**self._ip_adapter_controlnet_attention_processors)
+                self.pipe.controlnet.set_attn_processor(processor = self._ip_adapter_controlnet_attention_processors)
 
         self.is_active = True
 

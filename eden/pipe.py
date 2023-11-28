@@ -77,6 +77,7 @@ def set_sampler(sampler_name, pipe):
 _download_dict = {
     "models/controlnets/controlnet-luminance-sdxl-1.0": "https://edenartlab-lfs.s3.amazonaws.com/models/controlnets/controlnet-luminance-sdxl-1.0/diffusion_pytorch_model.bin",
     "models/controlnets/controlnet-depth-sdxl-1.0-small": "https://edenartlab-lfs.s3.amazonaws.com/models/controlnets/controlnet-depth-sdxl-1.0-small/diffusion_pytorch_model.safetensors",
+    "models/checkpoints/sdxl-v1.0": ""
 }
 
 from io_utils import download
@@ -88,8 +89,8 @@ def maybe_download(path):
             local_path = os.path.join(path, filename)
             download(download_url, "", filepath=local_path, timeout=20*60)
             return
-
-    print("Warning, no download option found for path: ", path)
+    if not os.path.exists(path):
+        print("Warning, no download option found for path: ", path)
 
 class NoWatermark:
     def apply_watermark(self, img):
@@ -217,6 +218,8 @@ def load_pipe(args):
         # load from hf hub:
         load_from_single_file = False
 
+    maybe_download(location)
+
     print("#############################################")
     print(f"Loading new SD pipeline from {location}..")
     print("#############################################")
@@ -303,7 +306,6 @@ def replace_in_string(s, replacements):
     while True:
         replaced = False
         for target, replacement in replacements.items():
-            # Using re.IGNORECASE to make the replacement case-insensitive
             new_s = re.sub(target, replacement, s, flags=re.IGNORECASE)
             if new_s != s:
                 s = new_s
@@ -338,6 +340,8 @@ def prepare_prompt_for_lora(prompt, lora_path, interpolation=False, verbose=True
     print(f"lora name: {lora_name}")
     lora_name_encapsulated = "<" + lora_name + ">"
     trigger_text = training_args["trigger_text"]
+    if len(trigger_text) == 0:
+        trigger_text = "TOK"
 
     try:
         mode = training_args["concept_mode"]
