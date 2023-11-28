@@ -75,6 +75,8 @@ def merge_loras(lora_path1, lora_path2, save_path, merge_alpha = 0.5, n_txt_enco
     # Saving merged tensors
     save_file(merged_tensors, f"{save_path}/lora.safetensors")
 
+    print(f"\nMerged LoRa with alpha = {merge_alpha} saved to {save_path}.")
+
 
 if __name__ == '__main__':
     

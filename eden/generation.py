@@ -214,10 +214,7 @@ def generate(
         args.init_image = torch.randn(shape, device=_device, generator=generator).half()
         args.init_image_strength = 0.0
         
-    if args.lora_scale > 0.0 and args.lora_path:
-        cross_attention_kwargs = {"scale": args.lora_scale}
-    else:
-        cross_attention_kwargs = None
+    cross_attention_kwargs = {"scale": args.lora_scale} if args.lora_path else None
          
     # Common SD arguments
     pipe_fn_args = {
