@@ -57,11 +57,14 @@ def merge_loras(lora_path1, lora_path2, save_path, merge_alpha = 0.5, n_txt_enco
         json.dump(merged_token_map, f)
 
     # 2. Create merged embeddings:
+    averaged_embeddings = {}
     merged_embeddings = {}
     for txt_encoder_key in embeddings1.keys():
         merged_embeddings[txt_encoder_key] = torch.cat([embeddings1[txt_encoder_key], embeddings2[txt_encoder_key]], dim=0)
+        averaged_embeddings[txt_encoder_key] = merge_alpha * embeddings1[txt_encoder_key] + (1 - merge_alpha) * embeddings2[txt_encoder_key]
     # save the merged embeddings:
     save_file(merged_embeddings, os.path.join(save_path, "embeddings.pti"))
+    save_file(averaged_embeddings, os.path.join(save_path, "averaged_embeddings.pti"))
 
     # 3. Create merged tensors:
     merged_tensors = {}
@@ -80,7 +83,7 @@ def merge_loras(lora_path1, lora_path2, save_path, merge_alpha = 0.5, n_txt_enco
 
 if __name__ == '__main__':
     
-    lora_path1 = "/home/rednax/Downloads/lora_combinez/max"
+    lora_path1 = "/home/rednax/Downloads/lora_combinez/gene"
     lora_path2 = "/home/rednax/Downloads/lora_combinez/xander"
-    save_path = "/home/rednax/Downloads/lora_combinez/combined"
-    merge_loras(lora_path1, lora_path2, save_path, merge_alpha = 0.5)
+    save_path = "/home/rednax/Downloads/lora_combinez/gene_xander"
+    merge_loras(lora_path1, lora_path2, save_path, merge_alpha = 0.6)

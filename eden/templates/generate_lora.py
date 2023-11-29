@@ -2,6 +2,8 @@ import sys
 sys.path.append('..')
 
 import os
+import random
+import time
 from settings import StableDiffusionSettings
 from generation import *
 from prompts import text_inputs, style_modifiers, lora_prompts
@@ -18,7 +20,7 @@ def generate_lora(text_input, outdir,
 
     args = StableDiffusionSettings(
         lora_path = lora_path,
-        lora_scale = random.choice([0.0, 0.2, 0.4, 0.6]),
+        lora_scale = random.choice([0.0]),
         mode = "generate",
         W = random.choice([1024]),
         H = random.choice([1024]),
@@ -32,7 +34,7 @@ def generate_lora(text_input, outdir,
         n_samples = 1,
     )
     
-    name = f'{prefix}{args.text_input[:40]}_{args.seed}_{int(time.time())}{suffix}'
+    name = f'{args.lora_scale}_{prefix}{args.text_input[:40]}_{args.seed}_{int(time.time())}{suffix}'
 
     name = name.replace("/", "_")
     generator = make_images(args)
@@ -47,17 +49,14 @@ def generate_lora(text_input, outdir,
     save_settings(args, settings_filename)
 
 
-if __name__ == "__main__":
 
-    outdir = "results_lora_xander"
-    lora_paths = ["/home/rednax/Downloads/lora_combinez/combined"]
-    lora_paths = ["/home/rednax/Downloads/lora_combinez/xander"]
-    #lora_paths = ["/home/rednax/Downloads/lora_combinez/max"]
+
+
+if __name__ == "__main__":
 
     prompt_file = "../random_prompts.txt"
     text_inputs = open(prompt_file).read().split("\n")
     text_inputs = lora_prompts
-
 
     text_inputs = [
         'low poly artwork of {}, svg, vector graphics, 3d, low poly, cubism',
@@ -117,21 +116,14 @@ if __name__ == "__main__":
         'a surreal portrait of {}, with eyes that are mini galaxies, hair flowing like waterfalls',
         ]
     
-    text_inputs = [
-        'a whimsical scene of {} as a wizard chess piece in a magical game, Harry Potter style',
-        'a whimsical scene of {} as a wizard chess piece in a magical game, Harry Potter style',
-        'a whimsical scene of {} as a wizard playing go, in a magical game, Harry Potter style',
-        'a of {} as a muscular hustler, playing Go, stones on the board',
-        'a of {} as a muscular bro, playing Go in the park at a table with a go board',
-        "A quirky scene of {} transformed into a mischievous elf chess piece, plotting its next move in an enchanted, Harry Potter-inspired game.",
-"An imaginative portrayal of {} as a cunning sorcerer chess piece, complete with a magical wand and cloak, in a fantastical, Harry Potter-esque setting.",
-"A playful depiction of {} as a wizard, deeply engrossed in a game of go, surrounded by mystical creatures and Harry Potter-style magical effects.",
-"An amusing scene of {} as a brawny, charismatic hustler, skillfully maneuvering go stones on a board, with a backdrop of enchanted artifacts.",
-"A lighthearted image of {} as a muscular, laid-back bro, engaged in an intense game of go at a park table, with magical sparks flying from the board.",
-        ]
-    
     # replace {} with <s0><s1> in text_inputs:
     text_inputs = [t.replace("{}", "<s0><s1>") for t in text_inputs]
+    
+
+    outdir = "results_lora_xander"
+    lora_paths = ["/home/rednax/Downloads/lora_combinez/combined"]
+    lora_paths = ["/home/rednax/Downloads/lora_combinez/xander"]
+    lora_paths = ["/home/rednax/Downloads/lora_combinez/blend_xander_gene"]
 
 
 
@@ -142,12 +134,13 @@ if __name__ == "__main__":
         text_input = random.choice(text_inputs)
         lora_path  = random.choice(lora_paths)
 
-        text_input = "a photo of <s2><s3> in the style of <s0><s1>" # combined
-        text_input = "a cartoon of <s0><s1>, cartoonized" # xander
+        #text_input = "a cartoon of <s0><s1>, cartoonized" # xander
             
 
         text_input = random.choice(text_inputs)
+        #text_input = "a photo of <s0><s1>" # combined
 
+        #text_input = "a photo of Barack Obama and Donald Trump" # combined
 
         try:
             generate_lora(text_input, outdir, lora_path, seed = seed)
