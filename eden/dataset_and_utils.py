@@ -342,7 +342,7 @@ class TokenEmbeddingsHandler:
 
             idx += 1
 
-    def save_embeddings(self, file_path: str):
+    def save_embeddings(self, file_path: str, txt_encoder_keys = ["clip_l", "clip_g"]):
         assert (
             self.train_ids is not None
         ), "Initialize new tokens before saving embeddings."
@@ -356,7 +356,7 @@ class TokenEmbeddingsHandler:
                     self.train_ids
                 ]
             )
-            tensors[f"text_encoders_{idx}"] = new_token_embeddings
+            tensors[txt_encoder_keys[idx]] = new_token_embeddings
 
         save_file(tensors, file_path)
 
@@ -412,11 +412,18 @@ class TokenEmbeddingsHandler:
                 index_updates
             ] = new_embeddings
 
-    def load_embeddings(self, file_path: str):
+    def load_embeddings(self, file_path: str, txt_encoder_keys = ["clip_l", "clip_g"]):
+        if not os.path.exists(file_path):
+            file_path = file_path.replace(".pti", ".safetensors")
+            if not os.path.exists(file_path):
+                raise FileNotFoundError(f"{file_path} does not exist.")
+
         with safe_open(file_path, framework="pt", device=self.device.type) as f:
             for idx in range(len(self.text_encoders)):
                 text_encoder = self.text_encoders[idx]
                 tokenizer = self.tokenizers[idx]
-
-                loaded_embeddings = f.get_tensor(f"text_encoders_{idx}")
+                try:
+                    loaded_embeddings = f.get_tensor(txt_encoder_keys[idx])
+                except:
+                    loaded_embeddings = f.get_tensor(f"text_encoders_{idx}")
                 self._load_embeddings(loaded_embeddings, tokenizer, text_encoder)

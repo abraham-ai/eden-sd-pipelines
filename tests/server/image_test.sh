@@ -7,7 +7,7 @@ INIT_IMAGE_URL1="https://storage.googleapis.com/public-assets-xander/A_workbox/i
 INIT_IMAGE_URL2="https://storage.googleapis.com/public-assets-xander/A_workbox/init_imgs/img_00005.jpg"
 INIT_IMAGE_URL3="https://storage.googleapis.com/public-assets-xander/A_workbox/init_imgs/img_00006.jpg"
 
-LORA_URL="https://edenartlab-prod-data.s3.us-east-1.amazonaws.com/92fb4b30d0d7f488998fc61f6ae8517dbf5f7c1d9f69fa4de71d25848987a21a.tar"
+LORA_URL="https://edenartlab-prod-data.s3.us-east-1.amazonaws.com/74dd58b51abb1407c66f47f39031ab65a3bd516ba3604fbc2dc4709d64faf325.tar"
 
 INIT_IMAGE_STRENGTH1=0.0
 INIT_IMAGE_STRENGTH2=0.2

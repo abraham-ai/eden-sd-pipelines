@@ -457,7 +457,12 @@ def load_lora(pipe, args):
         handler = TokenEmbeddingsHandler(
                 [pipe.text_encoder, pipe.text_encoder_2], [pipe.tokenizer, pipe.tokenizer_2]
             )
-        handler.load_embeddings(os.path.join(args.lora_path, "embeddings.pti"))
+
+        embedding_path = os.path.join(args.lora_path, "embeddings.pti")
+        if not os.path.exists(embedding_path):
+            embedding_path = os.path.join(args.lora_path, "embeddings.safetensors")
+            
+        handler.load_embeddings(embedding_path)
     
     print(f" ---> Updated pipe in {(time.time() - start_time):.2f}s using lora from {args.lora_path} with scale = {args.lora_scale:.2f}")
 
