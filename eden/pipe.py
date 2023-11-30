@@ -3,6 +3,7 @@ import sys
 import shutil
 from pathlib import Path
 import gc
+import re
 
 SD_PATH = Path(os.path.dirname(os.path.realpath(__file__))).parents[0]
 ROOT_PATH = SD_PATH.parents[0]
@@ -152,7 +153,7 @@ class PipeManager:
 
         return self.pipe
 
-    def run_safety_checker(self, image):
+    def run_safety_checker(self, image): #deprecated
         if self.safety_checker is not None:
             safety_checker_input = self.pipe.feature_extractor(self.pipe.numpy_to_pil(image), return_tensors="pt").to(_device)
             image, nsfw_detected, watermark_detected = self.safety_checker(
@@ -161,8 +162,7 @@ class PipeManager:
             )
         return nsfw_detected
 
-
-    def check_is_nsfw(self, image):
+    def check_is_nsfw(self, image): #deprecated
         if self.safety_checker is not None:
             safety_checker_input = self.pipe.feature_extractor(self.pipe.numpy_to_pil(image), return_tensors="pt").to(device)
             image, has_nsfw_concept = self.safety_checker(
@@ -427,13 +427,16 @@ def load_lora(pipe, args):
     elif "pytorch_lora_weights.bin" in os.listdir(args.lora_path): # trained with diffusers trainer
         pipe.load_lora_weights(args.lora_path)
 
-    else: # trained with closeofismo trainer
+    else: # trained with Eden trainer
         with open(os.path.join(args.lora_path, "training_args.json"), "r") as f:
             training_args = json.load(f)
             lora_rank = training_args["lora_rank"]
         
         unet = pipe.unet
-        tensors = load_file(os.path.join(args.lora_path, "lora.safetensors"))
+
+        lora_filename = [f for f in os.listdir(args.lora_path) if f.endswith("lora.safetensors")][0]
+        tensors = load_file(os.path.join(args.lora_path, lora_filename))
+
         unet_lora_attn_procs = {}
 
         for name, attn_processor in unet.attn_processors.items():
@@ -470,7 +473,8 @@ def load_lora(pipe, args):
 
         embedding_path = os.path.join(args.lora_path, "embeddings.pti")
         if not os.path.exists(embedding_path):
-            embedding_path = os.path.join(args.lora_path, "embeddings.safetensors")
+            embeddings_filename = [f for f in os.listdir(args.lora_path) if f.endswith("embeddings.safetensors")][0]
+            embedding_path = os.path.join(args.lora_path, embeddings_filename)
 
         handler.load_embeddings(embedding_path)
     
