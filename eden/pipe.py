@@ -77,16 +77,26 @@ def set_sampler(sampler_name, pipe):
 _download_dict = {
     "models/controlnets/controlnet-luminance-sdxl-1.0": "https://edenartlab-lfs.s3.amazonaws.com/models/controlnets/controlnet-luminance-sdxl-1.0/diffusion_pytorch_model.bin",
     "models/controlnets/controlnet-depth-sdxl-1.0-small": "https://edenartlab-lfs.s3.amazonaws.com/models/controlnets/controlnet-depth-sdxl-1.0-small/diffusion_pytorch_model.safetensors",
-    "models/checkpoints/sdxl-v1.0": ""
+    "models/checkpoints/sdxl-v1.0": "https://edenartlab-lfs.s3.amazonaws.com/models/checkpoints/sdxl-v1.0/sd_xl_base_1.0_0.9vae.safetensors"
 }
 
 from io_utils import download
 def maybe_download(path):
+    print("maybe_download: ", path)
     for key in _download_dict:
         if key in path:
+            print(f"{key} in path, might download...")
             download_url = _download_dict[key]
             filename = os.path.basename(download_url)
-            local_path = os.path.join(path, filename)
+            
+            # check if path is a folder or a file:
+            if os.path.isdir(path):
+                folderpath = path
+            else:
+                folderpath = os.path.dirname(path)
+
+            local_path = os.path.join(folderpath, filename)
+            print(f"target local_path: {local_path}")
             download(download_url, "", filepath=local_path, timeout=20*60)
             return
     if not os.path.exists(path):
@@ -461,7 +471,7 @@ def load_lora(pipe, args):
         embedding_path = os.path.join(args.lora_path, "embeddings.pti")
         if not os.path.exists(embedding_path):
             embedding_path = os.path.join(args.lora_path, "embeddings.safetensors")
-            
+
         handler.load_embeddings(embedding_path)
     
     print(f" ---> Updated pipe in {(time.time() - start_time):.2f}s using lora from {args.lora_path} with scale = {args.lora_scale:.2f}")

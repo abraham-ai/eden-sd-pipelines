@@ -6,6 +6,9 @@ import numpy as np
 import logging
 import numpy as np
 
+from pipe import SD_PATH
+nsfw_model_folder = os.path.join(SD_PATH, 'models/nsfw')
+
 from PIL import Image as pil_image
 
 if pil_image is not None:
@@ -83,12 +86,10 @@ class Model:
         url = "https://github.com/gsarridis/NSFW-Detection-Pytorch/releases/download/pretrained_models_v2/2022_06_20_11_01_42.onnx"
         url = "https://edenartlab-lfs.s3.amazonaws.com/models/2022_06_20_11_01_42.onnx"
 
-        home = os.path.expanduser("~")
-        model_folder = os.path.join(home, ".NSFWModel/")
-        if not os.path.exists(model_folder):
-            os.mkdir(model_folder)
+        if not os.path.exists(nsfw_model_folder):
+            os.mkdir(nsfw_model_folder)
 
-        model_path = os.path.join(model_folder, os.path.basename(url))
+        model_path = os.path.join(nsfw_model_folder, os.path.basename(url))
 
         if not os.path.exists(model_path):
             print("Downloading the checkpoint to", model_path)

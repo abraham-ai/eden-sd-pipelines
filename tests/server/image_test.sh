@@ -65,6 +65,7 @@ EOF
 {
     "input": {
       "mode": "generate",
+      "checkpoint": "sdxl-v1.0",
       "text_input": "a photo of <concept> on the beach, drinking Coca-Cola",
       "lora": "$LORA_URL",
       "seed": $SEED
