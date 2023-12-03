@@ -244,8 +244,8 @@ class Predictor(BasePredictor):
         ),
     ) -> Iterator[GENERATOR_OUTPUT_TYPE]:
     
-        for i in range(5):
-            print("--------------------------------------------------------------------------")
+        for i in range(3):
+            print("-------------------------------------------------------")
 
         print(f"cog:predict: {mode}")
         t_start = time.time()
@@ -369,6 +369,8 @@ class Predictor(BasePredictor):
             with open(out_path, 'w', encoding='utf-8') as f:
                 f.write(interrogation)
             attributes = {'interrogation': interrogation}
+            attributes['job_time_seconds'] = time.time() - t_start
+            
             if DEBUG_MODE:
                 shutil.copyfile(out_path, os.path.join(debug_output_dir, "out_interrogation.txt"))
                 yield out_path
@@ -414,6 +416,8 @@ class Predictor(BasePredictor):
                 nsfw_output = nsfw_net.predict(str(img_path))
                 nsfw_score = nsfw_output[str(img_path)]['Score']
                 attributes['nsfw_scores'].append(np.round(nsfw_score,2))
+
+            attributes['job_time_seconds'] = time.time() - t_start
 
             if DEBUG_MODE:
                 for index, out_path in enumerate(out_paths):
@@ -526,6 +530,7 @@ class Predictor(BasePredictor):
             nsfw_output = nsfw_net.predict(str(thumbnail))
             nsfw_score = nsfw_output[str(thumbnail)]['Score']
             attributes['nsfw_scores'].append(np.round(nsfw_score,2))
+            attributes['job_time_seconds'] = time.time() - t_start
 
             if DEBUG_MODE:
                 if mode == "blend":

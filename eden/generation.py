@@ -159,6 +159,13 @@ def generate(
 
     if (args.lora_path) and (args.interpolator is None):
         args.text_input = prepare_prompt_for_lora(args.text_input, args.lora_path, verbose = True)
+        if args.c is None:
+            args.c, args.uc, args.pc, args.puc = pipe.encode_prompt(
+                    args.text_input,
+                    do_classifier_free_guidance = args.guidance_scale > 1,
+                    negative_prompt = args.uc_text,
+                    lora_scale = args.lora_scale,
+                    )
 
     if args.interpolator:
         args.seed = args.interpolator.current_seed
