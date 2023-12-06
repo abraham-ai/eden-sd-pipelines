@@ -64,7 +64,8 @@ class StableDiffusionSettings:
 
     # Lora / finetuning:
     lora_path: str = None
-    lora_scale: float = 0.7
+    lora_scale: float = 0.7 # how heavily to apply the lora weights
+    token_scale: float = None # interpolate between learned token embedding and dummy token (when using a lora)
     lora_paths: str = None # optional list of lora paths for each img seed for real2real
 
     #precision: str = 'autocast'

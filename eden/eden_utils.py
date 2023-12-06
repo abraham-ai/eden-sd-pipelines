@@ -393,7 +393,11 @@ def get_prompts_from_json_dir(json_dir, shuffle = False, return_seeds = False):
         with open(os.path.join(json_dir, json_file)) as json_file:
             try:
                 data = json.load(json_file)
-                text_inputs.append(data['text_input'])
+                try:
+                    prompt = data['name']
+                except:
+                    prompt = data['text_input']
+                text_inputs.append(prompt)
                 seeds.append(data['seed'])
             except:
                 continue

@@ -123,19 +123,24 @@ def generate(
         print("Disabling ip_adapter..")
         pipe_manager.disable_ip_adapter()
 
-    if args.c is None and args.text_input is not None and args.text_input != "" and 0:
-                args.c, args.uc, args.pc, args.puc = pipe.encode_prompt(
-                    args.text_input,
-                    do_classifier_free_guidance = args.guidance_scale > 1,
-                    negative_prompt = args.uc_text,
-                    lora_scale = args.lora_scale,
-                    )
     if 0:
         from latent_magic import sample_random_conditioning, save_ip_img_condition
         args = sample_random_conditioning(args)
         #save_ip_img_condition(args)
+        #from latent_magic import visualize_distribution
+        #visualize_distribution(args, os.path.join(args.outdir, args.name))
+
+    if args.use_lcm:
+        args.guidance_scale = 0.0
+
+    if (args.interpolator is None) and (len(args.name) == 0):
+        args.name = args.text_input # send this name back to the frontend
+
+    if (args.lora_path) and (args.interpolator is None):
+        args = prepare_prompt_for_lora(args, pipe, verbose = True)
 
     if args.noise_sigma > 0.0: # apply random noise to the conditioning vectors:
+        print(f"Adding random noise with sigma={args.noise_sigma:.3f} to prompt conditionings!")
         if args.c is None:
             args.c, args.uc, args.pc, args.puc = pipe.encode_prompt(
                 args.text_input,
@@ -148,24 +153,6 @@ def generate(
         args_c_clone[0,1:-2,:] += torch.randn_like(args.c[0,1:-2,:]) * args.noise_sigma
         args.c = args_c_clone
 
-    #from latent_magic import visualize_distribution
-    #visualize_distribution(args, os.path.join(args.outdir, args.name))
-
-    if args.use_lcm:
-        args.guidance_scale = 0.0
-
-    if (args.interpolator is None) and (len(args.name) == 0):
-        args.name = args.text_input # send this name back to the frontend
-
-    if (args.lora_path) and (args.interpolator is None):
-        args.text_input = prepare_prompt_for_lora(args.text_input, args.lora_path, verbose = True)
-        if args.c is None:
-            args.c, args.uc, args.pc, args.puc = pipe.encode_prompt(
-                    args.text_input,
-                    do_classifier_free_guidance = args.guidance_scale > 1,
-                    negative_prompt = args.uc_text,
-                    lora_scale = args.lora_scale,
-                    )
 
     if args.interpolator:
         args.seed = args.interpolator.current_seed
@@ -363,7 +350,7 @@ def make_interpolation(args, force_timepoints = None):
     # Map LORA tokens:
     if args.lora_path:
         for i, _ in enumerate(args.interpolation_texts):
-            args.interpolation_texts[i] = prepare_prompt_for_lora(args.interpolation_texts[i], args.lora_path, interpolation = True, verbose = True)
+            args.interpolation_texts[i] = prepare_prompt_for_lora(args, pipe, interpolation = True, verbose = True)
 
     # Release CLIP memory:
     del_clip_interrogator_models()

@@ -324,10 +324,16 @@ def replace_in_string(s, replacements):
             break
     return s
 
-def prepare_prompt_for_lora(prompt, lora_path, interpolation=False, verbose=True):
-    if "_no_token" in lora_path:
-        return prompt
-        
+def prepare_prompt_for_lora(args, pipe, encode_prompt = True, interpolation=False, verbose=True):
+    if args.c is not None:
+        print('-------------------------------------')
+        print("Warning: c was already set, skipping prepare_prompt_for_lora")
+        print("This should never happen, ask Xander")
+        print('-------------------------------------')
+        return args
+
+    prompt, lora_path = args.text_input, args.lora_path
+
     orig_prompt = prompt
 
     # Helper function to read JSON
@@ -404,6 +410,7 @@ def prepare_prompt_for_lora(prompt, lora_path, interpolation=False, verbose=True
         r"\s,": ","
     }
     prompt = replace_in_string(prompt, fix_replacements)
+    args.text_input = prompt
 
     if verbose:
         print('-------------------------')
@@ -411,9 +418,86 @@ def prepare_prompt_for_lora(prompt, lora_path, interpolation=False, verbose=True
         print(orig_prompt)
         print('-- to:')
         print(prompt)
-        print('-------------------------')
 
-    return prompt
+    if not encode_prompt:
+        return args
+
+    # With the adjusted (token injected) prompt, we can now do some fancy lora_scaling:
+    # We'll encode both the original (no-token) and token-injected prompts and interpolate
+
+    # Lets do some quick fixes to the original prompt to make it as natural as possible:
+    zero_prompt = orig_prompt
+    if mode == "face":
+        replacements = {
+            "<concept>": "a person",
+            "<concepts>": "people",
+            lora_name_encapsulated: "a person",
+            lora_name_encapsulated.lower(): "a person",
+            lora_name: "a person",
+            lora_name.lower(): "a person",
+        }
+        zero_prompt = replace_in_string(zero_prompt, replacements)
+    elif mode == "object":
+        try:
+            object_description = training_args["segmentation_prompt"]
+        except:
+            object_description = "a thing"
+        replacements = {
+            "<concept>": object_description,
+            "<concepts>": object_description,
+            lora_name_encapsulated: object_description,
+            lora_name_encapsulated.lower(): object_description,
+            lora_name: object_description,
+            lora_name.lower(): object_description,
+        }
+        zero_prompt = replace_in_string(zero_prompt, replacements)
+    else:
+        style_replacements = {
+            "in the style of <concept>": "in the style of",
+            f"in the style of {lora_name_encapsulated}": "in the style of",
+            f"in the style of {lora_name_encapsulated.lower()}": "in the style of",
+            f"in the style of {lora_name}": "in the style of",
+            f"in the style of {lora_name.lower()}": "in the style of"
+        }
+        zero_prompt = replace_in_string(zero_prompt, style_replacements)
+
+    # Encode the zero_prompt:
+    if verbose:
+        print(f"Encoding zero prompt:")
+        print(zero_prompt)
+    c_zero, uc_zero, pc_zero, puc_zero = pipe.encode_prompt(
+        zero_prompt,
+        do_classifier_free_guidance = args.guidance_scale > 1,
+        negative_prompt = args.uc_text,
+        lora_scale = args.lora_scale)
+
+    # Encode the token-injected prompt
+    c, uc, pc, puc = pipe.encode_prompt(
+        args.text_input,
+        do_classifier_free_guidance = args.guidance_scale > 1,
+        negative_prompt = args.uc_text,
+        lora_scale = args.lora_scale)
+
+    # Interpolate between the two prompts:
+    # We're applying a super custom schedule here whereby
+    # The args.token_scale = 0 leads to the midpoint between the two prompts (t = 0.5)
+
+    if not args.token_scale:
+        token_scale_power = 0.5
+        min_token_scale   = 0.4
+        args.token_scale = args.lora_scale ** token_scale_power
+        # rescale the [0,1] range to [min_token_scale, 1] range:
+        args.token_scale = min_token_scale + (1 - min_token_scale) * args.token_scale
+        if verbose:
+            print(f"Setting token_scale to {args.token_scale:.2f} (lora_scale = {args.lora_scale}, power = {token_scale_power})")
+            print('-------------------------')
+
+    args.c   = (1 - args.token_scale) * c_zero   + args.token_scale * c
+    args.uc  = (1 - args.token_scale) * uc_zero  + args.token_scale * uc
+    args.pc  = (1 - args.token_scale) * pc_zero  + args.token_scale * pc
+    args.puc = (1 - args.token_scale) * puc_zero + args.token_scale * puc
+
+    return args
 
 
 def load_lora(pipe, args):
