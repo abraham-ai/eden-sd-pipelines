@@ -1,6 +1,6 @@
 # never push DEBUG_MODE = True to Replicate!
 DEBUG_MODE = False
-#DEBUG_MODE = True
+DEBUG_MODE = True
 
 import os
 import time

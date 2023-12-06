@@ -282,17 +282,8 @@ def load_pipe(args):
                 location, 
                 torch_dtype=torch.float16, use_safetensors=True, variant="fp16"
             )
-    if 0:
-        # -------- freeu block registration (https://github.com/ChenyangSi/FreeU)
-        # TODO perform big hyperparameter search for these values using automatic img scoring
-        # apply very mild reweighting:
-        s1, s2, b1, b2 = 0.9, 0.9, 1.05, 1.05
-        register_free_upblock2d(pipe, b1=b1, b2=b2, s1=s1, s2=s2)
-        register_free_crossattn_upblock2d(pipe, b1=b1, b2=b2, s1=s1, s2=s2)
-        # -------- freeu block registration
 
     safety_checker = None
-    #safety_checker = StableDiffusionSafetyChecker(CLIPConfig())
     pipe.safety_checker = None
 
     pipe = pipe.to(_device)
@@ -312,6 +303,21 @@ from dataset_and_utils import TokenEmbeddingsHandler
 
 import re
 
+def read_json_from_path(path):
+    """Helper function to read JSON from a given path."""
+    with open(path, "r") as f:
+        return json.load(f)
+
+def fix_common_mistakes(prompt):
+    """Fix common mistakes in the prompt."""
+    replacements = {
+        r",,": ",",
+        r"\s\s+": " ",
+        r"\s\.": ".",
+        r"\s,": ","
+    }
+    return replace_in_string(prompt, replacements)
+
 def replace_in_string(s, replacements):
     while True:
         replaced = False
@@ -324,167 +330,18 @@ def replace_in_string(s, replacements):
             break
     return s
 
-def prepare_prompt_for_lora(args, pipe, encode_prompt = True, interpolation=False, verbose=True):
-    if args.c is not None:
-        print('-------------------------------------')
-        print("Warning: c was already set, skipping prepare_prompt_for_lora")
-        print("This should never happen, ask Xander")
-        print('-------------------------------------')
-        return args
-
-    prompt, lora_path = args.text_input, args.lora_path
-
-    orig_prompt = prompt
-
-    # Helper function to read JSON
-    def read_json_from_path(path):
-        with open(path, "r") as f:
-            return json.load(f)
-
-    # Check existence of "special_params.json"
-    if not os.path.exists(os.path.join(lora_path, "special_params.json")):
-        raise ValueError("This concept is from an old lora trainer that was deprecated. Please retrain your concept for better results!")
-
-    token_map = read_json_from_path(os.path.join(lora_path, "special_params.json"))
-    training_args = read_json_from_path(os.path.join(lora_path, "training_args.json"))
-    
-    try:
-        lora_name = str(training_args["name"])
-    except: # fallback for old loras that dont have the name field:
-        return training_args["trigger_text"] + ", " + prompt
-
-    print(f"lora name: {lora_name}")
-    lora_name_encapsulated = "<" + lora_name + ">"
-    trigger_text = training_args["trigger_text"]
-    if len(trigger_text) == 0:
-        trigger_text = "TOK"
-
-    try:
-        mode = training_args["concept_mode"]
-    except KeyError:
-        try:
-            mode = training_args["mode"]
-        except KeyError:
-            mode = "object"
-
-    # Handle different modes
-    print(f"lora mode: {mode}")
-    if mode != "style":
-        replacements = {
-            "<concept>": trigger_text,
-            "<concepts>": trigger_text + "'s",
-            lora_name_encapsulated: trigger_text,
-            lora_name_encapsulated.lower(): trigger_text,
-            lora_name: trigger_text,
-            lora_name.lower(): trigger_text,
-        }
-        prompt = replace_in_string(prompt, replacements)
-        if trigger_text not in prompt:
-            prompt = trigger_text + ", " + prompt
-    else:
-        style_replacements = {
-            "in the style of <concept>": "in the style of TOK",
-            f"in the style of {lora_name_encapsulated}": "in the style of TOK",
-            f"in the style of {lora_name_encapsulated.lower()}": "in the style of TOK",
-            f"in the style of {lora_name}": "in the style of TOK",
-            f"in the style of {lora_name.lower()}": "in the style of TOK"
-        }
-        prompt = replace_in_string(prompt, style_replacements)
-        if "in the style of TOK" not in prompt:
-            prompt = "in the style of TOK, " + prompt
-        
-    # Final cleanup
-    prompt = replace_in_string(prompt, {"<concept>": "TOK", lora_name_encapsulated: "TOK"})
-
-    if interpolation and mode != "style" and "TOK" not in prompt:
-        prompt = "TOK, " + prompt
-
-    # Replace tokens based on token map
-    prompt = replace_in_string(prompt, token_map)
-
-    # Fix common mistakes
-    fix_replacements = {
-        r",,": ",",
-        r"\s\s+": " ",  # Replaces one or more whitespace characters with a single space
-        r"\s\.": ".",
-        r"\s,": ","
-    }
-    prompt = replace_in_string(prompt, fix_replacements)
-    args.text_input = prompt
-
-    if verbose:
-        print('-------------------------')
-        print("Adjusted prompt for LORA:")
-        print(orig_prompt)
-        print('-- to:')
-        print(prompt)
-
-    if not encode_prompt:
-        return args
-
-    # With the adjusted (token injected) prompt, we can now do some fancy lora_scaling:
-    # We'll encode both the original (no-token) and token-injected prompts and interpolate
-
-    # Lets do some quick fixes to the original prompt to make it as natural as possible:
-    zero_prompt = orig_prompt
-    if mode == "face":
-        replacements = {
-            "<concept>": "a person",
-            "<concepts>": "people",
-            lora_name_encapsulated: "a person",
-            lora_name_encapsulated.lower(): "a person",
-            lora_name: "a person",
-            lora_name.lower(): "a person",
-        }
-        zero_prompt = replace_in_string(zero_prompt, replacements)
-    elif mode == "object":
-        try:
-            object_description = training_args["segmentation_prompt"]
-        except:
-            object_description = "a thing"
-        replacements = {
-            "<concept>": object_description,
-            "<concepts>": object_description,
-            lora_name_encapsulated: object_description,
-            lora_name_encapsulated.lower(): object_description,
-            lora_name: object_description,
-            lora_name.lower(): object_description,
-        }
-        zero_prompt = replace_in_string(zero_prompt, replacements)
-    else:
-        style_replacements = {
-            "in the style of <concept>": "in the style of",
-            f"in the style of {lora_name_encapsulated}": "in the style of",
-            f"in the style of {lora_name_encapsulated.lower()}": "in the style of",
-            f"in the style of {lora_name}": "in the style of",
-            f"in the style of {lora_name.lower()}": "in the style of"
-        }
-        zero_prompt = replace_in_string(zero_prompt, style_replacements)
-
-    # Encode the zero_prompt:
-    if verbose:
-        print(f"Encoding zero prompt:")
-        print(zero_prompt)
-    c_zero, uc_zero, pc_zero, puc_zero = pipe.encode_prompt(
-        zero_prompt,
-        do_classifier_free_guidance = args.guidance_scale > 1,
-        negative_prompt = args.uc_text,
-        lora_scale = args.lora_scale)
-
-    # Encode the token-injected prompt
-    c, uc, pc, puc = pipe.encode_prompt(
-        args.text_input,
-        do_classifier_free_guidance = args.guidance_scale > 1,
-        negative_prompt = args.uc_text,
-        lora_scale = args.lora_scale)
-
-    # Interpolate between the two prompts:
-    # We're applying a super custom schedule here whereby
-    # The args.token_scale = 0 leads to the midpoint between the two prompts (t = 0.5)
+def blend_conditions(embeds1, embeds2, args, 
+        token_scale_power = 0.5,  # adjusts the curve of the interpolation
+        min_token_scale   = 0.4,  # minimum token scale (corresponds to lora_scale = 0)
+        verbose = False,
+        ):
+    """
+    using args.lora_scale (or args.token_scale), apply linear interpolation between two sets of embeddings
+    """
+    c1, uc1, pc1, puc1 = embeds1
+    c2, uc2, pc2, puc2 = embeds2
 
     if not args.token_scale:
-        token_scale_power = 0.5
-        min_token_scale   = 0.4
         args.token_scale = args.lora_scale ** token_scale_power
         # rescale the [0,1] range to [min_token_scale, 1] range:
         args.token_scale = min_token_scale + (1 - min_token_scale) * args.token_scale
@@ -492,13 +349,128 @@ def prepare_prompt_for_lora(args, pipe, encode_prompt = True, interpolation=Fals
             print(f"Setting token_scale to {args.token_scale:.2f} (lora_scale = {args.lora_scale}, power = {token_scale_power})")
             print('-------------------------')
 
-    args.c   = (1 - args.token_scale) * c_zero   + args.token_scale * c
-    args.uc  = (1 - args.token_scale) * uc_zero  + args.token_scale * uc
-    args.pc  = (1 - args.token_scale) * pc_zero  + args.token_scale * pc
-    args.puc = (1 - args.token_scale) * puc_zero + args.token_scale * puc
+    c   = (1 - args.token_scale) * c1   + args.token_scale * c2
+    uc  = (1 - args.token_scale) * uc1  + args.token_scale * uc2
+    pc  = (1 - args.token_scale) * pc1  + args.token_scale * pc2
+    puc = (1 - args.token_scale) * puc1 + args.token_scale * puc2
 
-    return args
+    return c, uc, pc, puc
 
+
+def adjust_prompt(args, prompt, 
+        inject_token = True,
+        verbose = False
+        ):
+    """
+    Slightly messy prompt magic to make sure we're always triggering the lora token when a lora is active
+    """
+    original_prompt = prompt
+
+    training_args = read_json_from_path(os.path.join(args.lora_path, "training_args.json"))
+    token_map     = read_json_from_path(os.path.join(args.lora_path, "special_params.json"))
+    mode          = training_args.get("concept_mode", training_args.get("mode", "object"))
+    lora_name     = training_args.get("name", "lora")
+    lora_name_encapsulated = "<" + lora_name + ">"
+
+    trigger_text = training_args.get("trigger_text", "TOK")
+    if len(trigger_text) == 0:
+        trigger_text = "TOK"
+
+    if inject_token:
+        face_txt   = trigger_text
+        object_txt = trigger_text
+        style_txt  = "in the style of TOK"
+    else:
+        face_txt   = "a person"
+        object_txt = training_args.get("segmentation_prompt", "a thing")
+        style_txt  = ""
+
+    if mode == "face":
+        replacements = {
+            "<concept>": face_txt,
+            "<concepts>": face_txt + "'s",
+            lora_name_encapsulated: face_txt,
+            lora_name: face_txt,
+        }
+        prompt = replace_in_string(prompt, replacements)
+        if face_txt not in prompt:
+            prompt = face_txt + ", " + prompt
+
+    elif mode == "object" or mode == "concept":
+        replacements = {
+            "<concept>": object_txt,
+            "<concepts>": object_txt + "'s",
+            lora_name_encapsulated: object_txt,
+            lora_name: object_txt,
+        }
+        prompt = replace_in_string(prompt, replacements)
+        if object_txt not in prompt:
+            prompt = object_txt + ", " + prompt
+
+    elif mode == "style":
+        style_replacements = {
+            "in the style of <concept>": style_txt,
+            f"in the style of {lora_name_encapsulated}": style_txt,
+            f"in the style of {lora_name}": style_txt,
+        }
+        prompt = replace_in_string(prompt, style_replacements)
+        if style_txt not in prompt:
+            prompt = f"{style_txt}, " + prompt
+        
+    # Final cleanup
+    if inject_token:
+        prompt = replace_in_string(prompt, {"<concept>": "TOK", lora_name_encapsulated: "TOK", lora_name: "TOK"})
+        if "TOK" not in prompt:
+            prompt = "TOK, " + prompt
+    else:
+        if "TOK" in prompt:
+            prompt = prompt.replace("TOK", "")
+
+    # Replace tokens based on token map
+    prompt = replace_in_string(prompt, token_map)
+    prompt = fix_common_mistakes(prompt)
+
+    if verbose:
+        print('-------------------------')
+        print(original_prompt)
+        print(" -- adjusted to: --")
+        print(prompt)
+
+    return prompt
+
+def encode_prompt_advanced(args, pipe, verbose=True):
+    if args.c is not None:
+        print("Warning: args.c was already set, skipping prepare_prompt_for_lora()")
+        return args.c, args.uc, args.pc, args.puc
+
+    if args.lora_path is None:
+        return pipe.encode_prompt(
+            args.text_input,
+            do_classifier_free_guidance=args.guidance_scale > 1,
+            negative_prompt=args.uc_text)
+
+    if not os.path.exists(os.path.join(args.lora_path, "special_params.json")):
+        raise ValueError("This concept is from an old lora trainer. Please retrain your concept!")
+
+    original_prompt = args.text_input
+    lora_prompt     = adjust_prompt(args, original_prompt, verbose = verbose)
+    args.text_input = lora_prompt
+
+    zero_prompt        = adjust_prompt(args, original_prompt, inject_token = False, verbose=verbose)
+    zero_embeddings    = pipe.encode_prompt(
+        zero_prompt,
+        do_classifier_free_guidance=args.guidance_scale > 1,
+        negative_prompt=args.uc_text,
+        lora_scale=args.lora_scale)
+
+    lora_embeddings    = pipe.encode_prompt(
+        lora_prompt,
+        do_classifier_free_guidance=args.guidance_scale > 1,
+        negative_prompt=args.uc_text,
+        lora_scale=args.lora_scale)
+
+    embeds = blend_conditions(zero_embeddings, lora_embeddings, args, verbose=verbose)
+    return embeds
 
 def load_lora(pipe, args):
     

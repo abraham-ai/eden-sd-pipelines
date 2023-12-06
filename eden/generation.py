@@ -26,7 +26,7 @@ import torchvision.transforms as T
 import torchvision.transforms.functional as TF
 
 from settings import _device
-from pipe import pipe_manager, prepare_prompt_for_lora
+from pipe import pipe_manager, encode_prompt_advanced
 from eden_utils import *
 from interpolator import *
 from clip_tools import *
@@ -137,7 +137,8 @@ def generate(
         args.name = args.text_input # send this name back to the frontend
 
     if (args.lora_path) and (args.interpolator is None):
-        args = prepare_prompt_for_lora(args, pipe, verbose = True)
+        print("injecting in Generation!!!!!")
+        args.c, args.uc, args.pc, args.puc = encode_prompt_advanced(args, pipe, verbose = True)
 
     if args.noise_sigma > 0.0: # apply random noise to the conditioning vectors:
         print(f"Adding random noise with sigma={args.noise_sigma:.3f} to prompt conditionings!")
@@ -178,6 +179,8 @@ def generate(
     else:
         callback_ = None
 
+
+    print(f"SEED: {args.seed}")
     generator = torch.Generator(device=_device).manual_seed(int(args.seed))
     
     if args.c is not None:
@@ -346,11 +349,6 @@ def make_interpolation(args, force_timepoints = None):
     # Load model
     pipe = pipe_manager.get_pipe(args)
     args.name = " => ".join(args.interpolation_texts) # send this name back to frontend
-
-    # Map LORA tokens:
-    if args.lora_path:
-        for i, _ in enumerate(args.interpolation_texts):
-            args.interpolation_texts[i] = prepare_prompt_for_lora(args, pipe, interpolation = True, verbose = True)
 
     # Release CLIP memory:
     del_clip_interrogator_models()

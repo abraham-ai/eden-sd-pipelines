@@ -184,26 +184,23 @@ class Interpolator():
             self.init_noises.pop()
 
         for i in range(2):
-            index = phase_index + i
+            index  = phase_index + i
             prompt = self.prompts[index]
             image  = self.images[index]
             seed   = self.seeds[index]
 
-            try: # SDXL
-                if image and self.ip_adapter:
-                    # create the conditioning vectors for the current prompt + image using ip_adapter:
-                    prompt_embeds = self.ip_adapter.create_embeds(
-                        image, prompt=prompt, negative_prompt=self.args.uc_text, scale=self.args.ip_image_strength
-                        )
-                else:
-                    prompt_embeds = self.pipe.encode_prompt(
-                        prompt = prompt,
-                        device = self.device,
-                        num_images_per_prompt = 1,
-                        do_classifier_free_guidance = self.args.guidance_scale > 1.0,
-                        negative_prompt = self.args.uc_text
+            #try: # SDXL
+            if image and self.ip_adapter:
+                if self.args.lora_path is not None:
+                    prompt = adjust_prompt(self.args, prompt, inject_token = True, verbose = True)
+                # create the conditioning vectors for the current prompt + image using ip_adapter:
+                prompt_embeds = self.ip_adapter.create_embeds(
+                    image, prompt=prompt, negative_prompt=self.args.uc_text, scale=self.args.ip_image_strength
                     )
-            except:
+            else:
+                self.args.text_input = prompt
+                prompt_embeds = encode_prompt_advanced(self.args, self.pipe)
+            if 0:
                 prompt_embeds = self.pipe._encode_prompt(
                     prompt = prompt,
                     device = self.device,
