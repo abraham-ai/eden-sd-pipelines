@@ -1,6 +1,6 @@
 # never push DEBUG_MODE = True to Replicate!
 DEBUG_MODE = False
-DEBUG_MODE = True
+#DEBUG_MODE = True
 
 import os
 import time
@@ -118,7 +118,7 @@ class Predictor(BasePredictor):
         ),
         steps: int = Input(
             description="Diffusion steps", 
-            ge=10, le=100, default=35
+            ge=10, le=70, default=35
         ),
         guidance_scale: float = Input(
             description="Strength of text conditioning guidance", 
@@ -155,7 +155,7 @@ class Predictor(BasePredictor):
         ),
         control_image_strength: float = Input(
             description="Strength of control image", 
-            ge=0.0, le=1.0, default=0.0
+            ge=0.0, le=1.5, default=0.0
         ),
 
         # IP_adapter image
@@ -165,7 +165,7 @@ class Predictor(BasePredictor):
         ),
         ip_image_strength: float = Input(
             description="Strength of image conditioning from ip_adapter (vs txt conditioning from clip-interrogator or prompt) (used in remix, upscale, blend and real2real)", 
-            ge=0.0, le=1.0, default=0.65
+            ge=0.0, le=1.25, default=0.65
         ),
 
         # Generate mode

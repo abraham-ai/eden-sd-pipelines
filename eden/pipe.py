@@ -359,7 +359,8 @@ def blend_conditions(embeds1, embeds2, args,
 
 def adjust_prompt(args, prompt, 
         inject_token = True,
-        verbose = False
+        verbose = False,
+        token = "TOK",
         ):
     """
     Slightly messy prompt magic to make sure we're always triggering the lora token when a lora is active
@@ -372,14 +373,14 @@ def adjust_prompt(args, prompt,
     lora_name     = training_args.get("name", "lora")
     lora_name_encapsulated = "<" + lora_name + ">"
 
-    trigger_text = training_args.get("trigger_text", "TOK")
+    trigger_text = training_args.get("trigger_text", token)
     if len(trigger_text) == 0:
-        trigger_text = "TOK"
+        trigger_text = token
 
     if inject_token:
         face_txt   = trigger_text
         object_txt = trigger_text
-        style_txt  = "in the style of TOK"
+        style_txt  = f"in the style of {token}"
     else:
         face_txt   = "a person"
         object_txt = training_args.get("segmentation_prompt", "a thing")
@@ -414,17 +415,25 @@ def adjust_prompt(args, prompt,
             f"in the style of {lora_name}": style_txt,
         }
         prompt = replace_in_string(prompt, style_replacements)
-        if style_txt not in prompt:
+
+        style_replacements = {
+            "<concept>": token,
+            f"{lora_name_encapsulated}": token,
+            f"{lora_name}": token,
+        }
+        prompt = replace_in_string(prompt, style_replacements)
+
+        if token not in prompt and inject_token:
             prompt = f"{style_txt}, " + prompt
         
     # Final cleanup
     if inject_token:
-        prompt = replace_in_string(prompt, {"<concept>": "TOK", lora_name_encapsulated: "TOK", lora_name: "TOK"})
-        if "TOK" not in prompt:
-            prompt = "TOK, " + prompt
+        prompt = replace_in_string(prompt, {"<concept>": token, lora_name_encapsulated: token, lora_name: token})
+        if token not in prompt:
+            prompt = f"{token}, " + prompt
     else:
-        if "TOK" in prompt:
-            prompt = prompt.replace("TOK", "")
+        if token in prompt:
+            prompt = prompt.replace(token, "")
 
     # Replace tokens based on token map
     prompt = replace_in_string(prompt, token_map)

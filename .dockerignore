@@ -3,7 +3,7 @@ eden/templates
 eden/xander
 tests
 
-#models/checkpoints/juggernaut_XL2
+models/checkpoints/juggernaut_XL3
 models/checkpoints/sdxl-v1.0/sd_xl_base_1.0_0.9vae.safetensors
 
 models/checkpoints/eden:eden-v1

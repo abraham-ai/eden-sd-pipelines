@@ -7,7 +7,9 @@ INIT_IMAGE_URL1="https://storage.googleapis.com/public-assets-xander/A_workbox/i
 INIT_IMAGE_URL2="https://storage.googleapis.com/public-assets-xander/A_workbox/init_imgs/img_00005.jpg"
 INIT_IMAGE_URL3="https://storage.googleapis.com/public-assets-xander/A_workbox/init_imgs/img_00006.jpg"
 
-LORA_URL="https://edenartlab-prod-data.s3.us-east-1.amazonaws.com/74dd58b51abb1407c66f47f39031ab65a3bd516ba3604fbc2dc4709d64faf325.tar"
+LORA_FACE_URL="https://edenartlab-prod-data.s3.us-east-1.amazonaws.com/74dd58b51abb1407c66f47f39031ab65a3bd516ba3604fbc2dc4709d64faf325.tar"
+LORA_STYLE_URL="https://edenartlab-prod-data.s3.us-east-1.amazonaws.com/ac64de34e28cb7cb3f6cd53f3a408660b9f0f805b6f0a7555cf601ba482dd75b.tar"
+LORA_OBJECT_URL="https://edenartlab-prod-data.s3.us-east-1.amazonaws.com/cb34799e2b04671cfd4c78104c0eed4e68866e5adbf9f21d40bf2ca8d4db08a7.tar"
 
 INIT_IMAGE_STRENGTH1=0.0
 INIT_IMAGE_STRENGTH2=0.2
@@ -67,7 +69,7 @@ EOF
       "mode": "generate",
       "checkpoint": "sdxl-v1.0",
       "text_input": "a photo of <concept> on the beach, drinking Coca-Cola",
-      "lora": "$LORA_URL",
+      "lora": "$LORA_FACE_URL",
       "seed": $SEED
     }
 }
@@ -197,7 +199,7 @@ EOF
       "text_input": "folded paper, origami",
       "init_image": "$INIT_IMAGE_URL1",
       "init_image_strength": $INIT_IMAGE_STRENGTH1,
-      "lora": "$LORA_URL",
+      "lora": "$LORA_STYLE_URL",
       "seed": $SEED
     }
 }
@@ -247,7 +249,7 @@ EOF
       "text_input": "a photo of <concept>",
       "control_image": "$INIT_IMAGE_URL1",
       "control_image_strength": $INIT_IMAGE_STRENGTH_CONTROL1,
-      "lora": "$LORA_URL",
+      "lora": "$LORA_OBJECT_URL",
       "controlnet_type": "luminance",
       "seed": $SEED
     }
