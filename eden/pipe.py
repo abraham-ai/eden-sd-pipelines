@@ -431,12 +431,8 @@ def adjust_prompt(args, prompt,
         prompt = replace_in_string(prompt, {"<concept>": token, lora_name_encapsulated: token, lora_name: token})
         if token not in prompt:
             prompt = f"{token}, " + prompt
-    else:
-        if token in prompt:
-            prompt = prompt.replace(token, "")
-
-    # Replace tokens based on token map
-    prompt = replace_in_string(prompt, token_map)
+            
+        prompt = replace_in_string(prompt, token_map)
     prompt = fix_common_mistakes(prompt)
 
     if verbose:
