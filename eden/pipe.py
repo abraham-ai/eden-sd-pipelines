@@ -417,9 +417,9 @@ def adjust_prompt(args, prompt,
         prompt = replace_in_string(prompt, style_replacements)
 
         style_replacements = {
-            "<concept>": token,
-            f"{lora_name_encapsulated}": token,
-            f"{lora_name}": token,
+            "<concept>": style_txt,
+            f"{lora_name_encapsulated}": style_txt,
+            f"{lora_name}": style_txt,
         }
         prompt = replace_in_string(prompt, style_replacements)
 
@@ -458,7 +458,7 @@ def encode_prompt_advanced(args, pipe, verbose=True):
         raise ValueError("This concept is from an old lora trainer. Please retrain your concept!")
 
     original_prompt = args.text_input
-    lora_prompt     = adjust_prompt(args, original_prompt, verbose = verbose)
+    lora_prompt     = adjust_prompt(args, original_prompt, verbose=verbose)
     args.text_input = lora_prompt
 
     zero_prompt        = adjust_prompt(args, original_prompt, inject_token = False, verbose=verbose)

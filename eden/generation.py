@@ -137,7 +137,6 @@ def generate(
         args.name = args.text_input # send this name back to the frontend
 
     if (args.lora_path) and (args.interpolator is None):
-        print("injecting in Generation!!!!!")
         args.c, args.uc, args.pc, args.puc = encode_prompt_advanced(args, pipe, verbose = True)
 
     if args.noise_sigma > 0.0: # apply random noise to the conditioning vectors:
