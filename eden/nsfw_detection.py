@@ -3,8 +3,25 @@ from typing import List
 
 import tensorflow as tf
 # Make sure TF doesnt allocate all the gpu memory:
-tf.keras.mixed_precision.set_global_policy('mixed_float16')
-tf.config.experimental.set_memory_growth = True
+gpus = tf.config.list_physical_devices('GPU')
+tf_gpu_limit = 4096 # will force TF to only use 4GB of GPU memory
+tf_gpu_limit = None # will trigger memory_growth (making TF only use what's needed)
+
+if gpus:
+  try:
+    # Currently, memory growth needs to be the same across GPUs
+    for gpu in gpus:
+        if tf_gpu_limit is not None:
+            tf.config.set_logical_device_configuration(gpu, [tf.config.LogicalDeviceConfiguration(memory_limit=tf_gpu_limit)])
+        else:
+            tf.config.experimental.set_memory_growth(gpu, True)
+    logical_gpus = tf.config.list_logical_devices('GPU')
+    print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+  except RuntimeError as e:
+    # Memory growth must be set before GPUs have been initialized
+    print(e)
+
+#tf.keras.mixed_precision.set_global_policy('mixed_float16')
 
 from absl import logging as absl_logging
 tf.get_logger().setLevel('ERROR')

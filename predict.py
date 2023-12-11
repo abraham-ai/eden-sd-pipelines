@@ -1,6 +1,6 @@
 # never push DEBUG_MODE = True to Replicate!
 DEBUG_MODE = False
-#DEBUG_MODE = True
+DEBUG_MODE = True
 
 import os
 import time
@@ -32,13 +32,12 @@ sys.path.extend([
 ])
 
 # Eden imports:
+from nsfw_detection import lewd_detection
 from io_utils import *
 from pipe import pipe_manager
 from settings import StableDiffusionSettings
 import eden_utils
 import generation
-
-from nsfw_detection import lewd_detection
 
 if DEBUG_MODE:
     debug_output_dir = "/src/tests/server/debug_output"
@@ -411,6 +410,7 @@ class Predictor(BasePredictor):
             attributes['job_time_seconds'] = time.time() - t_start
 
             if DEBUG_MODE:
+                print(attributes)
                 for index, out_path in enumerate(out_paths):
                     print(f"Saving image to {debug_output_dir}..")
                     shutil.copyfile(out_path, os.path.join(debug_output_dir, prediction_name + f"_{index}.jpg"))
@@ -521,6 +521,7 @@ class Predictor(BasePredictor):
             attributes['job_time_seconds'] = time.time() - t_start
 
             if DEBUG_MODE:
+                print(attributes)
                 if mode == "blend":
                     shutil.copyfile(out_path, os.path.join(debug_output_dir, prediction_name + ".jpg"))
                 else:

@@ -14,25 +14,24 @@ FILM_MODEL_PATH = os.path.join(SD_PATH, '../models/film/film_net/Style/saved_mod
 sys.path.append(FILM_PATH)
 
 import tensorflow as tf
-
-# Checks and prints out detailed info about GPUs
+# Make sure TF doesnt allocate all the gpu memory:
 gpus = tf.config.list_physical_devices('GPU')
-print("Num GPUs Available: ", len(gpus))
-for gpu in gpus:
-    print("Name:", gpu.name, "  Type:", gpu.device_type)
+tf_gpu_limit = 4096 # will force TF to only use 4GB of GPU memory
+tf_gpu_limit = None # will trigger memory_growth (making TF only use what's needed)
 
-# avoid tf from allocating all gpu memory:
-tf_memory_limit = 1024 * 20
-gpus = tf.config.experimental.list_physical_devices('GPU')
-
-try:
-    tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
-    tf.config.experimental.set_memory_growth(gpus[0], True)  # Enable memory growth
-    tf.config.experimental.set_virtual_device_configuration(
-        gpus[0],
-        [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=tf_memory_limit)])
-except:
-    print("WARNING: TF was unable to set_memory_growth..")
+if gpus:
+  try:
+    # Currently, memory growth needs to be the same across GPUs
+    for gpu in gpus:
+        if tf_gpu_limit is not None:
+            tf.config.set_logical_device_configuration(gpu, [tf.config.LogicalDeviceConfiguration(memory_limit=tf_gpu_limit)])
+        else:
+            tf.config.experimental.set_memory_growth(gpu, True)
+    logical_gpus = tf.config.list_logical_devices('GPU')
+    print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+  except RuntimeError as e:
+    # Memory growth must be set before GPUs have been initialized
+    print(e)
 
 from absl import flags
 FLAGS = flags.FLAGS

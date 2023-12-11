@@ -1,10 +1,13 @@
 To run the cog server:
+!!! Set DEBUG = TRUE !!!
 cd /data/xander/Projects/cog/eden-sd-pipelines/tests/server
 sudo sh run_cog_server.sh
 
 Then run tests:
 cd /data/xander/Projects/cog/eden-sd-pipelines/tests/server
 sudo sh image_test.sh 
+
+
 sudo sh all_tests.sh 
 
 
