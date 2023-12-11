@@ -28,8 +28,6 @@ os.environ["LPIPS_HOME"] = "/src/models/lpips/"
 
 sys.path.extend([
     "./eden",
-    "./lora",
-    "./lora/lora_diffusion",
     "/clip-interrogator",
 ])
 
@@ -40,9 +38,7 @@ from settings import StableDiffusionSettings
 import eden_utils
 import generation
 
-
-from nsfw_detection import Model
-nsfw_net = Model()
+from nsfw_detection import lewd_detection
 
 if DEBUG_MODE:
     debug_output_dir = "/src/tests/server/debug_output"
@@ -411,12 +407,7 @@ class Predictor(BasePredictor):
                 attributes = {"interrogation": batch_i_args.text_input}
 
             # Run nsfw-detection:
-            attributes['nsfw_scores'] = []
-            for img_path in out_paths:
-                nsfw_output = nsfw_net.predict(str(img_path))
-                nsfw_score = nsfw_output[str(img_path)]['Score']
-                attributes['nsfw_scores'].append(np.round(nsfw_score,2))
-
+            attributes['nsfw_scores'] = lewd_detection(out_paths)
             attributes['job_time_seconds'] = time.time() - t_start
 
             if DEBUG_MODE:
@@ -526,10 +517,7 @@ class Predictor(BasePredictor):
                     attributes = {"interrogation": args.interpolation_texts}
 
             # run NSFW detection on thumbnail:
-            attributes['nsfw_scores'] = []
-            nsfw_output = nsfw_net.predict(str(thumbnail))
-            nsfw_score = nsfw_output[str(thumbnail)]['Score']
-            attributes['nsfw_scores'].append(np.round(nsfw_score,2))
+            attributes['nsfw_scores'] = lewd_detection([str(thumbnail)])
             attributes['job_time_seconds'] = time.time() - t_start
 
             if DEBUG_MODE:

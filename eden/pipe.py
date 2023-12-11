@@ -332,7 +332,7 @@ def replace_in_string(s, replacements):
 
 def blend_conditions(embeds1, embeds2, args, 
         token_scale_power = 0.5,  # adjusts the curve of the interpolation
-        min_token_scale   = 0.4,  # minimum token scale (corresponds to lora_scale = 0)
+        min_token_scale   = 0.6,  # minimum token scale (corresponds to lora_scale = 0)
         verbose = False,
         ):
     """
