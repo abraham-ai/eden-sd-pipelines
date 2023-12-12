@@ -21,6 +21,7 @@ if gpus:
     # Memory growth must be set before GPUs have been initialized
     print(e)
 
+# not sure if this helps/not:
 #tf.keras.mixed_precision.set_global_policy('mixed_float16')
 
 from absl import logging as absl_logging

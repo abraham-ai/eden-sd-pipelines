@@ -1,6 +1,6 @@
 # never push DEBUG_MODE = True to Replicate!
 DEBUG_MODE = False
-DEBUG_MODE = True
+#DEBUG_MODE = True
 
 import os
 import time
@@ -117,7 +117,7 @@ class Predictor(BasePredictor):
         ),
         guidance_scale: float = Input(
             description="Strength of text conditioning guidance", 
-            ge=1, le=20, default=7.5
+            ge=0.0, le=20, default=7.5
         ),
         upscale_f: float = Input(
             description="Upscaling resolution",
