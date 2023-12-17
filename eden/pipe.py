@@ -333,8 +333,14 @@ def replace_in_string(s, replacements):
 def blend_conditions(embeds1, embeds2, args, 
         token_scale_power = 0.5,  # adjusts the curve of the interpolation
         min_token_scale   = 0.6,  # minimum token scale (corresponds to lora_scale = 0)
+        #min_token_scale   = 1.0,  # minimum token scale (corresponds to lora_scale = 0)
         verbose = False,
         ):
+
+    if min_token_scale == 1.0:
+        print("WARNING: min_token_scale = 1.0, this means that the lora token will never be fully disabled!")
+        print("WARNING: min_token_scale = 1.0, this means that the lora token will never be fully disabled!")
+        
     """
     using args.lora_scale (or args.token_scale), apply linear interpolation between two sets of embeddings
     """
