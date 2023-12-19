@@ -1,5 +1,6 @@
 import os
 import glob
+import gc
 import sys
 from pathlib import Path
 
@@ -446,17 +447,13 @@ def make_interpolation(args, force_timepoints = None):
 
         yield img_pil, t_raw
 
-    # Flush the final metadata to disk if needed:
+    # Free gpu memory:
     args.interpolator.latent_tracker.reset_buffer()
-
-
-
-
-
-
-
-
-
+    del args.planner
+    del args.interpolator.latent_tracker
+    del args.interpolator
+    gc.collect()
+    torch.cuda.empty_cache()
 
 
 ###########################################################################################################
