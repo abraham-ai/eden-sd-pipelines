@@ -515,17 +515,15 @@ def make_images(args):
 
 
 def run_upscaler(args_, imgs, 
-        init_image_strength    = 0.55,
-        upscale_guidance_scale = 6.0,
+        init_image_strength    = 0.45,
+        upscale_guidance_scale = 5.0,
         min_upscale_steps      = 16,  # never do less than this many steps
         max_n_pixels           = 1600**2, # max number of pixels to avoid OOM
+        use_controlnet         = True,
     ):
     args = copy(args_)
 
-    # Disable all modifiers, just upscale with base SDXL model:
     args.lora_path = None
-    args.controlnet_path = None
-
     args.W, args.H = args_.upscale_f * args_.W, args_.upscale_f * args_.H
 
     # set max_n_pixels to avoid OOM:
@@ -551,12 +549,21 @@ def run_upscaler(args_, imgs,
 
     if free_memory < 20e9 and (args.ckpt != args_.ckpt):
         print("Free memory is low, ready for upscaling......")
-    
+
+    if use_controlnet:
+        args.controlnet_path = "controlnet-canny-sdxl-1.0-small"
+        args.control_image = args.init_image.resize((args.W, args.H))
+        args.control_image_strength = 0.7
+    else:
+        args.controlnet_path = None
+        args.control_image = None
+        args.control_image_strength = 0.6
+
     upscaling_pipe = pipe_manager.get_pipe(args)
 
     # Avoid doing too little steps when init_image_strength is very high:
     upscale_steps = int(max(args.steps * (1-init_image_strength), min_upscale_steps) / (1-init_image_strength))+1
-
+    
     for i in range(len(imgs)): # upscale in a loop:
         args.init_image = imgs[i]
 
@@ -571,6 +578,9 @@ def run_upscaler(args_, imgs,
             negative_prompt_embeds = args.uc,
             pooled_prompt_embeds = args.pc,
             negative_pooled_prompt_embeds = args.puc,
+            control_image = args.control_image,
+            controlnet_conditioning_scale = args.control_image_strength,
+
         ).images[0]
 
         x_samples_upscaled.extend([])

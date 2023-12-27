@@ -210,6 +210,8 @@ class PipeManager:
 pipe_manager = PipeManager()
 
 def load_pipe(args):
+    use_dtype = torch.bfloat16
+
     if 'eden-v1' in os.path.basename(args.ckpt):
         return load_pipe_v1(args), None
 
@@ -242,14 +244,14 @@ def load_pipe(args):
         maybe_download(full_controlnet_path)
         controlnet = ControlNetModel.from_pretrained(
             full_controlnet_path,
-            torch_dtype=torch.float16,
+            torch_dtype=use_dtype,
             use_safetensors = any(file.endswith(".safetensors") for file in os.listdir(full_controlnet_path))
         )
         
         if load_from_single_file:
             print("Loading from single file...")
             pipe = StableDiffusionXLImg2ImgPipeline.from_single_file(
-                location, torch_dtype=torch.float16, use_safetensors=True)
+                location, torch_dtype=use_dtype, use_safetensors=True)
 
             pipe = StableDiffusionXLControlNetImg2ImgPipeline(
                 vae = pipe.vae,
@@ -274,13 +276,13 @@ def load_pipe(args):
             print(f"Loading SDXL from single file: {location}...")
             pipe = StableDiffusionXLImg2ImgPipeline.from_single_file(
                 location,
-                torch_dtype=torch.float16, use_safetensors=True)
+                torch_dtype=use_dtype, use_safetensors=True)
         else:
             #location = "segmind/SSD-1B"
             print(f"Loading SDXL from pretrained: {location}...")
             pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
                 location, 
-                torch_dtype=torch.float16, use_safetensors=True, variant="fp16"
+                torch_dtype=use_dtype, use_safetensors=True, variant="fp16"
             )
 
     safety_checker = None
