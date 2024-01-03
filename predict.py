@@ -75,14 +75,14 @@ class Predictor(BasePredictor):
         
         # Universal args
         mode: str = Input(
-            description="Mode", default="generate",
-            choices=["generate", "remix", "upscale", "blend", "controlnet", "interpolate", "real2real", "interrogate"]
+            description="Mode", default="create",
+            choices=["create", "remix", "upscale", "blend", "controlnet", "interpolate", "real2real", "interrogate"]
         ),
         stream: bool = Input(
             description="yield individual results if True", default=False
         ),
         stream_every: int = Input(
-            description="for mode generate, how many steps per update to stream (steam must be set to True)", 
+            description="for mode create, how many steps per update to stream (steam must be set to True)", 
             default=1, ge=1, le=25
         ),
         width: int = Input(
@@ -163,20 +163,20 @@ class Predictor(BasePredictor):
             ge=0.0, le=1.25, default=0.65
         ),
 
-        # Generate mode
+        # Create mode
         text_input: str = Input(
-            description="Text input (mode==generate)", default=None
+            description="Text input", default=None
         ),
         uc_text: str = Input(
             description="Negative text input (mode==all)",
             default="nude, naked, text, watermark, low-quality, signature, padding, margins, white borders, padded border, moiré pattern, downsampling, aliasing, distorted, blurry, blur, jpeg artifacts, compression artifacts, poorly drawn, low-resolution, bad, grainy, error, bad-contrast"
         ),
         seed: int = Input(
-            description="random seed (mode==generate)", 
+            description="random seed", 
             ge=0, le=1e10, default=13
         ),
         n_samples: int = Input(
-            description="batch size (mode==generate)",
+            description="batch size",
             ge=1, le=4, default=1
         ),
 
@@ -336,7 +336,7 @@ class Predictor(BasePredictor):
             os.makedirs(debug_output_dir, exist_ok=True)
 
             # save a black dummy image to disk so we can easily see which tests failed:
-            if mode == "generate" or mode == "remix" or mode == "controlnet" or mode == "upscale" or mode == "repaint":
+            if mode == "create" or mode == "remix" or mode == "controlnet" or mode == "upscale" or mode == "repaint":
                 for index in range(args.n_samples):
                         save_path = os.path.join(debug_output_dir, prediction_name + f"_{index}.jpg")
                         Image.new("RGB", (512, 512), "black").save(save_path)
@@ -372,7 +372,7 @@ class Predictor(BasePredictor):
             else:
                 yield CogOutput(files=[out_path], name=interrogation, thumbnails=[out_path], attributes=attributes, isFinal=True, progress=1.0)
         
-        elif mode == "generate" or mode == "remix" or mode == "controlnet" or mode == "upscale" or mode == "repaint":
+        elif mode == "create" or mode == "remix" or mode == "controlnet" or mode == "upscale" or mode == "repaint":
             
             if (mode == "upscale" or mode == "remix") and (not args.init_image):
                 raise ValueError(f"an init_image must be provided for mode = {mode}")
