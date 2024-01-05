@@ -530,7 +530,7 @@ class LatentTracker():
         if self.args.save_phase_data:
             self.save_to_disk()
             self.phase_data = None
-
+            
         max_t_raw = np.max(self.t_raws)
         last_frame_latents = self.latents[max_t_raw].copy()
         self.latents = {}

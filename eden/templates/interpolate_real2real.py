@@ -29,7 +29,6 @@ def real2real(
     if args is None:
         args = StableDiffusionSettings(
             #watermark_path = "../assets/eden_logo.png",
-            ckpt = "juggernaut_XL2",
             text_input = "real2real",  # text_input is also the title, but has no effect on interpolations
             interpolation_seeds = [random.randint(1, 1e8) for _ in range(n)],
             interpolation_texts = input_texts,
@@ -117,16 +116,10 @@ def real2real(
     
 if __name__ == "__main__":
 
+    img_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/init_imgs/01_great_inits"
     outdir = "results_real2real"
 
-    init_imgs = [
-        "https://minio.aws.abraham.fun/creations-stg/7f5971f24bc5c122aed6c1298484785b4d8c90bce41cc6bfc97ad29cc179c53f.jpg",
-        "https://minio.aws.abraham.fun/creations-stg/445eebc944a2d44bb5e0337ed4198ebf54217c7c17729b245663cf5c4fea182c.jpg",
-        "https://minio.aws.abraham.fun/creations-stg/049848c63707293cddc766b2cbd230d9cde71f5075e48e9e02c6da03566ddae7.jpg",
-        ]
-
-    #img_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/init_imgs/01_great_inits"
-    #init_imgs = [os.path.join(img_dir, f) for f in os.listdir(img_dir)]
-
+    init_imgs = [os.path.join(img_dir, f) for f in os.listdir(img_dir)]
     init_imgs = random.sample(init_imgs, 3)
+    
     real2real(init_imgs, outdir, seed = 0)

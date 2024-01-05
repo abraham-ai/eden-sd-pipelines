@@ -101,7 +101,6 @@ if __name__ == "__main__":
         inter_frames = int(seconds_between_keyframes * fps)
 
         args = StableDiffusionSettings(
-            ckpt = "juggernaut_XL",
             H = H,
             W = W,
             steps = n_steps,

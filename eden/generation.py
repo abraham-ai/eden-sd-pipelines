@@ -232,7 +232,7 @@ def generate(
         pipe_fn_args.update({
             'pooled_prompt_embeds': args.pc,
             'negative_pooled_prompt_embeds': args.puc,
-        })
+        })    
 
     # Conditionally add arguments if controlnet is used
     if args.controlnet_path and args.control_image_strength > 0 and (args.control_image is not None):
@@ -448,7 +448,7 @@ def make_interpolation(args, force_timepoints = None):
         yield img_pil, t_raw
 
     # Free gpu memory:
-    args.interpolator.latent_tracker.reset_buffer()
+    #args.interpolator.latent_tracker.reset_buffer()
     del args.planner
     del args.interpolator.latent_tracker
     del args.interpolator

@@ -210,7 +210,7 @@ class PipeManager:
 pipe_manager = PipeManager()
 
 def load_pipe(args):
-    use_dtype = torch.bfloat16
+    use_dtype = torch.float16
 
     if 'eden-v1' in os.path.basename(args.ckpt):
         return load_pipe_v1(args), None
