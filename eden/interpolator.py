@@ -516,14 +516,7 @@ class Interpolator():
         
         i = self.prompt_index
 
-        p_c   = lerp(t, self.prompt_embeds[i][0], self.prompt_embeds[(i + 1) % self.n][0])
-        np_c  = lerp(t, self.prompt_embeds[i][1], self.prompt_embeds[(i + 1) % self.n][1])
-        pp_c  = lerp(t, self.prompt_embeds[i][2], self.prompt_embeds[(i + 1) % self.n][2])
-        npp_c = lerp(t, self.prompt_embeds[i][3], self.prompt_embeds[(i + 1) % self.n][3])
-
         try: #sdxl
-            print("--------------------")
-            print("SDXL")
             print("--------------------")
             p_c   = lerp(t, self.prompt_embeds[i][0], self.prompt_embeds[(i + 1) % self.n][0])
             np_c  = lerp(t, self.prompt_embeds[i][1], self.prompt_embeds[(i + 1) % self.n][1])
@@ -531,9 +524,6 @@ class Interpolator():
             npp_c = lerp(t, self.prompt_embeds[i][3], self.prompt_embeds[(i + 1) % self.n][3])
             prompt_embeds = [p_c, np_c, pp_c, npp_c]
         except: #sd v1 / v2
-            print("--------------------")
-            print("SDv15")
-            print("--------------------")
             p_c   = lerp(t, self.prompt_embeds[i][0], self.prompt_embeds[(i + 1) % self.n][0])
             np_c  = lerp(t, self.prompt_embeds[i][1], self.prompt_embeds[(i + 1) % self.n][1])
             prompt_embeds = [p_c, np_c]
