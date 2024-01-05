@@ -23,7 +23,7 @@ def real2real_x(W, H, args, input_images, outdir, n,
         exp_name = "", 
         audio_path = None, 
         do_post_process = True,
-        update_audio_reactivity_settings = {
+        audio_reactivity_settings = {
                 'depth_rescale'     : [105., 255.],
                 '3d_motion_xyz'     : [0.7, 0.7, -90],
                 'circular_motion_period_s': 15,  # the period of the circular xy motion around the center (in seconds)
@@ -38,10 +38,10 @@ def real2real_x(W, H, args, input_images, outdir, n,
         save_distance_data = False):
 
     name_str = f"seed_{args.seed}_{exp_name}"
+    output_fps = args.fps
 
     if audio_path is not None:
-        n_final_frames = args.n_frames
-        args.planner = Planner(audio_path, args.fps, n_final_frames)
+        args.planner = Planner(audio_path, args.fps, args.n_frames)
 
     video_path, frames_dir, timepoints = real2real(input_images, outdir, 
                 name_str = name_str, args = args, seed = args.seed, remove_frames_dir = False, 
@@ -54,7 +54,7 @@ def real2real_x(W, H, args, input_images, outdir, n,
         if audio_path is not None:
             print("adding audio...")
             fin_video_path = video_path.replace(".mp4", "_audio.mp4")
-            add_audio_to_video(args.planner.audio_path, video_path, fin_video_path)
+            add_audio_to_video(audio_path, video_path, fin_video_path)
         else:
             fin_video_path = video_path
 
@@ -65,10 +65,10 @@ if __name__ == "__main__":
     ##############################################################################
     
     # main render settings (eg specified by the user)
-    H,W          = 1024+256, 1024+256
-    n_steps      = 50       # n_diffusion steps per frame  
-    seconds_between_keyframes = 9
-    n_imgs       = 30
+    H,W          = 768, 768
+    n_steps      = 25       # n_diffusion steps per frame  
+    seconds_between_keyframes = 6
+    n_imgs       = 4
 
     # audio_path is either a path of a .zip file, or a tuple of (audio_features_pickle, audio_mp3_path)
     audio_path = ("path_to_features.pkl", "path_to_audio.mp3")
@@ -86,7 +86,7 @@ if __name__ == "__main__":
         n_steps      = 20
         seconds_between_keyframes = 0.5
 
-    for seed in [0,1]:
+    for seed in [0]:
 
         ##############################################################################
         seed_everything(seed)
@@ -127,8 +127,8 @@ if __name__ == "__main__":
 
         real2real_x(W, H, args, img_paths, outdir, n,
                     audio_path = audio_path, 
-                    do_post_process = False,
-                    save_phase_data = 1,
+                    do_post_process = True,
+                    save_phase_data = 0,
                     save_distance_data = 1)
 
     #########################################################################################

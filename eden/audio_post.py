@@ -49,7 +49,7 @@ def predict_depth_map_midas(pil_image, depth_estimator, feature_extractor, depth
 
 
 def depth_warp(frames_dir, audio_planner, audio_reactivity_settings, 
-    depth_type = "zoe",
+    depth_type = "midas",
     save_depth_maps = 0):
 
     """
@@ -85,7 +85,7 @@ def depth_warp(frames_dir, audio_planner, audio_reactivity_settings,
         feature_extractor = DPTFeatureExtractor.from_pretrained("Intel/dpt-hybrid-midas")
     else:
         repo = "isl-org/ZoeDepth"
-        #torch.hub.help("intel-isl/MiDaS", "DPT_BEiT_L_384", force_reload=True) 
+        torch.hub.help("intel-isl/MiDaS", "DPT_BEiT_L_384", force_reload=True) 
         depth_model = torch.hub.load(repo, "ZoeD_NK", pretrained=True).to(settings._device)
 
     frame_paths = sorted([os.path.join(frames_dir, f) for f in os.listdir(frames_dir) if f.endswith(".jpg") and "_depth" not in f])
