@@ -65,8 +65,10 @@ def generate(
 ):
     seed_everything(args.seed)
     args.init_image_strength = float(args.init_image_strength)
-    free_memory, tot_mem = torch.cuda.mem_get_info(device=_device)
-    print(f"Start of generate, free memory: {free_memory / 1e9:.2f} GB")
+
+    if not args.interpolator:
+        free_memory, tot_mem = torch.cuda.mem_get_info(device=_device)
+        print(f"Start of generate, free memory: {free_memory / 1e9:.2f} GB")
 
     if args.init_image == "":
         args.init_image = None
@@ -121,7 +123,6 @@ def generate(
             scale=args.ip_image_strength  # scale = 1.0 will mostly use the image prompt, 0.0 will only use the text prompt
             )
     else:
-        print("Disabling ip_adapter..")
         pipe_manager.disable_ip_adapter()
 
     if 0:
@@ -179,8 +180,6 @@ def generate(
     else:
         callback_ = None
 
-
-    print(f"SEED: {args.seed}")
     generator = torch.Generator(device=_device).manual_seed(int(args.seed))
     
     if args.c is not None:
@@ -267,8 +266,9 @@ def generate(
     except:
         prompt_embeds = None
 
-    free_memory, tot_mem = torch.cuda.mem_get_info(device=_device)
-    print(f"End of generate, free memory: {free_memory / 1e9:.2f} GB")
+    if not args.interpolator:
+        free_memory, tot_mem = torch.cuda.mem_get_info(device=_device)
+        print(f"End of generate, free memory: {free_memory / 1e9:.2f} GB")
 
     return prompt_embeds, pil_images
 
@@ -449,7 +449,7 @@ def make_interpolation(args, force_timepoints = None):
 
     # Free gpu memory:
     #args.interpolator.latent_tracker.reset_buffer()
-    del args.planner
+    #del args.planner
     del args.interpolator.latent_tracker
     del args.interpolator
     gc.collect()
@@ -550,12 +550,10 @@ def run_upscaler(args_, imgs,
 
     if use_controlnet:
         args.controlnet_path = "controlnet-canny-sdxl-1.0-small"
-        args.control_image = args.init_image.resize((args.W, args.H))
         args.control_image_strength = 0.7
     else:
         args.controlnet_path = None
         args.control_image = None
-        args.control_image_strength = 0.6
 
     upscaling_pipe = pipe_manager.get_pipe(args)
 
@@ -564,6 +562,9 @@ def run_upscaler(args_, imgs,
     
     for i in range(len(imgs)): # upscale in a loop:
         args.init_image = imgs[i]
+
+        if use_controlnet:
+            args.control_image = args.init_image.resize((args.W, args.H))
 
         image = upscaling_pipe(
             prompt = args.text_input,

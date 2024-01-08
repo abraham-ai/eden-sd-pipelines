@@ -110,6 +110,7 @@ class IPAdapter:
             print("IP adapter was not loaded, cannot unload")
             return
 
+        print("Disabling IP_adapter...")
         self._ip_adapter_unet_attention_processors = self.pipe.unet.attn_processors
         self.pipe.unet.set_attn_processor({**self._default_unet_attention_processors})
 

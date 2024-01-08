@@ -2,10 +2,8 @@ import os, random, sys, tempfile
 sys.path.append('..')
 from settings import StableDiffusionSettings
 from generation import *
-from templates.interpolate_real2real import real2real
 from planner import Planner
 from audio_post import post_process_audio_reactive_video_frames
-from extract_audio_features_eden import extract_audio_features
 
 def get_random_img_paths_from_dir(directory_path, n_imgs, sorted = False):
     img_exts = [".jpg", ".png", ".jpeg", ".JPG", ".PNG", ".JPEG"]
@@ -27,7 +25,7 @@ def real2real_audioreactive(
             "H": 640,
             "steps": 25,
             "seconds_between_keyframes": 12,
-            "fps": 9,
+            "fps": 10,
         },
         audio_reactivity_settings = {
                 'depth_rescale'     : [105., 255.],
@@ -39,7 +37,6 @@ def real2real_audioreactive(
                 'saturation_factor' : 0.5, #0.5
                 '2d_zoom_factor'    : 0.00,
                 'noise_factor'      : 0.0},
-        do_post_process = True,
         output_dir = None,
         save_distance_data = True, # save perceptual distance plots to disk
         loop = True, # wrap the video to make it loop-able
@@ -48,15 +45,17 @@ def real2real_audioreactive(
         debug = False
         ):
 
+    start_time = time.time()
+    random.seed(seed)
+    n = len(input_images)
+
     if output_dir is None:
         output_dir = tempfile.mkdtemp()
 
-    n = len(input_images)
-
     if debug: # debug: fast render settings
-        render_settings["H"]     = 640
-        render_settings["W"]     = 640
-        render_settings['steps'] = 20
+        render_settings["H"]     = 512
+        render_settings["W"]     = 512
+        render_settings['steps'] = 15
         n = 4
         input_images = input_images[:n]
         render_settings["seconds_between_keyframes"] = 5
@@ -84,20 +83,33 @@ def real2real_audioreactive(
     if args.loop:
         args.n_frames = inter_frames*((n+1)-1) + (n+1)
 
-    audio_path   = extract_audio_features(audio_path, re_encode = 1)
     args.planner = Planner(audio_path, args.fps, args.n_frames)
 
-    video_path, frames_dir, timepoints = real2real(input_images, output_dir, 
-                name_str = f"seed_{args.seed}", args = args, seed = args.seed, remove_frames_dir = False, 
-                save_video = 1, save_phase_data=False, save_distance_data = save_distance_data)
+    name = f"real2real_audio_{int(time.time()*100)}_{seed}"
+    frames_dir = os.path.join(output_dir, name)
+    os.makedirs(frames_dir, exist_ok=True)
     
-    if do_post_process: # apply depth warping and audio-reactive saturation/contrast adjustments
-        n_film = 1
-        fin_video_path = post_process_audio_reactive_video_frames(frames_dir, audio_path, args.fps, n_film, audio_reactivity_settings)
-    else:
-        print("adding audio...")
-        fin_video_path = video_path.replace(".mp4", "_audio.mp4")
-        add_audio_to_video(audio_path[1], video_path, fin_video_path)
+    # always make sure these args are properly set:
+    args.frames_dir = frames_dir
+    args.save_distance_data = save_distance_data
+
+    # run the real2real interpolation and save each frame to disk:
+    frame_counter = 0
+    for frame, t_raw in make_interpolation(args):
+        frame.save(os.path.join(frames_dir, "frame_%018.14f_%05d.jpg"%(t_raw, frame_counter)), quality=95)
+        frame_counter += 1
+
+    # apply audio reactive post processing:
+    print("Frames rendered, applying audio reactive post processing...")
+    fin_video_path = post_process_audio_reactive_video_frames(frames_dir, args.planner, args.fps, 
+        n_film = 1,
+        update_audio_reactivity_settings = audio_reactivity_settings)
+
+    # save settings
+    settings_filename = f'{output_dir}/{name}.json'
+    args.total_render_time = "%.1f seconds" %(time.time() - start_time)
+    args.avg_render_time_per_frame = "%.1f seconds" %((time.time() - start_time) / frame_counter)
+    save_settings(args, settings_filename)
 
     return fin_video_path
 
@@ -115,4 +127,4 @@ if __name__ == "__main__":
 
     seed_everything(seed)
     img_paths = get_random_img_paths_from_dir(input_dir, n_imgs, sorted=False)
-    fin_video_path = real2real_audioreactive(img_paths, audio_path, output_dir = output_dir, seed=seed)
+    fin_video_path = real2real_audioreactive(img_paths, audio_path, output_dir = output_dir, seed=seed, debug = True)

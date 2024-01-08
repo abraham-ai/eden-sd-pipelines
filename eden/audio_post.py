@@ -47,8 +47,7 @@ def predict_depth_map_midas(pil_image, depth_estimator, feature_extractor, depth
 
     return pil_depth_map, depth_tensor
 
-
-def depth_warp(frames_dir, audio_planner, audio_reactivity_settings, 
+def depth_warp(frames_dir, fps, warp_factor_per_frame, audio_reactivity_settings, 
     depth_type = "midas",
     save_depth_maps = 0):
 
@@ -58,7 +57,7 @@ def depth_warp(frames_dir, audio_planner, audio_reactivity_settings,
     """
 
     translate_xyz = audio_reactivity_settings['3d_motion_xyz']
-    rotate_xyz =  audio_reactivity_settings['3d_rotation_xyz']
+    rotate_xyz    =  audio_reactivity_settings['3d_rotation_xyz']
 
     anim_args = AnimArgs(
         near_plane=random.choice([200.0]),
@@ -107,11 +106,11 @@ def depth_warp(frames_dir, audio_planner, audio_reactivity_settings,
                     depth_map.save(os.path.join(depth_dir, os.path.basename(frame_path)), quality=95)
 
                 # apply a 3d depth warp to the frame using the depth map and the base audio feature:
-                warp_factor = audio_planner.fps_adjusted_percus_features[0, i]
+                warp_factor = warp_factor_per_frame[i]
                 warp_factor = np.clip(warp_factor, 0.0, 1.0)
 
                 # make x,y rotate in a circle with amplitude A and period P:
-                P = audio_reactivity_settings['circular_motion_period_s'] * audio_planner.fps
+                P = audio_reactivity_settings['circular_motion_period_s'] * fps
                 translate_xyz_frame[0] *= np.sin(2*np.pi*i/P)
                 translate_xyz_frame[1] *= np.cos(2*np.pi*i/P)
 
@@ -154,7 +153,8 @@ def make_audio_reactive(frames_dir, audio_planner, audio_reactivity_settings):
     
     return outdir
 
-def post_process_audio_reactive_video_frames(frames_dir, audio_path, fps, n_film, 
+def post_process_audio_reactive_video_frames(frames_dir, audio_planner, fps, 
+    n_film = 1, 
     update_audio_reactivity_settings = None):
 
     audio_reactivity_settings = {
@@ -175,17 +175,19 @@ def post_process_audio_reactive_video_frames(frames_dir, audio_path, fps, n_film
     output_video_dir = os.path.dirname(frames_dir)
     name_str = os.path.basename(frames_dir) + "_post"
 
-    if audio_path is not None:
-        frame_paths = sorted([os.path.join(frames_dir, f) for f in os.listdir(frames_dir) if f.endswith(".jpg")])
-        audio_planner = Planner(audio_path, fps, len(frame_paths))
-        frames_dir = depth_warp(frames_dir, audio_planner, audio_reactivity_settings)
+    # 1. Depth warp all the frames using the base-signal of the audio:
 
+    audio_path = audio_planner.audio_path
+    zoom_factor_per_frame = audio_planner.fps_adjusted_percus_features[0,:]
+    frame_paths = sorted([os.path.join(frames_dir, f) for f in os.listdir(frames_dir) if f.endswith(".jpg")])
+    frames_dir = depth_warp(frames_dir, fps, zoom_factor_per_frame, audio_reactivity_settings)
+
+    # 2. Use film interpolation to increase the frame rate:
     if n_film > 0:
         frames_dir = os.path.abspath(frames_dir)
 
         try:
             command = [sys.executable, os.path.join(str(SD_PATH), "eden/film.py"), "--frames_dir", frames_dir, "--times_to_interpolate", str(n_film)]
-
             print("running command:", ' '.join(command))
             result = subprocess.run(command, text=True, capture_output=True)
             print(result)
@@ -205,10 +207,11 @@ def post_process_audio_reactive_video_frames(frames_dir, audio_path, fps, n_film
 
     frame_paths = sorted([os.path.join(frames_dir, f) for f in os.listdir(frames_dir) if f.endswith(".jpg")])
 
-    if audio_path is not None:
-        audio_planner = Planner(audio_path, fps, len(frame_paths))
-        frames_dir = make_audio_reactive(frames_dir, audio_planner, audio_reactivity_settings)
+    # 3. Make the frames audio reactive (saturation / brightness / contrast / ...)
+    audio_planner.update_framerate(fps, len(frame_paths))
+    frames_dir = make_audio_reactive(frames_dir, audio_planner, audio_reactivity_settings)
 
+    # 4. Write the final video and add the audio:
     video_path = os.path.join(os.path.dirname(frames_dir), f"{name_str}.mp4")
     write_video(frames_dir, video_path, fps=fps)
 
@@ -234,34 +237,12 @@ def post_process_audio_reactive_video_frames(frames_dir, audio_path, fps, n_film
 
 if __name__ == "__main__":
 
-    audio_path = ("/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/tmp_unzip/features.pkl", "/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/tmp_unzip/music.mp3")
-    audio_path = ("/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/audio/versilov/versilov_audio_features_80_40.pkl", "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/audio/versilov/versilov.mp3")
-    
+    audio_path = "/data/xander/Projects/cog/stable-diffusion-dev/eden/xander/tmp_unzip/music.mp3"
     fps = 14    # orig fps, before FILM
     n_film = 1  # set n_film to 0 to disable FILM interpolation
 
     frames_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/templates/results_real2real_audioreactive_club_long"
-
-    if 1:
-        # grab all the subdirectories of frames_dir:
-        frames_dirs = [os.path.join(frames_dir, f) for f in os.listdir(frames_dir) if os.path.isdir(os.path.join(frames_dir, f))]
-        for frames_dir in sorted(frames_dirs):
-            print(f"Postprocessing {frames_dir}...")
-            post_process_audio_reactive_video_frames(frames_dir, audio_path, fps, n_film)
-    else:
-        frames_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/templates/results_test"
-        frames_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/templates/results_real2real_audioreactive_club_big"
-        for i in range(1):
-            post_process_audio_reactive_video_frames(frames_dir, audio_path, fps, n_film)
-
-
-
-
-
-
-
-
-
+    post_process_audio_reactive_video_frames(frames_dir, audio_path, fps, n_film = n_film)
 
 
 

@@ -3,13 +3,14 @@ import torch
 import torch.nn as nn
 import os, time, math
 from PIL import Image, ImageEnhance
+from datetime import datetime
 
 import matplotlib.pyplot as plt
 plt.rcParams['font.size'] = 15
 
 from audio import create_audio_features
+from extract_audio_features_eden import extract_audio_features
 from eden_utils import pil_img_to_latent, slerp, create_seeded_noise, save_settings, sample_to_pil
-
 
 ###### some minor helper functions ######
 
@@ -45,31 +46,78 @@ class Planner():
     to enable audio-reactive video generation with SD
 
     """
-    def __init__(self, audio_load_path, fps, total_frames):
+    def __init__(self, audio_path, fps, total_frames):
 
         self.fps = fps
         self.frame_index = 0
-        
-        self.load_audio_features(audio_load_path)
-        #self.modulation_text_c = get_prompt_conditioning("vibrant colors, high contrast, high saturation, masterpiece, trending on Artstation", 'autocast')
-        
-        # Compute which fraction of the total audio features are being rendered:
         self.total_frames = total_frames
-        # Rendered frames:
-        total_frame_time = total_frames / fps
-        audio_time = self.metadata["duration_seconds"]
-        self.audio_fraction = total_frame_time / audio_time
-        print("Rendering frames for ", total_frame_time, " seconds of video, which is ", 100*self.audio_fraction, "% of the total audio time.")
-
-        if self.audio_fraction > 1:
-            print("Warning: more video frames than audio features, this will lead to errors!")   
+        self.audio_features_pkl_path, self.audio_path = extract_audio_features(audio_path, re_encode = 1)
+        self.compute_audio_features()
 
     def __len__(self):
         return self.total_frames
 
-    def load_audio_features(self, audio_load_path):
-        self.harmonic_energy, self.final_percus_features, self.metadata, self.audio_path = create_audio_features(audio_load_path)
-        self.prep_audio_signals_for_render()
+    def update_framerate(self, new_fps, new_total_frames):
+        self.fps = new_fps
+        self.total_frames = new_total_frames
+        self.total_frame_time = self.total_frames / self.fps
+        self.compute_audio_features(plot = False)
+
+    def compute_audio_features(self, plot = True):
+        self.total_frame_time   = self.total_frames / self.fps
+        self.harmonic_energy, self.final_percus_features, self.metadata = create_audio_features(self.audio_features_pkl_path, self.total_frame_time)
+
+        print("-------------------------------------------------------------")
+        print(f"harmonic_energy shape: {self.harmonic_energy.shape}")
+        print(f"final_percus_features shape: {self.final_percus_features.shape}")
+
+        # Make sure the base signal is 0 by default:
+        self.final_percus_features[0,:] = subtract_dc_value(self.final_percus_features[0,:])
+
+        # Resample the audio features to match the video fps:
+        old_x = np.linspace(0, self.metadata["duration_seconds"], int(self.metadata["duration_seconds"] * self.metadata["features_per_second"]))
+        new_x = np.linspace(0, self.metadata["duration_seconds"], int(self.metadata["duration_seconds"] * self.fps))
+
+        #old_x = np.linspace(0, self.total_frame_time, int(self.metadata["duration_seconds"] * self.metadata["features_per_second"]))
+        #new_x = np.linspace(0, self.total_frame_time, int(self.metadata["duration_seconds"] * self.fps))
+
+        # cut old_x to match the length of the harmonic_energy:(in case we're not using all of the audio)
+        #old_x = old_x[:self.harmonic_energy.shape[0]]
+
+        print(f"new_x: {new_x.shape}")
+        print(f"old_x: {old_x.shape}")
+        print(f"harmonic_energy: {self.harmonic_energy.shape}")
+
+        self.fps_adjusted_harmonic_energy = resample_signal(new_x, old_x, self.harmonic_energy)
+
+        self.fps_adjusted_percus_features = []
+        for i in range(self.final_percus_features.shape[0]):
+            self.fps_adjusted_percus_features.append(resample_signal(new_x, old_x, self.final_percus_features[i,:]) )
+
+        self.fps_adjusted_percus_features = np.array(self.fps_adjusted_percus_features)
+
+        self.push_signal = self.fps_adjusted_harmonic_energy
+        self.push_signal = self.push_signal / np.mean(self.push_signal)
+
+        print(f"frames: {self.total_frames}, push_signal.shape = {self.push_signal.shape})")
+
+        if plot:
+            plt.figure(figsize=(14,8))
+            plt.plot(self.final_percus_features[0,:], label="base")
+            plt.plot(self.final_percus_features[1,:], label="mid")
+            plt.plot(self.final_percus_features[2,:], label="high")
+            plt.ylim(0.0, 1.0)
+            plt.legend()
+            plt.savefig("audio_percus_features.png")
+            plt.clf()
+
+            plt.figure(figsize=(14,8))
+            plt.plot(self.push_signal)
+            plt.ylim(0.0, 2.0)
+            plt.savefig("audio_push_signal.png")
+            plt.clf()
+
+
 
     def get_audio_push_curve(self, n_samples, prompt_index, n_frames_between_two_prompts, max_n_samples = 99999, verbose = 0):
         """
@@ -96,58 +144,14 @@ class Planner():
         if n_samples < (0.1 * max_n_samples): # require at least 10% of the max_n_samples to be already rendered before returning the actual audio features
             return np.ones(n_samples), np.ones_like(current_push_segment)
 
-
         # resample the push_signal to match the number of samples:
         old_x = np.linspace(0, 1, current_push_segment.shape[0])
         new_x = np.linspace(0, 1, n_samples)
 
         resampled_current_push_segment = resample_signal(new_x, old_x, current_push_segment)
-
-        if 0:
-            from datetime import datetime
-            # create a combined plot of all signals:
-            plt.figure(figsize=(14,8))
-            plt.plot(old_x, current_push_segment, label="full_signal")
-            plt.plot(new_x, resampled_current_push_segment, label="downsampled_signal")
-            plt.legend()
-            plt.ylim(0.0, 2.0)
-            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-            plt.savefig(f"resampling_curve_{timestamp}.png")
-            plt.clf()
-
         #resampled_current_push_segment = resampled_current_push_segment / np.mean(resampled_current_push_segment)
 
         return resampled_current_push_segment, current_push_segment
-
-    def prep_audio_signals_for_render(self):
-        # Make sure the base signal is 0 by default:
-        self.final_percus_features[0,:] = subtract_dc_value(self.final_percus_features[0,:])
-
-        # Resample the audio features to match the video fps:
-        old_x = np.linspace(0, self.metadata["duration_seconds"], int(self.metadata["duration_seconds"] * self.metadata["features_per_second"]))
-        new_x = np.linspace(0, self.metadata["duration_seconds"], int(self.metadata["duration_seconds"] * self.fps))
-
-        self.fps_adjusted_harmonic_energy = resample_signal(new_x, old_x, self.harmonic_energy)
-
-        self.fps_adjusted_percus_features = []
-        for i in range(self.final_percus_features.shape[0]):
-            self.fps_adjusted_percus_features.append(resample_signal(new_x, old_x, self.final_percus_features[i,:]) )
-
-        self.fps_adjusted_percus_features = np.array(self.fps_adjusted_percus_features)
-
-        self.push_signal = self.fps_adjusted_harmonic_energy
-        #self.push_signal = self.fps_adjusted_percus_features[-1, :] + 0.025
-        self.push_signal = self.push_signal / np.mean(self.push_signal)
-
-        # plot the harmonic_energy curve:
-        if 0:
-            seconds = 60
-            frames = self.fps*seconds
-            plt.figure(figsize=(14,8))
-            plt.plot(self.push_signal[:frames])
-            plt.ylim(0.0, 2.0)
-            plt.savefig("fps_adjusted_percus_features.png")
-            plt.clf()
 
     def morph_image(self, image, 
                     frame_index = None,

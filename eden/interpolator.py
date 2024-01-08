@@ -102,6 +102,7 @@ def perceptual_distance(img1, img2,
 
 from pipe import pipe_manager
 from planner import FrameBuffer, LatentTracker, resample_signal
+
 class Interpolator():
     '''
     Utility class to interpolate between creations (prompts + seeds + scales)

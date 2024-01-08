@@ -130,51 +130,51 @@ def warp_signal(input_signal, fps, min_v = 0.25, power = 1, decay = 0.9, clip_fr
 
   if plot:
     plot_signal(harmonic_energy, range = ranges, title = 'Tuned Energy signal', path = 'energy.jpg')
+
   return harmonic_energy
 
-
-
-def create_audio_features(audio_path, verbose = 0):
-  if '.zip' in audio_path:
-    audio_features, audio_path = load_zip(audio_path)
-  elif isinstance(audio_path, tuple):
-    pickle_path, audio_path = audio_path
-    with open(pickle_path, 'rb') as f:
-      audio_features = pickle.load(f)
-  else:
-     raise ValueError('Audio path should be a zip file or a tuple of (features_pickle_path, audio_mp3_path)')
-
-  if verbose > 0:
-    for key in audio_features.keys():
-      print(key)
-      if not isinstance(audio_features[key], np.ndarray):
-        print(audio_features[key])
-      else:
-        print(audio_features[key].shape)
-
+def create_audio_features(audio_features_pkl_path, total_frame_time, verbose = 0):
+  with open(audio_features_pkl_path, 'rb') as f:
+    audio_features = pickle.load(f)
 
   fps = audio_features['metadata']['features_per_second']
   harmonic_features = audio_features['features_array_harmonic'].copy()
   percussive_features = audio_features['features_array_percussion'].copy()
-  try:
-    chroma_features = audio_features['features_array_chroma'].copy()
-  except:
-    chroma_features = np.zeros(harmonic_features.shape)
-  chroma_fraction = 0.0
+  chroma_features = audio_features['features_array_chroma'].copy()
   
   # Remove any nan values:
   if np.isnan(harmonic_features).any() or np.isnan(percussive_features).any():
       np.nan_to_num(harmonic_features, copy=False)
       np.nan_to_num(percussive_features, copy=False)
 
+  # Compute how much of the audio file we actually need to fill the video:
+  audio_time         = audio_features['metadata']["duration_seconds"]
+  audio_use_fraction = total_frame_time / audio_time
+  print(f"Rendering frames for {total_frame_time:.2f} seconds of video, which is {(100*audio_use_fraction):.2f}% of the total audio time.")
+  audio_use_fraction = 1.0
+
+  print(f"Rendering frames for {total_frame_time:.2f} seconds of video, which is {(100*audio_use_fraction):.2f}% of the total audio time.")
+
+
+  # extract used audio part:
+  if audio_use_fraction < 1.0:
+    orig_len = harmonic_features.shape[1]
+    last_index = int(orig_len*audio_use_fraction) + 1
+    harmonic_features = harmonic_features[:, :last_index]
+    percussive_features = percussive_features[:, :last_index]
+    chroma_features = chroma_features[:, :last_index]
+    print(f"Stripped audio features from {orig_len} to {harmonic_features.shape[1]} frames")
+  elif audio_use_fraction > 1:
+      print("Warning: more video frames than audio features, this might lead to errors!")   
+
   harmonic_features = (1-chroma_fraction)*harmonic_features + chroma_fraction*chroma_features
 
   harmonic_energy = warp_signal(harmonic_features, fps, min_v = min_v, power = harmonic_power_f, 
     clip_fractions = [0.05, outlier_removal_fraction], 
     decay = harmonic_decay_f, 
-    end_slowdown_s = 0*fade_to_black_s, 
+    end_slowdown_s = fade_to_black_s, 
     smooth_window = harmonic_smooth_window,
-    ranges = None, plot=1)
+    ranges = None, plot=0)
 
   harmonic_energy_orig = harmonic_energy.copy()
   final_percus_features = bin_features(percussive_features, nr_bins=nr_beat_bins)
@@ -238,5 +238,5 @@ def create_audio_features(audio_path, verbose = 0):
   #plot_signal(harmonic_energy, range = None, title = 'harmonic_energy', path = "harmonic_energy.png")
   #plot_signal(base, range = None, title = 'base', path = "base.png")
 
-  return harmonic_energy, final_percus_features, audio_features['metadata'], audio_path
+  return harmonic_energy, final_percus_features, audio_features['metadata']
 

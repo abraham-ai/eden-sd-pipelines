@@ -80,7 +80,22 @@ def get_chroma(signal, n_features, Fs, FFT_hop_length, norm_d = 2, min_cutoff = 
 
     return chroma
 
+
+from pydub import AudioSegment
 def reencode_audio_to_mp3(input_file):
+    base_filename = os.path.splitext(input_file)[0]
+    output_file = f"{base_filename}_renc.mp3"
+
+    try:
+        audio = AudioSegment.from_file(input_file)
+        audio.export(output_file, format='mp3')
+        print(f"Re-encoded {input_file} to {output_file} using pydub...")
+        return output_file
+    except Exception as e:
+        print(f"An error occurred during audio re-encoding: {e}")
+        return None
+
+def reencode_audio_to_mp3_ffmpeg(input_file):
     base_filename = os.path.splitext(input_file)[0]
     output_file = f"{base_filename}_renc.mp3"
 
@@ -226,7 +241,6 @@ def extract_audio_features(
     chroma_features = np.repeat(harmonic_energy[np.newaxis,:], harm_features.shape[0], axis=0) * chroma_features
     chroma_features = np.sqrt(chroma_features)
 
-    print("------------------------------------------------------------------------")
     ################################################################################################
 
     now = datetime.now() # current date and time
@@ -270,6 +284,7 @@ def extract_audio_features(
     filename = os.path.join(output_folder, encoding_info)
     pkl_path = save_obj(feature_dict, filename, feature_dict)
     print("features_per_second: %f" %feature_dict['metadata']['features_per_second'])
+    print("------------------------------------------------------------------------")
 
     return pkl_path, mp3_path
 
