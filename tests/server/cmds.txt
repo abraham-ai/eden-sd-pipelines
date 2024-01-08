@@ -15,3 +15,7 @@ To Test:
 - lerp with init_image
 - real2real with controlnet
 - controlnet with init_img and control_img and ip_image
+
+
+
+cog predict -i mode=real2real_audio -i interpolation_init_images="https://storage.googleapis.com/public-assets-xander/A_workbox/init_imgs/img_00000.jpg|https://storage.googleapis.com/public-assets-xander/A_workbox/init_imgs/img_00001.jpg" -i audio_file="https://storage.googleapis.com/public-assets-xander/A_workbox/versilov.mp3" -i seed=3 -i width=512 -i height=512 -i n_steps=20 -i loop=0

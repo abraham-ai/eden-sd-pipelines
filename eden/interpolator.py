@@ -256,10 +256,7 @@ class Interpolator():
         # remove the current distance from the buffer_copy:   
         current_distances = np.delete(current_distances, distance_index)
 
-        if len(self.latent_tracker.t_raws) < self.args.n_anchor_imgs:
-            mixing_fs = np.linspace(0.33,0.66,5) # be more conservative about extreme splits early on
-        else:
-            mixing_fs = np.linspace(0.2,0.8,10)
+        mixing_fs = np.linspace(0.3,0.7,6)
 
         # Estimate the distance slope at the current split location:
         try:
@@ -324,7 +321,7 @@ class Interpolator():
         
         return best_cost, best_mixing_f, (best_new_t, best_estimated_perceptual_density_curve)
 
-    def find_next_t(self, max_density_diff = 15, verbose = 1):
+    def find_next_t(self, max_density_diff = 10, verbose = 1):
         """
         --> Use the frame buffer to find the next t value to use for interpolation.
         This implements an interative smoothing algorithm that tries to find the best t value to render the next frame,
@@ -356,8 +353,6 @@ class Interpolator():
             perceptual_distances = self.latent_tracker.frame_buffer.distances.copy()
 
             if self.args.planner is not None:
-                self.t_min_treshold *= 0.5 # when doing audio-modulation we can be more aggressive about splitting
-                 
                 #print("###### Using planner to get audio push curve! ######")
                 perceptual_target_curve, high_fps_target_curve = self.args.planner.get_audio_push_curve(len(perceptual_distances)+1, self.prompt_index, self.n_frames_between_two_prompts, max_n_samples = self.n_frames_between_two_prompts)
                 perceptual_target_curve = high_fps_target_curve

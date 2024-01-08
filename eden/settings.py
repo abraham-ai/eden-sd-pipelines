@@ -142,6 +142,7 @@ class StableDiffusionSettings:
     interpolation_init_images_power: float = 2.5
     interpolation_init_images_min_strength: float = 0.05 # SDXL is very sensitive to init_imgs
     interpolation_init_images_max_strength: float = 0.80
+    audio_file: str = None  # optional audio file to use for audioreactive real2real
     save_distances_to_dir: str = None
 
     # personalized aesthetic gradients:

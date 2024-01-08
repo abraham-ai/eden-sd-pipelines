@@ -1,10 +1,11 @@
-import os, random, sys
+import os, random, sys, tempfile
 sys.path.append('..')
 from settings import StableDiffusionSettings
 from generation import *
 from templates.interpolate_real2real import real2real
 from planner import Planner
 from audio_post import post_process_audio_reactive_video_frames
+from extract_audio_features_eden import extract_audio_features
 
 def get_random_img_paths_from_dir(directory_path, n_imgs, sorted = False):
     img_exts = [".jpg", ".png", ".jpeg", ".JPG", ".PNG", ".JPEG"]
@@ -19,116 +20,99 @@ def get_random_img_paths_from_dir(directory_path, n_imgs, sorted = False):
     return paths
 
 
-def real2real_x(W, H, args, input_images, outdir, n, 
-        exp_name = "", 
-        audio_path = None, 
-        do_post_process = True,
+def real2real_audioreactive(
+        input_images, audio_path, 
+        render_settings = {
+            "W": 640,
+            "H": 640,
+            "n_steps": 25,
+            "seconds_between_keyframes": 12,
+            "fps": 9,
+        },
         audio_reactivity_settings = {
                 'depth_rescale'     : [105., 255.],
                 '3d_motion_xyz'     : [0.7, 0.7, -90],
                 'circular_motion_period_s': 15,  # the period of the circular xy motion around the center (in seconds)
                 '3d_rotation_xyz'   : [0,0,0],
-                'brightness_factor' : 0.003,
-                'contrast_factor'   : 0.4,
-                'saturation_factor' : 0.5,
+                'brightness_factor' : 0.0005, # 0.001
+                'contrast_factor'   : 0.4, #0.4
+                'saturation_factor' : 0.5, #0.5
                 '2d_zoom_factor'    : 0.00,
-                'noise_factor'      : 0.0,
-    },
-        save_phase_data = False, 
-        save_distance_data = False):
+                'noise_factor'      : 0.0},
+        do_post_process = True,
+        output_dir = None,
+        save_distance_data = True, # save perceptual distance plots to disk
+        loop = True, # wrap the video to make it loop-able
+        seed = 0,
+        interpolation_seeds = None,
+        debug = False
+        ):
 
-    name_str = f"seed_{args.seed}_{exp_name}"
-    output_fps = args.fps
+    if output_dir is None:
+        output_dir = tempfile.mkdtemp()
 
-    if audio_path is not None:
-        args.planner = Planner(audio_path, args.fps, args.n_frames)
+    n = len(input_images)
 
-    video_path, frames_dir, timepoints = real2real(input_images, outdir, 
-                name_str = name_str, args = args, seed = args.seed, remove_frames_dir = False, 
-                save_video = 1, save_phase_data=save_phase_data, save_distance_data = save_distance_data)
+    if debug: # debug: fast render settings
+        render_settings["H"]       = 640
+        render_settings["W"]       = 640
+        render_settings['n_steps'] = 20
+        n = 4
+        input_images = input_images[:n]
+        render_settings["seconds_between_keyframes"] = 5
+
+    # Compute number of frames between keyframes:
+    inter_frames = int(render_settings["seconds_between_keyframes"] * render_settings["fps"])
+
+    args = StableDiffusionSettings(
+        H = render_settings["H"],
+        W = render_settings["W"],
+        steps = render_settings['n_steps'],
+        n_frames = inter_frames*(n-1) + n,
+        guidance_scale = 8,
+        text_input = "real2real",  # text_input is also the title, but has no effect on interpolations
+        interpolation_seeds = [random.randint(1, 1e8) for _ in range(n)] if (not interpolation_seeds) else interpolation_seeds,
+        interpolation_init_images = input_images,
+        ip_image_strength = 1.0,
+        n_anchor_imgs = 3,
+        latent_blending_skip_f = [0.07, 0.8],
+        loop = loop,
+        fps = render_settings["fps"],
+        seed = seed,
+    )
+
+    if args.loop:
+        args.n_frames = inter_frames*((n+1)-1) + (n+1)
+
+    audio_path   = extract_audio_features(audio_path, re_encode = 1)
+    args.planner = Planner(audio_path, args.fps, args.n_frames)
+
+    video_path, frames_dir, timepoints = real2real(input_images, output_dir, 
+                name_str = f"seed_{args.seed}", args = args, seed = args.seed, remove_frames_dir = False, 
+                save_video = 1, save_phase_data=False, save_distance_data = save_distance_data)
     
-    if do_post_process:
+    if do_post_process: # apply depth warping and audio-reactive saturation/contrast adjustments
         n_film = 1
-        fin_video_path = post_process_audio_reactive_video_frames(frames_dir, audio_path, output_fps, n_film, audio_reactivity_settings)
+        fin_video_path = post_process_audio_reactive_video_frames(frames_dir, audio_path, args.fps, n_film, audio_reactivity_settings)
     else:
-        if audio_path is not None:
-            print("adding audio...")
-            fin_video_path = video_path.replace(".mp4", "_audio.mp4")
-            add_audio_to_video(audio_path, video_path, fin_video_path)
-        else:
-            fin_video_path = video_path
+        print("adding audio...")
+        fin_video_path = video_path.replace(".mp4", "_audio.mp4")
+        add_audio_to_video(audio_path[1], video_path, fin_video_path)
 
     return fin_video_path
 
+
 if __name__ == "__main__":
 
-    ##############################################################################
+    # main render settings
+    audio_path = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/audio/versilov/audio.mp3"
+    n_imgs     = 6
+    seed       = 1
     
-    # main render settings (eg specified by the user)
-    H,W          = 768, 768
-    n_steps      = 25       # n_diffusion steps per frame  
-    seconds_between_keyframes = 6
-    n_imgs       = 4
+    # Get random images from a directory:
+    input_dir  = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/init_imgs/flow"
+    output_dir = 'results_real2real_audioreactive_club_long'
 
-    # audio_path is either a path of a .zip file, or a tuple of (audio_features_pickle, audio_mp3_path)
-    audio_path = ("path_to_features.pkl", "path_to_audio.mp3")
-    audio_path = ("/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/audio/versilov/versilov_audio_features_80_40.pkl", "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/audio/versilov/versilov.mp3")
-    
-    # Get random images from a directory: (this should be replaced with timeline imgs in WZRD)
-    input_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/init_imgs/materials"
-    input_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/init_imgs/club_long"
-
-    outdir    = 'results_real2real_audioreactive_club_long'
-
-    if 0: # debug: fast render settings
-        H,W          = 512, 512
-        n_imgs       = 2
-        n_steps      = 20
-        seconds_between_keyframes = 0.5
-
-    for seed in [0]:
-
-        ##############################################################################
-        seed_everything(seed)
-        if seed % 2 == 0:
-            img_paths = get_random_img_paths_from_dir(input_dir, n_imgs, sorted=True)
-        else:
-            img_paths = get_random_img_paths_from_dir(input_dir, n_imgs, sorted=False)
-
-        n = len(img_paths)
-        
-        fps = 14
-        inter_frames = int(seconds_between_keyframes * fps)
-
-        args = StableDiffusionSettings(
-            H = H,
-            W = W,
-            steps = n_steps,
-            n_frames = inter_frames*(n-1) + n,
-            guidance_scale = 8,
-            text_input = "real2real",  # text_input is also the title, but has no effect on interpolations
-            interpolation_seeds = [random.randint(1, 1e8) for _ in range(n)],
-            interpolation_init_images = img_paths,
-            interpolation_init_images_min_strength = 0.05,
-            interpolation_init_images_max_strength = 0.80,
-            ip_image_strength = 1.0,
-            n_anchor_imgs = 4,
-            latent_blending_skip_f = [0.0, 0.8],
-            loop = True,
-            fps = fps,
-            seed = seed,
-        )
-
-        args.lpips_max_d = 0.75
-        args.lpips_min_d = 0.05
-
-        if args.loop:
-            args.n_frames = inter_frames*((n+1)-1) + (n+1)
-
-        real2real_x(W, H, args, img_paths, outdir, n,
-                    audio_path = audio_path, 
-                    do_post_process = True,
-                    save_phase_data = 0,
-                    save_distance_data = 1)
-
-    #########################################################################################
+    seed_everything(seed)
+    img_paths = get_random_img_paths_from_dir(input_dir, n_imgs, sorted=False)
+    fin_video_path = real2real_audioreactive(img_paths, audio_path, output_dir = output_dir, seed=seed)

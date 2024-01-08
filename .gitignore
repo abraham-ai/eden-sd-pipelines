@@ -5,6 +5,7 @@ __pycache__
 */*/__pycache__
 log.txt
 **.ckpt
+*.pkl
 src/
 *nohup.out
 

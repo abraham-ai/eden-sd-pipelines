@@ -3,6 +3,7 @@ DEBUG_MODE = False
 #DEBUG_MODE = True
 
 import os
+import cv2
 import time
 import random
 import sys
@@ -50,6 +51,48 @@ checkpoint_options = [
     "juggernaut_XL2",
 ]
 checkpoint_default = "juggernaut_XL2"
+
+
+
+def extract_n_frames_from_video(video_path, n = 1):
+    if n < 1:
+        n=1
+
+    save_dir = os.path.dirname(video_path)
+
+    # Open the video file
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        raise IOError(f"Cannot open video file {video_path}")
+
+    # Get total number of frames in the video
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+    # Calculate the interval for frame extraction
+    interval = total_frames // n
+
+    # List to store file paths of extracted frames
+    extracted_frames_paths = []
+
+    frame_count = 0
+    extracted_count = 0
+
+    while cap.isOpened() and extracted_count < n:
+        ret, frame = cap.read()
+        if ret:
+            if frame_count % interval == 0 or (total_frames - frame_count) < interval:
+                # Save frame
+                frame_path = os.path.join(save_dir, f"frame_{extracted_count}.jpg")
+                cv2.imwrite(frame_path, frame)
+                extracted_frames_paths.append(frame_path)
+                extracted_count += 1
+        else:
+            break
+        frame_count += 1
+
+    cap.release()
+
+    return extracted_frames_paths
 
 class CogOutput(BaseModel):
     files: Optional[list[cogPath]] = []
@@ -209,6 +252,9 @@ class Predictor(BasePredictor):
             description="Maximum init image strength for interpolation_init_images prompts (mode==interpolate)",
             ge=0.0, le=1.0, default=0.95
         ),
+        audio_file: str = Input(
+            description="An audio file to use for real2real_audio", default=None
+        ),
         loop: bool = Input(
             description="Loops (mode==interpolate & real2real)",
             default=True
@@ -305,6 +351,7 @@ class Predictor(BasePredictor):
             interpolation_init_images_power = interpolation_init_images_power,
             interpolation_init_images_min_strength = interpolation_init_images_min_strength,
             interpolation_init_images_max_strength = interpolation_init_images_max_strength,
+            audio_file = audio_file,
 
             latent_blending_skip_f = [float(i) for i in latent_blending_skip_f.split('|')],
             n_anchor_imgs = n_anchor_imgs,
@@ -320,9 +367,6 @@ class Predictor(BasePredictor):
             aesthetic_lr = 0.0001,
             ag_L2_normalization_constant = 0.25, # for real2real, only 
         )
-        
-        #print("Arguments:")
-        #print(args)
 
         out_dir = cogPath(tempfile.mkdtemp())
         
@@ -418,7 +462,57 @@ class Predictor(BasePredictor):
             else:
                 yield CogOutput(files=out_paths, name=batch_i_args.name, thumbnails=out_paths, attributes=attributes, isFinal=True, progress=1.0)
 
-        else: # mode == "interpolate" or mode == "real2real" or mode == "blend"
+        elif mode == "real2real_audio":
+            if not args.audio_file:
+                raise ValueError("You must provide an audio file to use real2real_audio")
+            if len(args.interpolation_init_images) < 2:
+                raise ValueError("You must provide at least 2 images to interpolate!")
+            if args.interpolation_seeds:
+                if len(args.interpolation_init_images) != len(args.interpolation_seeds):
+                 raise ValueError("You must provide the same amount of seeds as images!")
+
+            audio_folder = cogPath('audio_files')
+            args.audio_file = download(args.audio_file, folder)
+
+            t_start = time.time()
+            out_path = real2real_audioreactive(args.interpolation_init_images, args.audio_file, 
+                render_settings = {
+                    "W": args.W,
+                    "H": args.H,
+                    "n_steps": args.n_steps,
+                    "seconds_between_keyframes": 12, # determines the visual density of the video
+                    "fps": args.fps},
+                audio_reactivity_settings = {
+                        'depth_rescale'     : [105., 255.],
+                        '3d_motion_xyz'     : [0.7, 0.7, -90],
+                        'circular_motion_period_s': 15,  # the period of the circular xy motion around the center (in seconds)
+                        '3d_rotation_xyz'   : [0,0,0],
+                        'brightness_factor' : 0.0005, # 0.001
+                        'contrast_factor'   : 0.2, #0.4
+                        'saturation_factor' : 0.25, #0.5
+                        '2d_zoom_factor'    : 0.00,
+                        'noise_factor'      : 0.0},
+                seed=args.seed, 
+                interpolation_seeds=args.interpolation_seeds, 
+                loop=args.loop
+                save_distance_data = True,
+                )
+
+            video_frame_paths = extract_n_frames_from_video(out_path, n = len(args.interpolation_init_images))
+
+            attributes = {}
+            frame_nsfw_scores = lewd_detection(video_frame_paths)
+            attributes['nsfw_scores']      = [np.max(frame_nsfw_scores)]
+            attributes['job_time_seconds'] = time.time() - t_start
+
+            if DEBUG_MODE:
+                print(attributes)
+                shutil.copyfile(out_path, os.path.join(debug_output_dir, prediction_name + ".mp4"))
+                yield out_path
+            else:
+                yield CogOutput(files=[Path(out_path)], name=args.name, thumbnails=[Path(video_frame_paths[0])], attributes=attributes, isFinal=True, progress=1.0)
+
+        else: # mode == "interpolate" or mode == "real2real" or mode == "blend" or mode == "real2real_audio"
 
             if args.controlnet_path and args.control_image_strength == 0.0:
                 raise ValueError("controlnet requires init_image_strength > 0.0")

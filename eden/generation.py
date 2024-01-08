@@ -460,8 +460,6 @@ def make_interpolation(args, force_timepoints = None):
 ###########################################################################################################
 
 
-
-
 def make_images(args):
     if args.mode == "remix" or args.mode == "upscale" or args.mode == "controlnet":
         

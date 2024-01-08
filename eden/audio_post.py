@@ -94,41 +94,46 @@ def depth_warp(frames_dir, audio_planner, audio_reactivity_settings,
     with torch.no_grad():
         print("Predicting depth maps...")
         for i, frame_path in tqdm(enumerate(frame_paths)):
-            translate_xyz_frame = translate_xyz.copy()
+            try:
+                translate_xyz_frame = translate_xyz.copy()
 
-            frame = Image.open(frame_path)
-            if depth_type == "midas":
-                depth_map, depth_tensor = predict_depth_map_midas(frame, depth_model, feature_extractor, audio_reactivity_settings['depth_rescale'])
-            else:
-                depth_map, depth_tensor = predict_depth_map_zoe(frame, depth_model, audio_reactivity_settings['depth_rescale'])
+                frame = Image.open(frame_path)
+                if depth_type == "midas":
+                    depth_map, depth_tensor = predict_depth_map_midas(frame, depth_model, feature_extractor, audio_reactivity_settings['depth_rescale'])
+                else:
+                    depth_map, depth_tensor = predict_depth_map_zoe(frame, depth_model, audio_reactivity_settings['depth_rescale'])
 
-            if save_depth_maps:
-                depth_map.save(os.path.join(depth_dir, os.path.basename(frame_path)), quality=95)
+                if save_depth_maps:
+                    depth_map.save(os.path.join(depth_dir, os.path.basename(frame_path)), quality=95)
 
-            # apply a 3d depth warp to the frame using the depth map and the base audio feature:
-            warp_factor = audio_planner.fps_adjusted_percus_features[0, i]
-            warp_factor = np.clip(warp_factor, 0.0, 1.0)
+                # apply a 3d depth warp to the frame using the depth map and the base audio feature:
+                warp_factor = audio_planner.fps_adjusted_percus_features[0, i]
+                warp_factor = np.clip(warp_factor, 0.0, 1.0)
 
-            # make x,y rotate in a circle with amplitude A and period P:
-            P = audio_reactivity_settings['circular_motion_period_s'] * audio_planner.fps
-            translate_xyz_frame[0] *= np.sin(2*np.pi*i/P)
-            translate_xyz_frame[1] *= np.cos(2*np.pi*i/P)
+                # make x,y rotate in a circle with amplitude A and period P:
+                P = audio_reactivity_settings['circular_motion_period_s'] * audio_planner.fps
+                translate_xyz_frame[0] *= np.sin(2*np.pi*i/P)
+                translate_xyz_frame[1] *= np.cos(2*np.pi*i/P)
 
-            # apply the warp_factor to translate_xyz and rotate_xyz:
-            translate_xyz_frame[2] *= warp_factor
-            rotate_xyz_frame = [warp_factor * r for r in rotate_xyz]
-            warped_frame = anim_frame_warp_3d(np.array(frame), depth_tensor, anim_args, translate_xyz_frame, rotate_xyz_frame)
-            warped_frame = Image.fromarray(warped_frame)
+                # apply the warp_factor to translate_xyz and rotate_xyz:
+                translate_xyz_frame[2] *= warp_factor
+                rotate_xyz_frame = [warp_factor * r for r in rotate_xyz]
+                warped_frame = anim_frame_warp_3d(np.array(frame), depth_tensor, anim_args, translate_xyz_frame, rotate_xyz_frame)
+                warped_frame = Image.fromarray(warped_frame)
 
-            # save warped frame:
-            save_name = os.path.basename(frame_path).replace(".jpg", f"{warp_name}_depth.jpg")
-            warped_frame.save(os.path.join(output_dir, save_name), quality=95)
+                # save warped frame:
+                save_name = os.path.basename(frame_path).replace(".jpg", f"{warp_name}_depth.jpg")
+                warped_frame.save(os.path.join(output_dir, save_name), quality=95)
 
-            if 0:
-                # save orig frame to the same dir:
-                orig_img_path = os.path.join(output_dir, os.path.basename(frame_path))
-                if not os.path.exists(orig_img_path):
-                    frame.save(orig_img_path, quality=95)
+                if 0:
+                    # save orig frame to the same dir:
+                    orig_img_path = os.path.join(output_dir, os.path.basename(frame_path))
+                    if not os.path.exists(orig_img_path):
+                        frame.save(orig_img_path, quality=95)
+
+            except Exception as e:
+                print(f"Error in depth_warp: {str(e)}")
+                break
 
     # free up GPU memory:
     del depth_model
