@@ -25,7 +25,7 @@ def real2real_audioreactive(
         render_settings = {
             "W": 640,
             "H": 640,
-            "n_steps": 25,
+            "steps": 25,
             "seconds_between_keyframes": 12,
             "fps": 9,
         },
@@ -54,9 +54,9 @@ def real2real_audioreactive(
     n = len(input_images)
 
     if debug: # debug: fast render settings
-        render_settings["H"]       = 640
-        render_settings["W"]       = 640
-        render_settings['n_steps'] = 20
+        render_settings["H"]     = 640
+        render_settings["W"]     = 640
+        render_settings['steps'] = 20
         n = 4
         input_images = input_images[:n]
         render_settings["seconds_between_keyframes"] = 5
@@ -67,7 +67,7 @@ def real2real_audioreactive(
     args = StableDiffusionSettings(
         H = render_settings["H"],
         W = render_settings["W"],
-        steps = render_settings['n_steps'],
+        steps = render_settings['steps'],
         n_frames = inter_frames*(n-1) + n,
         guidance_scale = 8,
         text_input = "real2real",  # text_input is also the title, but has no effect on interpolations

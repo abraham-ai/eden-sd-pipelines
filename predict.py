@@ -39,6 +39,7 @@ from pipe import pipe_manager
 from settings import StableDiffusionSettings
 import eden_utils
 import generation
+from templates.interpolate_real2real_audio_minimal import real2real_audioreactive
 
 if DEBUG_MODE:
     debug_output_dir = "/src/tests/server/debug_output"
@@ -119,7 +120,7 @@ class Predictor(BasePredictor):
         # Universal args
         mode: str = Input(
             description="Mode", default="create",
-            choices=["create", "remix", "upscale", "blend", "controlnet", "interpolate", "real2real", "interrogate"]
+            choices=["create", "remix", "upscale", "blend", "controlnet", "interpolate", "real2real", "real2real_audio", "interrogate"]
         ),
         stream: bool = Input(
             description="yield individual results if True", default=False
@@ -225,31 +226,31 @@ class Predictor(BasePredictor):
 
         # Interpolate mode
         n_frames: int = Input(
-            description="Total number of frames (mode==interpolate)",
+            description="Total number of frames for video modes",
             ge=3, le=1000, default=40
         ),
         interpolation_texts: str = Input(
-            description="Interpolation texts (mode==interpolate)",
+            description="Interpolation texts for video modes",
             default=None
         ),
         interpolation_seeds: str = Input(
-            description="Seeds for interpolated texts (mode==interpolate)",
+            description="Seeds for interpolated texts for video modes",
             default=None
         ),
         interpolation_init_images: str = Input(
-            description="Interpolation init images, file paths or urls (mode==interpolate)",
+            description="Interpolation init images, file paths or urls for video modes",
             default=None
         ),
         interpolation_init_images_power: float = Input(
-            description="Power for interpolation_init_images prompts (mode==interpolate)",
+            description="Power for interpolation_init_images prompts for video modes",
             ge=0.5, le=5.0, default=2.5
         ),
         interpolation_init_images_min_strength: float = Input(
-            description="Minimum init image strength for interpolation_init_images prompts (mode==interpolate)",
+            description="Minimum init image strength for interpolation_init_images prompts for video modes",
             ge=0, le=1.0, default=0.05
         ),
         interpolation_init_images_max_strength: float = Input(
-            description="Maximum init image strength for interpolation_init_images prompts (mode==interpolate)",
+            description="Maximum init image strength for interpolation_init_images prompts for video modes",
             ge=0.0, le=1.0, default=0.95
         ),
         audio_file: str = Input(
@@ -472,14 +473,14 @@ class Predictor(BasePredictor):
                  raise ValueError("You must provide the same amount of seeds as images!")
 
             audio_folder = cogPath('audio_files')
-            args.audio_file = download(args.audio_file, folder)
+            args.audio_file = download(args.audio_file, audio_folder)
 
             t_start = time.time()
             out_path = real2real_audioreactive(args.interpolation_init_images, args.audio_file, 
                 render_settings = {
                     "W": args.W,
                     "H": args.H,
-                    "n_steps": args.n_steps,
+                    "steps": args.steps,
                     "seconds_between_keyframes": 12, # determines the visual density of the video
                     "fps": args.fps},
                 audio_reactivity_settings = {
@@ -494,7 +495,7 @@ class Predictor(BasePredictor):
                         'noise_factor'      : 0.0},
                 seed=args.seed, 
                 interpolation_seeds=args.interpolation_seeds, 
-                loop=args.loop
+                loop=args.loop,
                 save_distance_data = True,
                 )
 

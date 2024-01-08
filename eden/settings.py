@@ -84,7 +84,7 @@ class StableDiffusionSettings:
 
     # sampler params
     sampler: str = "euler"
-    steps: int = 40
+    steps: int = 30
     min_steps: int = 7  # low_n steps often give artifacts, so adopt a min-n-steps
     guidance_scale: float = 7.5
     use_lcm: bool = False
