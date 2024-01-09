@@ -39,7 +39,6 @@ from pipe import pipe_manager
 from settings import StableDiffusionSettings
 import eden_utils
 import generation
-from templates.interpolate_real2real_audio_minimal import real2real_audioreactive
 
 if DEBUG_MODE:
     debug_output_dir = "/src/tests/server/debug_output"
@@ -476,7 +475,7 @@ class Predictor(BasePredictor):
             args.audio_file = download(args.audio_file, audio_folder)
 
             t_start = time.time()
-            out_path = real2real_audioreactive(args.interpolation_init_images, args.audio_file, 
+            out_path = generation.real2real_audioreactive(args.interpolation_init_images, args.audio_file, 
                 render_settings = {
                     "W": args.W,
                     "H": args.H,
@@ -511,7 +510,7 @@ class Predictor(BasePredictor):
                 shutil.copyfile(out_path, os.path.join(debug_output_dir, prediction_name + ".mp4"))
                 yield out_path
             else:
-                yield CogOutput(files=[Path(out_path)], name=args.name, thumbnails=[Path(video_frame_paths[0])], attributes=attributes, isFinal=True, progress=1.0)
+                yield CogOutput(files=[cogPath(out_path)], name=args.name, thumbnails=[cogPath(video_frame_paths[0])], attributes=attributes, isFinal=True, progress=1.0)
 
         else: # mode == "interpolate" or mode == "real2real" or mode == "blend" or mode == "real2real_audio"
 
@@ -576,7 +575,6 @@ class Predictor(BasePredictor):
                     frames_dir = os.path.join(debug_output_dir, f"{prediction_name}_frames")
                     os.makedirs(frames_dir, exist_ok=True)
                     shutil.copyfile(out_path, os.path.join(frames_dir, f"frame_{t_raw:0.16f}.jpg"))
-
 
             # run FILM
             if args.n_film > 0:

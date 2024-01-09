@@ -80,7 +80,7 @@ def get_chroma(signal, n_features, Fs, FFT_hop_length, norm_d = 2, min_cutoff = 
 
     return chroma
 
-
+"""
 from pydub import AudioSegment
 def reencode_audio_to_mp3_pydub(input_file):
     base_filename = os.path.splitext(input_file)[0]
@@ -94,6 +94,7 @@ def reencode_audio_to_mp3_pydub(input_file):
     except Exception as e:
         print(f"An error occurred during audio re-encoding: {e}")
         return input_file
+"""
 
 def reencode_audio_to_mp3(input_file):
     base_filename = os.path.splitext(input_file)[0]

@@ -7,6 +7,9 @@ Then run tests:
 cd /data/xander/Projects/cog/eden-sd-pipelines/tests/server
 sudo sh image_test.sh 
 
+cd /data/xander/Projects/cog/eden-sd-pipelines/tests/server
+sudo sh video_test.sh 
+
 
 sudo sh all_tests.sh 
 

@@ -6,6 +6,7 @@ build:
   system_packages:
     - "libgl1-mesa-glx"
     - "libglib2.0-0"
+    - "ffmpeg"
 
   python_packages:
     - "torch==2.0.0"         # No change
@@ -35,7 +36,7 @@ build:
     - "tqdm==4.66.1"
     - "tensorflow_addons==0.23.0" # needed for Bumble nsfw detection model
     - "librosa" # needed for audio feature extraction
-    - "pydub"   # needed for audio re-encoding since ffmpeg couldnt be added to cog image
+    #- "pydub"   # needed for audio re-encoding since ffmpeg couldnt be added to cog image
     #- "pydload==1.0.9"        # needed for old nsfw detection model
     #- "onnxruntime==1.16.3"   # needed for old nsfw detection model
     #- "protobuf==3.20.0"

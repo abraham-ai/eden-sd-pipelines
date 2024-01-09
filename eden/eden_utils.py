@@ -571,7 +571,7 @@ def load_base64(data, mode):
     pil_img = pil_img.convert(mode)
     return pil_img
 
-def get_random_imgpath_from_dir(dir_path, n=1, extensions = [".jpg", ".png", ".jpeg", ".webp"]):
+def get_random_img_paths_from_dir(dir_path, n=1, sorted = False, extensions = [".jpg", ".png", ".jpeg", ".webp"]):
     # recursively search for images in dir_path:
     img_paths = []
     for root, dirs, files in os.walk(dir_path):
@@ -580,8 +580,9 @@ def get_random_imgpath_from_dir(dir_path, n=1, extensions = [".jpg", ".png", ".j
                 if file.endswith(extension):
                     img_paths.append(os.path.join(root, file))
 
-    # pick n random images:
-    img_paths = sorted(img_paths)
+    if sorted:
+        img_paths.sort()
+
     img_paths = random.sample(img_paths, n)
 
     if n==1:
