@@ -1,4 +1,5 @@
 import os, random, sys, tempfile
+import datetime, time
 sys.path.append('..')
 from settings import StableDiffusionSettings
 from generation import *
@@ -28,13 +29,13 @@ def real2real_audioreactive(
             "fps": 10,
         },
         audio_reactivity_settings = {
-                'depth_rescale'     : [105., 255.],
-                '3d_motion_xyz'     : [0.7, 0.7, -90],
+                'depth_rescale'     : [105., 255.],    # rescale depth map to this range # dont change!!
+                '3d_motion_xyz'     : [0.7, 0.7, -90], # camera motion limits
                 'circular_motion_period_s': 15,  # the period of the circular xy motion around the center (in seconds)
                 '3d_rotation_xyz'   : [0,0,0],
                 'brightness_factor' : 0.0005, # 0.001
-                'contrast_factor'   : 0.4, #0.4
-                'saturation_factor' : 0.5, #0.5
+                'contrast_factor'   : 0.3, #0.4
+                'saturation_factor' : 0.4, #0.5
                 '2d_zoom_factor'    : 0.00,
                 'noise_factor'      : 0.0},
         output_dir = None,
@@ -52,13 +53,15 @@ def real2real_audioreactive(
     if output_dir is None:
         output_dir = tempfile.mkdtemp()
 
+    os.makedirs(output_dir, exist_ok=True)
+
     if debug: # debug: fast render settings
         render_settings["H"]     = 512
         render_settings["W"]     = 512
         render_settings['steps'] = 15
-        n = 4
+        n = 6
         input_images = input_images[:n]
-        render_settings["seconds_between_keyframes"] = 5
+        render_settings["seconds_between_keyframes"] = 15
 
     # Compute number of frames between keyframes:
     inter_frames = int(render_settings["seconds_between_keyframes"] * render_settings["fps"])

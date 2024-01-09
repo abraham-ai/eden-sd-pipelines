@@ -189,9 +189,12 @@ class Interpolator():
             prompt = self.prompts[index]
             image  = self.images[index]
             seed   = self.seeds[index]
+            print(f"Setting up conditioning for prompt {index} (seed: {seed})")
 
             #try: # SDXL
             if image and self.ip_adapter:
+                ip_adapter = pipe_manager.enable_ip_adapter()
+                
                 if self.args.lora_path is not None:
                     prompt = adjust_prompt(self.args, prompt, inject_token = True, verbose = True)
                 # create the conditioning vectors for the current prompt + image using ip_adapter:

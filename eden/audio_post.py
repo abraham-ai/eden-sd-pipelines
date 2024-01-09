@@ -158,9 +158,9 @@ def post_process_audio_reactive_video_frames(frames_dir, audio_planner, fps,
     update_audio_reactivity_settings = None):
 
     audio_reactivity_settings = {
-                'depth_rescale'     : [103., 255.],    # rescale depth map to this range # dont change!!
-                '3d_motion_xyz'     : [0.6, 0.6, -90], # camera motion limits
-                'circular_motion_period_s': 18,  # the period of the circular xy motion around the center (in seconds)
+                'depth_rescale'     : [105., 255.],    # rescale depth map to this range # dont change!!
+                '3d_motion_xyz'     : [0.7, 0.7, -90], # camera motion limits
+                'circular_motion_period_s': 15,  # the period of the circular xy motion around the center (in seconds)
                 '3d_rotation_xyz'   : [0,0,0],
                 'brightness_factor' : 0.0025,
                 'contrast_factor'   : 0.45,
@@ -185,6 +185,7 @@ def post_process_audio_reactive_video_frames(frames_dir, audio_planner, fps,
     # 2. Use film interpolation to increase the frame rate:
     if n_film > 0:
         frames_dir = os.path.abspath(frames_dir)
+        print(f"n_frames in frames_dir: {len(os.listdir(frames_dir))}")
 
         try:
             command = [sys.executable, os.path.join(str(SD_PATH), "eden/film.py"), "--frames_dir", frames_dir, "--times_to_interpolate", str(n_film)]
@@ -199,7 +200,8 @@ def post_process_audio_reactive_video_frames(frames_dir, audio_planner, fps,
                 frames_dir = str(film_out_dir)
                 fps = fps*(1+n_film)
             else:
-                print("ERROR: film_out_dir does not exist or contains less than 3 .jpg files, using original frames instead.")
+                n_files = len(list(film_out_dir.glob("*.jpg")))
+                print(f"ERROR: film_out_dir {str(film_out_dir)} does not exist or contains less than 3 .jpg files {n_files}, using original frames instead.")
             
         except Exception as e:
             print(str(e))
@@ -218,7 +220,11 @@ def post_process_audio_reactive_video_frames(frames_dir, audio_planner, fps,
     if audio_path is not None:
         print("adding audio...")
         fin_video_path = video_path.replace(".mp4", "_audio.mp4")
-        add_audio_to_video(audio_planner.audio_path, video_path, fin_video_path)
+        try:
+            add_audio_to_video(audio_planner.audio_path, video_path, fin_video_path)
+        except:
+            print("ERROR: Could not add audio to video, using video without audio instead.")
+            fin_video_path = video_path
     else:
         fin_video_path = video_path
 

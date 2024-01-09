@@ -82,7 +82,7 @@ def get_chroma(signal, n_features, Fs, FFT_hop_length, norm_d = 2, min_cutoff = 
 
 
 from pydub import AudioSegment
-def reencode_audio_to_mp3(input_file):
+def reencode_audio_to_mp3_pydub(input_file):
     base_filename = os.path.splitext(input_file)[0]
     output_file = f"{base_filename}_renc.mp3"
 
@@ -93,9 +93,9 @@ def reencode_audio_to_mp3(input_file):
         return output_file
     except Exception as e:
         print(f"An error occurred during audio re-encoding: {e}")
-        return None
+        return input_file
 
-def reencode_audio_to_mp3_ffmpeg(input_file):
+def reencode_audio_to_mp3(input_file):
     base_filename = os.path.splitext(input_file)[0]
     output_file = f"{base_filename}_renc.mp3"
 
@@ -146,7 +146,7 @@ def extract_audio_features(
     else:
         mp3_path = audio_path
 
-    source_file = mp3_path.split('/')[-1]
+    source_file = os.path.basename(str(mp3_path))
     pipeline_start = time.time()
 
     print("Loading %s into Librosa format..." %mp3_path)
@@ -261,7 +261,7 @@ def extract_audio_features(
     feature_dict['metadata']['duration_seconds'] = duration_seconds
     feature_dict['metadata']['features_per_second'] = full_features.shape[1] / duration_seconds
     feature_dict['metadata']['timestamp_generated'] = date_time_str
-    feature_dict['metadata']['song_name'] = mp3_path.split('/')[-1][:-4]
+    feature_dict['metadata']['song_name'] = source_file
     feature_dict['metadata']['encoding_info'] = encoding_info
 
     # Some final post-processing:

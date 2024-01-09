@@ -12,7 +12,7 @@ harmonic_smooth_window  = 25
 fade_to_black_s         = 0
 
 nr_beat_bins = 3
-percus_push_factor = 12.       # How much does a percussive beat push the perceptual change
+percus_push_factor = 5.       # How much does a percussive beat push the perceptual change
 base_decay = 0.40              # How slowely does a 'base-push' decay back to zero: slow_base[:, i] = max(slow_base[:, i-1] * decay, base[:, i])
 min_v = 0.15   #  What is the minimum motion speed in latent space? (Relative to #nodes / minute setting)
 
@@ -151,21 +151,18 @@ def create_audio_features(audio_features_pkl_path, total_frame_time, verbose = 0
   audio_time         = audio_features['metadata']["duration_seconds"]
   audio_use_fraction = total_frame_time / audio_time
   print(f"Rendering frames for {total_frame_time:.2f} seconds of video, which is {(100*audio_use_fraction):.2f}% of the total audio time.")
-  audio_use_fraction = 1.0
 
-  print(f"Rendering frames for {total_frame_time:.2f} seconds of video, which is {(100*audio_use_fraction):.2f}% of the total audio time.")
-
-
-  # extract used audio part:
-  if audio_use_fraction < 1.0:
-    orig_len = harmonic_features.shape[1]
-    last_index = int(orig_len*audio_use_fraction) + 1
-    harmonic_features = harmonic_features[:, :last_index]
-    percussive_features = percussive_features[:, :last_index]
-    chroma_features = chroma_features[:, :last_index]
-    print(f"Stripped audio features from {orig_len} to {harmonic_features.shape[1]} frames")
-  elif audio_use_fraction > 1:
-      print("Warning: more video frames than audio features, this might lead to errors!")   
+  if 0:
+    # extract used audio part:
+    if audio_use_fraction < 1.0:
+      orig_len = harmonic_features.shape[1]
+      last_index = int(orig_len*audio_use_fraction) + 1
+      harmonic_features = harmonic_features[:, :last_index]
+      percussive_features = percussive_features[:, :last_index]
+      chroma_features = chroma_features[:, :last_index]
+      print(f"Stripped audio features from {orig_len} to {harmonic_features.shape[1]} frames")
+    elif audio_use_fraction > 1:
+        print("Warning: more video frames than audio features, this might lead to errors!")   
 
   harmonic_features = (1-chroma_fraction)*harmonic_features + chroma_fraction*chroma_features
 
@@ -227,16 +224,10 @@ def create_audio_features(audio_features_pkl_path, total_frame_time, verbose = 0
   base = normalize_full_signal(base)
   final_percus_features[0,:] = base
 
-  final = percus_push_factor*base + harmonic_energy
-  #final = percus_push_factor*snare + harmonic_energy
+  push_signal = percus_push_factor*base + harmonic_energy
+  push_signal = normalize_full_signal(push_signal)
+  push_signal = push_signal + (min_v * np.mean(push_signal) / (1-min_v))
+  push_signal = push_signal / np.mean(push_signal)
 
-  final = normalize_full_signal(final)
-  final = final + (min_v * np.mean(final) / (1-min_v))
-  final = final / np.mean(final)
-  harmonic_energy = final
-
-  #plot_signal(harmonic_energy, range = None, title = 'harmonic_energy', path = "harmonic_energy.png")
-  #plot_signal(base, range = None, title = 'base', path = "base.png")
-
-  return harmonic_energy, final_percus_features, audio_features['metadata']
+  return push_signal, final_percus_features, audio_features['metadata'], audio_use_fraction
 

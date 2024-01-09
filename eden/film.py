@@ -10,7 +10,7 @@ import torch
 SD_PATH = Path(os.path.dirname(os.path.realpath(__file__))).parents[0]
 ROOT_PATH = SD_PATH.parents[0]
 FILM_PATH = os.path.join(ROOT_PATH, 'frame-interpolation')
-FILM_MODEL_PATH = os.path.join(SD_PATH, '../models/film/film_net/Style/saved_model')
+FILM_MODEL_PATH = os.path.join(SD_PATH, 'models/film/film_net/Style/saved_model')
 sys.path.append(FILM_PATH)
 
 import tensorflow as tf
@@ -56,6 +56,7 @@ def interpolate_FILM(frames_dir, times_to_interpolate,
     print("--------------------------")
     print("Running FILM interpolation")
     print("Input dir: ", frames_dir)
+    print("FILM model path: ", os.path.abspath(FILM_MODEL_PATH))
     print("Interpolating %d image files," %len(frame_paths))
     print("n times to interpolate: ", times_to_interpolate)
     print("--------------------------")    

@@ -63,9 +63,9 @@ class Planner():
         self.total_frame_time = self.total_frames / self.fps
         self.compute_audio_features(plot = False)
 
-    def compute_audio_features(self, plot = True):
+    def compute_audio_features(self, plot = False):
         self.total_frame_time   = self.total_frames / self.fps
-        self.harmonic_energy, self.final_percus_features, self.metadata = create_audio_features(self.audio_features_pkl_path, self.total_frame_time)
+        self.harmonic_energy, self.final_percus_features, self.metadata, audio_use_fraction = create_audio_features(self.audio_features_pkl_path, self.total_frame_time)
 
         print("-------------------------------------------------------------")
         print(f"harmonic_energy shape: {self.harmonic_energy.shape}")
@@ -77,42 +77,31 @@ class Planner():
         # Resample the audio features to match the video fps:
         old_x = np.linspace(0, self.metadata["duration_seconds"], int(self.metadata["duration_seconds"] * self.metadata["features_per_second"]))
         new_x = np.linspace(0, self.metadata["duration_seconds"], int(self.metadata["duration_seconds"] * self.fps))
-
-        #old_x = np.linspace(0, self.total_frame_time, int(self.metadata["duration_seconds"] * self.metadata["features_per_second"]))
-        #new_x = np.linspace(0, self.total_frame_time, int(self.metadata["duration_seconds"] * self.fps))
-
-        # cut old_x to match the length of the harmonic_energy:(in case we're not using all of the audio)
-        #old_x = old_x[:self.harmonic_energy.shape[0]]
-
-        print(f"new_x: {new_x.shape}")
-        print(f"old_x: {old_x.shape}")
-        print(f"harmonic_energy: {self.harmonic_energy.shape}")
-
-        self.fps_adjusted_harmonic_energy = resample_signal(new_x, old_x, self.harmonic_energy)
+        
+        self.push_signal = resample_signal(new_x, old_x, self.harmonic_energy)
+        self.push_signal = self.push_signal / np.mean(self.push_signal)
 
         self.fps_adjusted_percus_features = []
         for i in range(self.final_percus_features.shape[0]):
             self.fps_adjusted_percus_features.append(resample_signal(new_x, old_x, self.final_percus_features[i,:]) )
 
         self.fps_adjusted_percus_features = np.array(self.fps_adjusted_percus_features)
-
-        self.push_signal = self.fps_adjusted_harmonic_energy
-        self.push_signal = self.push_signal / np.mean(self.push_signal)
-
+        print(f"Resample audio features to match video, shape: {self.fps_adjusted_percus_features.shape}")
         print(f"frames: {self.total_frames}, push_signal.shape = {self.push_signal.shape})")
 
         if plot:
+            n_features_to_plot = int(audio_use_fraction * self.fps_adjusted_percus_features.shape[1])
             plt.figure(figsize=(14,8))
-            plt.plot(self.final_percus_features[0,:], label="base")
-            plt.plot(self.final_percus_features[1,:], label="mid")
-            plt.plot(self.final_percus_features[2,:], label="high")
+            plt.plot(self.fps_adjusted_percus_features[0,:n_features_to_plot], label="base")
+            plt.plot(self.fps_adjusted_percus_features[1,:n_features_to_plot], label="mid")
+            plt.plot(self.fps_adjusted_percus_features[2,:n_features_to_plot], label="high")
             plt.ylim(0.0, 1.0)
             plt.legend()
             plt.savefig("audio_percus_features.png")
             plt.clf()
 
             plt.figure(figsize=(14,8))
-            plt.plot(self.push_signal)
+            plt.plot(self.push_signal[:n_features_to_plot])
             plt.ylim(0.0, 2.0)
             plt.savefig("audio_push_signal.png")
             plt.clf()
@@ -130,16 +119,21 @@ class Planner():
         start_index, end_index = prompt_index*(n_frames_between_two_prompts + 1), (prompt_index+1)*(n_frames_between_two_prompts + 1)
         current_push_segment = self.push_signal[start_index:end_index]
 
+        #segment_variance = np.var(current_push_segment)
+        #global_variance  = np.var(self.push_signal)
+        #variance_factor = segment_variance / global_variance
+
         # Currently the algo creates keyframe --> keyframe phases of equal # frames
         # A constant, smooth video would result from a constant push_signal = 1
         # The total visual change in such a phase is divided in segments to align with the push_signal as optimally as possible
         # Therefore, we want the push signal in each phase to be normalized:
-        current_push_segment = current_push_segment #/ np.mean(current_push_segment)
+        current_push_segment = current_push_segment / np.mean(current_push_segment)
         # This however has the problem that the local variations in video speed depend on the normalization constant used above
         # So for very quiet audio segments, subtle audio variations will result in large visual changes, whereas for other segments
         # those same audio variations wont be noticeable at all.
         # Ideally, we want to normalize the entire audio signal in one go. 
         # However, this is also not ideal because the some segments would result in a super low "target push signal" (e.g. 0.1) that is unattainable
+        # The only good solution for this is to have a variable n_frames for each phase, but this is not implemented yet
 
         if n_samples < (0.1 * max_n_samples): # require at least 10% of the max_n_samples to be already rendered before returning the actual audio features
             return np.ones(n_samples), np.ones_like(current_push_segment)
@@ -149,7 +143,7 @@ class Planner():
         new_x = np.linspace(0, 1, n_samples)
 
         resampled_current_push_segment = resample_signal(new_x, old_x, current_push_segment)
-        #resampled_current_push_segment = resampled_current_push_segment / np.mean(resampled_current_push_segment)
+        resampled_current_push_segment = resampled_current_push_segment / np.mean(resampled_current_push_segment)
 
         return resampled_current_push_segment, current_push_segment
 

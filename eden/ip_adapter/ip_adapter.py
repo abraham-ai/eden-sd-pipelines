@@ -274,7 +274,7 @@ class IPAdapter:
     
 class IPAdapterXL(IPAdapter):
     """SDXL"""
-
+    
     def create_embeds(self, 
         pil_image,
         prompt=None,
