@@ -63,7 +63,7 @@ class Planner():
         self.total_frame_time = self.total_frames / self.fps
         self.compute_audio_features(plot = False)
 
-    def compute_audio_features(self, plot = False):
+    def compute_audio_features(self, plot = 1):
         self.total_frame_time   = self.total_frames / self.fps
         self.harmonic_energy, self.final_percus_features, self.metadata, audio_use_fraction = create_audio_features(self.audio_features_pkl_path, self.total_frame_time)
 

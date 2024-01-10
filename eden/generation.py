@@ -475,9 +475,9 @@ def real2real_audioreactive(
                 '3d_motion_xyz'     : [0.7, 0.7, -90], # camera motion limits
                 'circular_motion_period_s': 15,  # the period of the circular xy motion around the center (in seconds)
                 '3d_rotation_xyz'   : [0,0,0],
-                'brightness_factor' : 0.0005, # 0.001
-                'contrast_factor'   : 0.3, #0.4
-                'saturation_factor' : 0.4, #0.5
+                'brightness_factor' : 0.0003, # 0.001
+                'contrast_factor'   : 0.2, #0.4
+                'saturation_factor' : 0.3, #0.5
                 '2d_zoom_factor'    : 0.00,
                 'noise_factor'      : 0.0},
         output_dir = None,
@@ -521,7 +521,7 @@ def real2real_audioreactive(
         n_anchor_imgs = 3,
         interpolation_init_images_min_strength = 0.10, # SDXL is very sensitive to init_imgs
         interpolation_init_images_max_strength = 0.85,
-        latent_blending_skip_f = [0.07, 0.8],
+        latent_blending_skip_f = [0.1, 0.8],
         loop = loop,
         fps = render_settings["fps"],
         seed = seed,
@@ -669,7 +669,7 @@ def run_upscaler(args_, imgs,
         args.init_image = imgs[i]
 
         if use_controlnet:
-            args.control_image = args.init_image.resize((args.W, args.H))
+            args.control_image = preprocess_controlnet_init_image(args.init_image.resize((args.W, args.H)), args)
 
         image = upscaling_pipe(
             prompt = args.text_input,
