@@ -12,12 +12,12 @@ harmonic_smooth_window  = 25
 fade_to_black_s         = 0
 
 nr_beat_bins = 3
-percus_push_factor = 5.  # How much does a percussive beat push the perceptual change
-base_decay = 0.35        # How slowely does a 'base-push' decay back to zero: slow_base[:, i] = max(slow_base[:, i-1] * decay, base[:, i])
-min_v = 0.15   #  What is the minimum motion speed in latent space? (Relative to #nodes / minute setting)
+percus_push_factor = 5. # How much does a percussive beat push the perceptual change
+base_decay = 0.35       # How slowely does a 'base-push' decay back to zero: slow_base[:, i] = max(slow_base[:, i-1] * decay, base[:, i])
+min_v = 0.2             #  What is the minimum motion speed in latent space? (Relative to #nodes / minute setting)
 
-outlier_removal_fraction = 0.75  # Beats with an amplitude above this percentile will get clipped (making softer beats more visually aparent)
-percussive_threshold     = 0.25  # Anything lower than this fraction will get squashed to zero
+outlier_removal_fraction = 0.8  # Beats with an amplitude above this percentile will get clipped (making softer beats more visually aparent)
+percussive_threshold     = 0.6  # Anything lower than this fraction will decay linearly to zero
 
 # see also Planner.prep_audio_signals_for_render()
 
@@ -204,19 +204,21 @@ def create_audio_features(audio_features_pkl_path, total_frame_time, verbose = 0
   #### MID ####
   treble = final_percus_features[1,:]
   treble = smooth(treble, axis = 0, polynomial_order = 2, window_size = 3)
-  treble[treble < percussive_threshold] = treble[treble < percussive_threshold]**4
+  treble[treble < percussive_threshold] = treble[treble < percussive_threshold]**2
   final_percus_features[1,:] = treble
 
   #### SNARE ####
   snare = final_percus_features[-1,:]
-  snare[snare < percussive_threshold] = snare[snare < percussive_threshold]**4
+  snare[snare < percussive_threshold] = snare[snare < percussive_threshold]**2
   final_percus_features[-1,:] = snare
 
   #### BASE ####
   # Slow down the variance in the base signal:
   base = final_percus_features[0, :]
   base = normalize_full_signal(base)
-  base[base<percussive_threshold] = base[base<percussive_threshold]**4
+  base = base**2
+  base = normalize_full_signal(base)
+  base[base<percussive_threshold] = base[base<percussive_threshold]**2
   #base = base**2
   base = add_slowness(base[np.newaxis, :], decay=base_decay)[0]
   base = normalize_full_signal(base)    

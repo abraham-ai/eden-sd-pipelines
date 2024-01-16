@@ -15,7 +15,7 @@ def lerp(
     name_str = "",
     save_phase_data = False,     # save condition vectors and scale for each frame (used for later upscaling)
     save_distance_data = False,  # save distance plots to disk
-    debug = 1):
+    debug = 0):
 
     seed_everything(seed)
     n = len(interpolation_texts)
@@ -24,7 +24,7 @@ def lerp(
     frames_dir = os.path.join(outdir, name)
     os.makedirs(frames_dir, exist_ok=True)
 
-    #control_image = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/people/chebel.jpg"
+    control_image = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/people/chebel.jpg"
 
     img_dir = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/init_imgs/01_great_inits"
     init_image = random.choice(os.listdir(img_dir))
@@ -32,11 +32,10 @@ def lerp(
     
 
     args = StableDiffusionSettings(
-        ckpt = "juggernaut_XL2",
         text_input = interpolation_texts[0],
         interpolation_texts = interpolation_texts,
         interpolation_seeds = interpolation_seeds if interpolation_seeds else [random.randint(1, 1e8) for i in range(n)],
-        n_frames = 48*n,
+        n_frames = 24*n,
         guidance_scale = random.choice([8]),
         loop = True,
         smooth = True,
@@ -44,16 +43,16 @@ def lerp(
         n_anchor_imgs = random.choice([3]),
         n_film = 1,
         fps = 12,
-        steps = 40,
+        steps = 20,
         seed = seed,
-        H = 1024+512,
-        W = 1024,
-        init_image = init_image,
-        init_image_strength = random.choice([0.15,0.2,0.25]),
-        #control_image = control_image,
-        #control_image_strength = random.choice([0.45,0.55,0.65,0.75]),
-        #controlnet_path = random.choice(["controlnet-canny-sdxl-1.0-small", "controlnet-luminance-sdxl-1.0"]),
-    
+        H = 768,
+        W = 768,
+        #init_image = init_image,
+        #init_image_strength = random.choice([0.15,0.2,0.25]),
+        control_image = control_image,
+        control_image_strength = random.choice([0.75]),
+        controlnet_path = random.choice(["controlnet-canny-sdxl-1.0-small", "controlnet-luminance-sdxl-1.0"]),
+        save_distance_data = True,    
     )
 
     # always make sure these args are properly set:

@@ -367,7 +367,7 @@ class Predictor(BasePredictor):
             aesthetic_lr = 0.0001,
             ag_L2_normalization_constant = 0.25, # for real2real, only 
         )
-
+        args.name = "Eden creation" #Make sure we always have a non-emtpy name
         out_dir = cogPath(tempfile.mkdtemp())
         
         if DEBUG_MODE:
@@ -473,6 +473,7 @@ class Predictor(BasePredictor):
 
             audio_folder = cogPath('audio_files')
             args.audio_file = download(args.audio_file, audio_folder)
+            args.name = "Audio reactive real2real"
 
             t_start = time.time()
             out_path = generation.real2real_audioreactive(args.interpolation_init_images, args.audio_file, 
@@ -538,8 +539,11 @@ class Predictor(BasePredictor):
                 force_timepoints = None
 
             # Make sure there's at least two init_images or prompts to interpolate:
-            if (mode == "interpolate" and len(args.interpolation_texts) < 2) or (mode == "real2real" and len(args.interpolation_init_images) < 2):
-                raise ValueError("Must have at least two init_images or prompts to interpolate!")
+            if (mode == "interpolate" and len(args.interpolation_texts) < 2):
+                raise ValueError("Must have at least two prompts to interpolate!")
+                
+            if (mode == "real2real" and len(args.interpolation_init_images) < 2):
+                raise ValueError("Must have at least two init_images to do real2real!")
 
             loop = (args.loop and len(args.interpolation_seeds) == 2)
 

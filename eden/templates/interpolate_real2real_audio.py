@@ -7,7 +7,7 @@ if __name__ == "__main__":
 
     # main render settings
     audio_path = "/data/xander/Projects/cog/eden-sd-pipelines/eden/xander/assets/audio/versilov/versilov.mp3"
-    n_imgs     = 10
+    n_imgs     = 6
     seed       = 1
     
     # Get random images from a directory:
@@ -21,7 +21,7 @@ if __name__ == "__main__":
         render_settings = {
             "W": 768,
             "H": 768,
-            "steps": 30,
+            "steps": 25,
             "seconds_between_keyframes": 10,
             "fps": 10,
         },

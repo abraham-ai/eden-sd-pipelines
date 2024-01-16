@@ -27,6 +27,7 @@ def generate_basic(
 
     args = StableDiffusionSettings(
         mode = "generate",
+        ckpt = "juggernaut_XL3",
         #use_lcm = True,
         W = random.choice([1024]),
         H = random.choice([1024]),
@@ -38,6 +39,8 @@ def generate_basic(
         n_samples = 1,
         #init_image = init_image,
         #init_image_strength = 0.0,
+        lora_path = lora_path,
+        lora_scale  = 1.0
     )
 
     if args.use_lcm:
@@ -47,9 +50,17 @@ def generate_basic(
     else:
         addstr = f"_no_LCM_base_{args.steps}_steps"
 
-    name = f'{args.text_input[:60]}{addstr}_{args.guidance_scale}_{args.seed}_{args.ckpt}_{int(time.time())}'
+    suffix = lora_path.split("/")[-2] if lora_path else "base"
+
+    name = f'{args.text_input[:60]}{addstr}_{args.guidance_scale}_{args.seed}_{args.ckpt}_{suffix}_{int(time.time())}'
+    name = f'{args.text_input[:40]}_{args.seed}_{args.ckpt}_{suffix}'
     name = name.replace("/", "_")
     start_time = time.time()
+
+    # if the filename already exists, skip this one
+    if os.path.exists(f"{outdir}/{name}.json"):
+        print(f"Skipping {name} because it already exists")
+        return
 
     _, imgs = generate(args)
 
@@ -57,9 +68,9 @@ def generate_basic(
     print(f"Generated in {time_delta:.2f} seconds")
 
     for i, img in enumerate(imgs):
-        save_name = f'{name}_{i}'
+        save_name = f'{name}_{i}.jpg'
         os.makedirs(outdir, exist_ok = True)
-        filepath = os.path.join(outdir, save_name + '.jpg')
+        filepath = os.path.join(outdir, save_name)
         img.save(filepath, quality=95)
 
     # save settings
@@ -71,9 +82,16 @@ if __name__ == "__main__":
     
     outdir = "results_basic"
 
-    for i in range(5):
-        seed = int(time.time())
-        #seed = i
-        seed_everything(seed)
-        text_input = random.choice(text_inputs)
-        generate_basic(text_input, outdir, seed = seed, iteration = i)
+    lora_paths = [
+        None,
+        "/data/xander/Projects/cog/eden-sd-pipelines/models/checkpoints/dpo_finetunes/checkpoint-3400/pytorch_lora_weights.safetensors",
+        "/data/xander/Projects/cog/eden-sd-pipelines/models/checkpoints/dpo_finetunes/checkpoint-1490/pytorch_lora_weights.safetensors",
+    ]
+
+    for lora_path in lora_paths:
+        for i in range(20):
+            seed = int(time.time())
+            seed = i
+            seed_everything(seed)
+            text_input = random.choice(text_inputs)
+            generate_basic(text_input, outdir, seed = seed, iteration = i, lora_path = lora_path)

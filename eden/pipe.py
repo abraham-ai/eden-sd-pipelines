@@ -456,40 +456,38 @@ def encode_prompt_advanced(args, pipe, verbose=True):
         print("Warning: args.c was already set, skipping prepare_prompt_for_lora()")
         return args.c, args.uc, args.pc, args.puc
 
-    if args.lora_path is None:
+    if args.lora_path is None or not os.path.exists(os.path.join(args.lora_path, "special_params.json")):
         return pipe.encode_prompt(
             args.text_input,
             do_classifier_free_guidance=args.guidance_scale > 1,
             negative_prompt=args.uc_text)
+    else:
+        original_prompt = args.text_input
+        lora_prompt     = adjust_prompt(args, original_prompt, verbose=verbose)
+        args.text_input = lora_prompt
 
-    if not os.path.exists(os.path.join(args.lora_path, "special_params.json")):
-        raise ValueError("This concept is from an old lora trainer. Please retrain your concept!")
+        zero_prompt        = adjust_prompt(args, original_prompt, inject_token = False, verbose=verbose)
+        zero_embeddings    = pipe.encode_prompt(
+            zero_prompt,
+            do_classifier_free_guidance=args.guidance_scale > 1,
+            negative_prompt=args.uc_text,
+            lora_scale=args.lora_scale)
 
-    original_prompt = args.text_input
-    lora_prompt     = adjust_prompt(args, original_prompt, verbose=verbose)
-    args.text_input = lora_prompt
+        lora_embeddings    = pipe.encode_prompt(
+            lora_prompt,
+            do_classifier_free_guidance=args.guidance_scale > 1,
+            negative_prompt=args.uc_text,
+            lora_scale=args.lora_scale)
 
-    zero_prompt        = adjust_prompt(args, original_prompt, inject_token = False, verbose=verbose)
-    zero_embeddings    = pipe.encode_prompt(
-        zero_prompt,
-        do_classifier_free_guidance=args.guidance_scale > 1,
-        negative_prompt=args.uc_text,
-        lora_scale=args.lora_scale)
-
-    lora_embeddings    = pipe.encode_prompt(
-        lora_prompt,
-        do_classifier_free_guidance=args.guidance_scale > 1,
-        negative_prompt=args.uc_text,
-        lora_scale=args.lora_scale)
-
-    embeds = blend_conditions(zero_embeddings, lora_embeddings, args, verbose=verbose)
-    return embeds
+        embeds = blend_conditions(zero_embeddings, lora_embeddings, args, verbose=verbose)
+        return embeds
 
 def load_lora(pipe, args):
     
     start_time = time.time()
 
     if args.lora_path.endswith(".safetensors"):
+        print("Loading lora from single file...")
         pipe.load_lora_weights(args.lora_path)
         args.lora_path += "_no_token"
 

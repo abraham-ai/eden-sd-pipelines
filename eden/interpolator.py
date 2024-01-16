@@ -226,19 +226,21 @@ class Interpolator():
             scale = self.scales[self.prompt_index]
         return scale
 
-    def evaluate_new_t(self, new_t, distance_index, target_perceptual_distances, verbose = 1):
+    def evaluate_new_t(self, new_t, distance_index, target_perceptual_distances, mixing_fs, verbose = 1):
         """ given the current perceptual distances in the frames_buffer, 
             evaluate  the "fitness" of the newly proposed split location
 
+            mixing_fs: the relative time positions between two frames to tryout (between 0.0 and 1.0)
+
             Algo:
             - grab the current perceptual distance of the new split location from the buffer
-            - for each possible split location, estimate the new distances
-            - compute the total curve mse of the new distances vs the target density curve
+            - for each possible split location, estimate the new perceptual distances (left and right of that split)
+            - compute the total curve mse of the new distances vs the target density curve (usually the target is a constant of 1 = 'smooth' video)
 
             - new_t: the new split location
             - target_perceptual_distances: the perceptual distance target curve of the current interpolation phase (either flat, audio driven, or ...)
 
-            TODO: Because this algo is greedy, it often gets stuck in local minima, missing better global minima.
+            Because this algo is greedy, it often gets stuck in local minima, missing better global minima. That's why I optionally tried temperature sampling
         """
 
         current_distances  = np.array(self.latent_tracker.frame_buffer.distances.copy()) #L
@@ -254,13 +256,11 @@ class Interpolator():
         d_mean    = np.mean(current_distances)
 
         if (current_d / d_mean) < self.min_d_relative: # splitting this frame is prob not a good idea
-            #print(f"Target {(current_d/d_mean):.3f} distance is <min_d_relative ({self.min_d_relative:.3f}), skipping!")
+            print(f"Target {(current_d/d_mean):.3f} distance is <min_d_relative ({self.min_d_relative:.3f}), skipping!")
             return 1000, -1, (best_new_t, best_estimated_perceptual_density_curve)
         
         # remove the current distance from the buffer_copy:   
         current_distances = np.delete(current_distances, distance_index)
-
-        mixing_fs = np.linspace(0.3,0.7,6)
 
         # Estimate the distance slope at the current split location:
         try:
@@ -325,7 +325,7 @@ class Interpolator():
         
         return best_cost, best_mixing_f, (best_new_t, best_estimated_perceptual_density_curve)
 
-    def find_next_t(self, max_density_diff = 10, verbose = 1):
+    def find_next_t(self, max_density_diff = 40, verbose = 1):
         """
         --> Use the frame buffer to find the next t value to use for interpolation.
         This implements an interative smoothing algorithm that tries to find the best t value to render the next frame,
@@ -390,9 +390,22 @@ class Interpolator():
             mse_values, mixing_fs, t_datas = [], [], []
             start_t = time.time()
 
-            if 0: # greedy
+            
+            # The higher n_frames in buffer, the closer you can get to existing frames
+            diff_start, diff_end = 0.3, 0.1
+            min_rel_distance = diff_start * (1/len(self.latent_tracker.frame_buffer.distances)) + diff_end  # start at diff_start, decay to diff_end
+            mixing_f_candidates = np.linspace(min_rel_distance, 1-min_rel_distance, 6)
+            if len(self.latent_tracker.frame_buffer.distances) < 10:
+                mixing_f_candidates = np.array([0.25,0.5,0.75])
+            else:
+                mixing_f_candidates = np.linspace(0.1, 0.9, 6)
+                
+            mixing_f_candidates = np.linspace(0.1, 0.9, 6)
+            print("Testing mixing_f_candidates: ", mixing_f_candidates)
+
+            if 1: # greedy
                 for distance_index, new_t in enumerate(new_ts_to_try):
-                    mse, best_mixing_f, t_data = self.evaluate_new_t(new_t, distance_index, perceptual_target_curve, verbose = 0)
+                    mse, best_mixing_f, t_data = self.evaluate_new_t(new_t, distance_index, perceptual_target_curve, mixing_f_candidates, verbose = 0)
                     mse_values.append(mse)
                     mixing_fs.append(best_mixing_f)
                     t_datas.append(t_data)
@@ -409,7 +422,7 @@ class Interpolator():
                 T = end_T + (start_T - end_T) * math.exp(-lambda_val * self.phase_completion_f)
 
                 for distance_index, new_t in enumerate(new_ts_to_try):
-                    mse, best_mixing_f, t_data = self.evaluate_new_t(new_t, distance_index, perceptual_target_curve, verbose = 0)
+                    mse, best_mixing_f, t_data = self.evaluate_new_t(new_t, distance_index, perceptual_target_curve, mixing_fs, verbose = 0)
                     mse_values.append(mse)
                     mixing_fs.append(best_mixing_f)
                     t_datas.append(t_data)
@@ -431,10 +444,8 @@ class Interpolator():
                 best_mixing_f = mixing_fs[chosen_idx]
                 next_t, best_estimated_perceptual_density_curve = best_t_data
 
-            #print(f"best_mixing_f: {best_mixing_f:.2f}, took {time.time() - start_t:.3f}s")
-
             # plot the current distances / target perceptual curves:
-            if self.args.save_distance_data and ((len(perceptual_distances) == self.n_frames_between_two_prompts-2) or (len(perceptual_distances) % 10 == 0)):
+            if self.args.save_distance_data and ((len(perceptual_distances) == self.n_frames_between_two_prompts-2) or (len(perceptual_distances) % 1 == 0)):
                 os.makedirs(os.path.join(self.args.frames_dir, "distances"), exist_ok = True)
                 plt.figure(figsize = (12,6))
                 ts = np.linspace(0,1,len(perceptual_distances))
@@ -444,13 +455,15 @@ class Interpolator():
                 plt.legend(loc='upper left')
                 plt.title(f"Current distances / target density (interpolation step {self.interpolation_step}, fit_MSE = {best_fit_mse:.3f})")
                 plt.ylim([0,4])
-                #plt.savefig(os.path.join(os.path.join(self.args.frames_dir, "distances"), "distance_targets_%04d.png" %self.interpolation_step))
+                plt.savefig(os.path.join(os.path.join(self.args.frames_dir, "distances"), "distance_targets_%04d.png" %self.interpolation_step))
                 plt.savefig(os.path.join(os.path.join(self.args.frames_dir, "distances"), f"all_distance_targets_{self.phase_index}.png"))
                 plt.close('all')
                 plt.clf()
 
                 #if best_fit_mse > 0.5:
                 #    stop = True
+            
+            print(f"best_mixing_f: {best_mixing_f:.5f}, next_t: {next_t}, took {time.time() - start_t:.3f}s")
 
             return next_t, stop
 
@@ -516,7 +529,6 @@ class Interpolator():
         i = self.prompt_index
 
         try: #sdxl
-            print("--------------------")
             p_c   = lerp(t, self.prompt_embeds[i][0], self.prompt_embeds[(i + 1) % self.n][0])
             np_c  = lerp(t, self.prompt_embeds[i][1], self.prompt_embeds[(i + 1) % self.n][1])
             pp_c  = lerp(t, self.prompt_embeds[i][2], self.prompt_embeds[(i + 1) % self.n][2])
