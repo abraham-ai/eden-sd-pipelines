@@ -462,7 +462,7 @@ def make_interpolation(args, force_timepoints = None):
 from audio_post import post_process_audio_reactive_video_frames
 
 def real2real_audioreactive(
-        input_images, audio_path, 
+        input_images, audio_path, lora_path,
         render_settings = {
             "W": 640,
             "H": 640,
@@ -525,6 +525,7 @@ def real2real_audioreactive(
         loop = loop,
         fps = render_settings["fps"],
         seed = seed,
+        lora_path = lora_path,
     )
 
     if args.loop:

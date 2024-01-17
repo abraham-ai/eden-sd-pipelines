@@ -475,8 +475,12 @@ class Predictor(BasePredictor):
             args.audio_file = download(args.audio_file, audio_folder)
             args.name = "Audio reactive real2real"
 
+            # notify UI we started running!
+            yield CogOutput(attributes={}, progress=0.0)
+
             t_start = time.time()
-            out_path = generation.real2real_audioreactive(args.interpolation_init_images, args.audio_file, 
+            out_path = generation.real2real_audioreactive(args.interpolation_init_images, args.audio_file,
+                args.lora_path, 
                 render_settings = {
                     "W": args.W,
                     "H": args.H,
@@ -499,6 +503,8 @@ class Predictor(BasePredictor):
                 save_distance_data = True,
                 )
 
+            yield CogOutput(attributes={}, progress=1.0)
+            
             video_frame_paths = extract_n_frames_from_video(out_path, n = len(args.interpolation_init_images))
 
             attributes = {}
