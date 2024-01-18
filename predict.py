@@ -18,6 +18,7 @@ from copy import deepcopy
 from PIL import Image
 from dataclasses import dataclass, asdict
 import numpy as np
+import pprint
 from cog import BasePredictor, BaseModel, File, Input, Path as cogPath
 
 load_dotenv()
