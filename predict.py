@@ -16,6 +16,7 @@ from typing import Iterator, Optional
 from dotenv import load_dotenv
 from copy import deepcopy
 from PIL import Image
+from dataclasses import dataclass, asdict
 import numpy as np
 from cog import BasePredictor, BaseModel, File, Input, Path as cogPath
 
@@ -401,6 +402,9 @@ class Predictor(BasePredictor):
             if args.control_image_strength == 0:
                 raise ValueError(f"Shape guidance image strength must be > 0.0 when using {controlnet_type} ControlNet!")
 
+        print("------------- args: -------------")
+        pprint.pprint(asdict(args), indent=4)
+        print("---------------------------------")
 
         if mode == "interrogate":
             interrogation = generation.interrogate(args)
@@ -476,7 +480,7 @@ class Predictor(BasePredictor):
             args.name = "Audio reactive real2real"
 
             # notify UI we started running!
-            yield CogOutput(attributes={}, progress=0.0)
+            yield CogOutput(attributes={}, progress=0.05)
 
             t_start = time.time()
             out_path = generation.real2real_audioreactive(args.interpolation_init_images, args.audio_file,

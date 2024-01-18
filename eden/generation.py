@@ -1,6 +1,8 @@
 import glob
 import gc
 import os, random, sys, tempfile
+import pprint
+from dataclasses import asdict
 from pathlib import Path
 
 SD_PATH = Path(os.path.dirname(os.path.realpath(__file__))).parents[0]
@@ -530,6 +532,11 @@ def real2real_audioreactive(
 
     if args.loop:
         args.n_frames = inter_frames*((n+1)-1) + (n+1)
+    
+    print("Starting audio_reactive real2real with args:")
+    print("------------- args: -------------")
+    pprint.pprint(asdict(args), indent=4)
+    print("---------------------------------")
 
     args.planner = Planner(audio_path, args.fps, args.n_frames)
 
