@@ -369,7 +369,6 @@ class Predictor(BasePredictor):
             aesthetic_lr = 0.0001,
             ag_L2_normalization_constant = 0.25, # for real2real, only 
         )
-        args.name = "Eden creation" #Make sure we always have a non-emtpy name
         out_dir = cogPath(tempfile.mkdtemp())
         
         if DEBUG_MODE:
@@ -457,6 +456,9 @@ class Predictor(BasePredictor):
             # Run nsfw-detection:
             attributes['nsfw_scores'] = lewd_detection(out_paths)
             attributes['job_time_seconds'] = time.time() - t_start
+
+            if not batch_i_args.name:
+                batch_i_args.name = "Eden creation" #Make sure we always have a non-emtpy name
 
             if DEBUG_MODE:
                 print(attributes)
@@ -627,6 +629,9 @@ class Predictor(BasePredictor):
             # run NSFW detection on thumbnail:
             attributes['nsfw_scores'] = lewd_detection([str(thumbnail)])
             attributes['job_time_seconds'] = time.time() - t_start
+            
+            if not args.name:
+                args.name = "Eden creation" #Make sure we always have a non-emtpy name
 
             if DEBUG_MODE:
                 print(attributes)
