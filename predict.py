@@ -1,6 +1,6 @@
 # never push DEBUG_MODE = True to Replicate!
 DEBUG_MODE = False
-#DEBUG_MODE = True
+DEBUG_MODE = True
 
 import os
 import cv2
@@ -212,6 +212,12 @@ class Predictor(BasePredictor):
         text_input: str = Input(
             description="Text input", default=None
         ),
+        text_inputs_to_interpolate: str = Input(
+            description="Text inputs to interpolate, separated by |", default=None
+        ),
+        text_inputs_to_interpolate_weights: str = Input(
+            description="Text input weights to interpolate, separated by |", default=None
+        ),
         uc_text: str = Input(
             description="Negative text input (mode==all)",
             default="nude, naked, text, watermark, low-quality, signature, padding, margins, white borders, padded border, moiré pattern, downsampling, aliasing, distorted, blurry, blur, jpeg artifacts, compression artifacts, poorly drawn, low-resolution, bad, grainy, error, bad-contrast"
@@ -234,6 +240,7 @@ class Predictor(BasePredictor):
             description="Interpolation texts for video modes",
             default=None
         ),
+
         interpolation_seeds: str = Input(
             description="Seeds for interpolated texts for video modes",
             default=None
@@ -301,7 +308,13 @@ class Predictor(BasePredictor):
         interpolation_texts = interpolation_texts.split('|') if interpolation_texts else None
         interpolation_seeds = [float(i) for i in interpolation_seeds.split('|')] if interpolation_seeds else None
         interpolation_init_images = interpolation_init_images.split('|') if interpolation_init_images else None
-        
+
+        text_inputs_to_interpolate = text_inputs_to_interpolate.split('|') if text_inputs_to_interpolate else None
+        text_inputs_to_interpolate_weights = [float(i) for i in text_inputs_to_interpolate_weights.split('|')] if text_inputs_to_interpolate_weights else None
+        assert (text_inputs_to_interpolate is None and text_inputs_to_interpolate_weights is None) or (text_inputs_to_interpolate and text_inputs_to_interpolate_weights), "text_inputs_to_interpolate and text_inputs_to_interpolate_weights must either both be None or both be provided!"
+        if text_inputs_to_interpolate and text_inputs_to_interpolate_weights:
+            assert len(text_inputs_to_interpolate) == len(text_inputs_to_interpolate_weights), "text_inputs_to_interpolate and text_inputs_to_interpolate_weights must have the same length when provided!"
+
         lora_path = None
         if lora:
             lora_folder = cogPath('loras')
@@ -347,6 +360,9 @@ class Predictor(BasePredictor):
             seed = seed,
             n_samples = n_samples,
 
+            text_inputs_to_interpolate = text_inputs_to_interpolate,
+            text_inputs_to_interpolate_weights = text_inputs_to_interpolate_weights,
+
             interpolation_texts = interpolation_texts,
             interpolation_seeds = interpolation_seeds,
             interpolation_init_images = interpolation_init_images,
@@ -378,13 +394,18 @@ class Predictor(BasePredictor):
             image_str      = f"_image_{init_image_strength:.2f}" if init_image else ""
 
             prediction_name = f"{int(t_start)}_{mode}{lora_str}{controlnet_str}{ip_adapter_str}{image_str}_upf_{upscale_f:.2f}_{n_frames}_frames"
+            base_img_name_no_ext = os.path.basename(control_image).split('.')[0] if control_image else "no_control_image"
             os.makedirs(debug_output_dir, exist_ok=True)
+
+            print(f"DEBUG_MODE: saving to {debug_output_dir}")
+            print(f"DEBUG_MODE: prediction_name: {prediction_name}")
 
             # save a black dummy image to disk so we can easily see which tests failed:
             if mode == "create" or mode == "remix" or mode == "controlnet" or mode == "upscale" or mode == "repaint":
                 for index in range(args.n_samples):
                         save_path = os.path.join(debug_output_dir, prediction_name + f"_{index}.jpg")
                         Image.new("RGB", (512, 512), "black").save(save_path)
+                        print(f"Saved dummy image to {save_path}")
             else:
                 save_path = os.path.join(debug_output_dir, prediction_name + ".jpg")
                 Image.new("RGB", (512, 512), "black").save(save_path)
@@ -463,7 +484,8 @@ class Predictor(BasePredictor):
             if DEBUG_MODE:
                 print(attributes)
                 for index, out_path in enumerate(out_paths):
-                    print(f"Saving image to {debug_output_dir}..")
+                    print(f'Orig image: {out_path}')
+                    print(f"Copying image to {debug_output_dir}..")
                     shutil.copyfile(out_path, os.path.join(debug_output_dir, prediction_name + f"_{index}.jpg"))
                 yield out_paths[0]
             else:

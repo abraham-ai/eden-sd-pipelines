@@ -17,9 +17,6 @@ LORA_PATH  = os.path.join(SD_PATH, 'models/loras')
 IP_ADAPTER_PATH = os.path.join(SD_PATH, 'models/ip_adapter/ip-adapter_sdxl.bin')
 IP_ADAPTER_IMG_ENCODER_PATH = os.path.join(SD_PATH, 'models/ip_adapter/image_encoder')
 
-# https://github.com/lyn-rgb/FreeU_Diffusers
-from free_lunch_utils import register_free_upblock2d, register_free_crossattn_upblock2d
-
 import time
 import torch
 from safetensors.torch import safe_open, save_file
@@ -334,7 +331,7 @@ def replace_in_string(s, replacements):
 
 def blend_conditions(embeds1, embeds2, args, 
         token_scale_power = 0.5,  # adjusts the curve of the interpolation
-        min_token_scale   = 0.6,  # minimum token scale (corresponds to lora_scale = 0)
+        min_token_scale   = 0.5,  # minimum token scale (corresponds to lora_scale = 0)
         #min_token_scale   = 1.0,  # minimum token scale (corresponds to lora_scale = 0)
         verbose = False,
         ):
@@ -451,22 +448,21 @@ def adjust_prompt(args, prompt,
 
     return prompt
 
-def encode_prompt_advanced(args, pipe, verbose=True):
-    if args.c is not None:
+def encode_prompt_advanced(args, prompt_to_encode, pipe, ignore_set = False, verbose=True):
+    if (args.c is not None) and (not ignore_set):
         print("Warning: args.c was already set, skipping prepare_prompt_for_lora()")
         return args.c, args.uc, args.pc, args.puc
 
     if args.lora_path is None or not os.path.exists(os.path.join(args.lora_path, "special_params.json")):
         return pipe.encode_prompt(
-            args.text_input,
+            prompt_to_encode,
             do_classifier_free_guidance=args.guidance_scale > 1,
             negative_prompt=args.uc_text)
     else:
-        original_prompt = args.text_input
-        lora_prompt     = adjust_prompt(args, original_prompt, verbose=verbose)
+        lora_prompt     = adjust_prompt(args, prompt_to_encode, verbose=verbose)
         args.text_input = lora_prompt
 
-        zero_prompt        = adjust_prompt(args, original_prompt, inject_token = False, verbose=verbose)
+        zero_prompt        = adjust_prompt(args, prompt_to_encode, inject_token=False, verbose=verbose)
         zero_embeddings    = pipe.encode_prompt(
             zero_prompt,
             do_classifier_free_guidance=args.guidance_scale > 1,

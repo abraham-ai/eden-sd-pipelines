@@ -137,11 +137,30 @@ def generate(
     if args.use_lcm:
         args.guidance_scale = 0.0
 
-    if (args.interpolator is None) and (len(args.name) == 0):
+    if (args.interpolator is None) and (not args.name):
         args.name = args.text_input # send this name back to the frontend
 
-    if (args.lora_path) and (args.interpolator is None):
-        args.c, args.uc, args.pc, args.puc = encode_prompt_advanced(args, pipe, verbose = True)
+    if args.interpolator is None: # prompt replacement logic for animations is done in interpolator.py
+        if args.text_inputs_to_interpolate: # apply custom prompt interpolation logic:
+            print(f"Interpolating between {args.text_inputs_to_interpolate} with weights {args.text_inputs_to_interpolate_weights}...")
+            weights = np.array(args.text_inputs_to_interpolate_weights)
+            weights = weights / np.sum(weights)
+
+            for i, prompt in enumerate(args.text_inputs_to_interpolate):
+                c, uc, pc, puc = encode_prompt_advanced(args, prompt, pipe, ignore_set = True, verbose = True)
+                if i == 0:
+                    args.c   = weights[i]*c
+                    args.uc  = weights[i]*uc
+                    args.pc  = weights[i]*pc
+                    args.puc = weights[i]*puc
+                else:
+                    args.c   += weights[i]*c
+                    args.uc  += weights[i]*uc
+                    args.pc  += weights[i]*pc
+                    args.puc += weights[i]*puc
+
+        elif args.lora_path: # if a lora is active, apply lora prompt logic to inject the trained token:
+            args.c, args.uc, args.pc, args.puc = encode_prompt_advanced(args, args.text_input, pipe, verbose = True)
 
     if args.noise_sigma > 0.0: # apply random noise to the conditioning vectors:
         print(f"Adding random noise with sigma={args.noise_sigma:.3f} to prompt conditionings!")
@@ -616,7 +635,7 @@ def make_images(args):
         else:
             print(f"Performing {args.mode} with provided text input: {args.text_input}")
 
-    if args.text_input is None:
+    if args.text_input is None and args.text_inputs_to_interpolate is None:
         raise ValueError(f"You must provide a text input (prompt) to use {args.mode}!")
 
     _, images_pil = generate(args)

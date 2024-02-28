@@ -134,6 +134,10 @@ class StableDiffusionSettings:
     smooth: bool = True  
     n_film: int = 0
     fps: int = 12
+
+    # text inputs to interpolate
+    text_inputs_to_interpolate: List = field(default_factory=lambda: [])
+    text_inputs_to_interpolate_weights: List = field(default_factory=lambda: [])
     
     # interpolations
     interpolation_texts: List = field(default_factory=lambda: [])

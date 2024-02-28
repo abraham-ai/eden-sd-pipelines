@@ -1,0 +1,1 @@
+cog predict -i mode=create -i lora_scale=0.01 -i lora="https://edenartlab-prod-data.s3.us-east-1.amazonaws.com/431ff8fb8edf1fcf8d1bc1ddcc2662479ced491c6b98784cdb4b0aa6d70cd09c.tar" -i text_inputs_to_interpolate="a big tree|a red car" -i text_inputs_to_interpolate_weights="5|9" -i seed=5 -i width=1024 -i height=768 -i steps=30 -i n_samples=1

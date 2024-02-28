@@ -17,19 +17,19 @@ INIT_IMAGE_STRENGTH_CONTROL1=0.4
 INIT_IMAGE_STRENGTH_CONTROL2=0.7
 
 STEPS=20
-WIDTH=768
-HEIGHT=768
+WIDTH=512
+HEIGHT=512
 
 # STEPS=35
 # WIDTH=1024
 # HEIGHT=1024
 
-UPSCALE_F=1.25
+UPSCALE_F=1.1
 NSAMPLES=2
 SEED=0
 
 
-RUN_GENERATE=1
+RUN_CREATE=1
 RUN_REMIX=1
 RUN_CONTROLNET=1
 RUN_BLEND=1
@@ -47,13 +47,13 @@ RUN_UPSCALE=1
 
 ####### GENEREATE COMMANDS: #######
 
-if [ $RUN_GENERATE -eq 1 ]; then
-  echo "Running generate commands..."
+if [ $RUN_CREATE -eq 1 ]; then
+  echo "Running create commands..."
 
   curl -s -X POST -H "Authorization: Token $REPLICATE_API_TOKEN" -H 'Content-Type: application/json' "http://0.0.0.0:5000/predictions" -d @- <<EOF
 {
     "input": {
-      "mode": "generate",
+      "mode": "create",
       "text_input": "$TEXT_INPUT",
       "steps": $STEPS,
       "width": $WIDTH,
@@ -66,7 +66,7 @@ EOF
   curl -s -X POST -H "Authorization: Token $REPLICATE_API_TOKEN" -H 'Content-Type: application/json' "http://0.0.0.0:5000/predictions" -d @- <<EOF
 {
     "input": {
-      "mode": "generate",
+      "mode": "create",
       "checkpoint": "sdxl-v1.0",
       "text_input": "a photo of <concept> on the beach, drinking Coca-Cola",
       "lora": "$LORA_FACE_URL",
@@ -78,7 +78,7 @@ EOF
   curl -s -X POST -H "Authorization: Token $REPLICATE_API_TOKEN" -H 'Content-Type: application/json' "http://0.0.0.0:5000/predictions" -d @- <<EOF
 {
     "input": {
-      "mode": "generate",
+      "mode": "create",
       "text_input": "$TEXT_INPUT",
       "steps": $STEPS,
       "width": $WIDTH,
@@ -92,7 +92,7 @@ EOF
   curl -s -X POST -H "Authorization: Token $REPLICATE_API_TOKEN" -H 'Content-Type: application/json' "http://0.0.0.0:5000/predictions" -d @- <<EOF
 {
     "input": {
-      "mode": "generate",
+      "mode": "create",
       "text_input": "$TEXT_INPUT",
       "steps": $STEPS,
       "width": $WIDTH,
@@ -106,7 +106,7 @@ EOF
   curl -s -X POST -H "Authorization: Token $REPLICATE_API_TOKEN" -H 'Content-Type: application/json' "http://0.0.0.0:5000/predictions" -d @- <<EOF | jq '.' >> output.log 2>> error.log
 {
     "input": {
-      "mode": "generate",
+      "mode": "create",
       "text_input": "$TEXT_INPUT",
       "steps": $STEPS,
       "width": $WIDTH,
@@ -121,7 +121,7 @@ EOF
   curl -s -X POST -H "Authorization: Token $REPLICATE_API_TOKEN" -H 'Content-Type: application/json' "http://0.0.0.0:5000/predictions" -d @- <<EOF | jq '.' >> output.log 2>> error.log
 {
     "input": {
-      "mode": "generate",
+      "mode": "create",
       "text_input": "$TEXT_INPUT",
       "init_image": "$INIT_IMAGE_URL1",
       "init_image_strength": $INIT_IMAGE_STRENGTH1,
@@ -133,7 +133,7 @@ EOF
   curl -s -X POST -H "Authorization: Token $REPLICATE_API_TOKEN" -H 'Content-Type: application/json' "http://0.0.0.0:5000/predictions" -d @- <<EOF | jq '.' >> output.log 2>> error.log
 {
     "input": {
-      "mode": "generate",
+      "mode": "create",
       "text_input": "$TEXT_INPUT",
       "init_image": "$INIT_IMAGE_URL1",
       "init_image_strength": $INIT_IMAGE_STRENGTH2,
@@ -144,7 +144,7 @@ EOF
 EOF
 
 else
-  echo "Skipping generate commands"
+  echo "Skipping create commands"
 fi
 
 ###############################################################################
@@ -168,7 +168,7 @@ EOF
   curl -s -X POST -H "Authorization: Token $REPLICATE_API_TOKEN" -H 'Content-Type: application/json' "http://0.0.0.0:5000/predictions" -d @- <<EOF
 {
     "input": {
-      "mode": "generate",
+      "mode": "create",
       "text_input": "$TEXT_INPUT",
       "steps": $STEPS,
       "width": $WIDTH,
@@ -232,7 +232,7 @@ EOF
   curl -s -X POST -H "Authorization: Token $REPLICATE_API_TOKEN" -H 'Content-Type: application/json' "http://0.0.0.0:5000/predictions" -d @- <<EOF
 {
     "input": {
-      "mode": "generate",
+      "mode": "create",
       "text_input": "$TEXT_INPUT",
       "steps": $STEPS,
       "width": $WIDTH,
@@ -295,8 +295,8 @@ if [ $RUN_UPSCALE -eq 1 ]; then
 {
     "input": {
       "mode": "upscale",
-      "width": 1600,
-      "height": 1600,
+      "width": 768,
+      "height": 768,
       "init_image": "$INIT_IMAGE_URL1",
       "init_image_strength": 0.1,
       "control_image": "$INIT_IMAGE_URL1",
@@ -311,8 +311,8 @@ EOF
 {
     "input": {
       "mode": "upscale",
-      "width": 1400,
-      "height": 1400,
+      "width": 768,
+      "height": 768,
       "init_image": "$INIT_IMAGE_URL1",
       "init_image_strength": $INIT_IMAGE_STRENGTH_CONTROL2,
       "seed": $SEED

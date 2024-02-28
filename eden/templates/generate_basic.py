@@ -84,8 +84,6 @@ if __name__ == "__main__":
 
     lora_paths = [
         None,
-        "/data/xander/Projects/cog/eden-sd-pipelines/models/checkpoints/dpo_finetunes/checkpoint-3400/pytorch_lora_weights.safetensors",
-        "/data/xander/Projects/cog/eden-sd-pipelines/models/checkpoints/dpo_finetunes/checkpoint-1490/pytorch_lora_weights.safetensors",
     ]
 
     for lora_path in lora_paths:
