@@ -34,7 +34,13 @@ sys.path.extend([
     "/clip-interrogator",
 ])
 
+# add the subfolder "huemin_kojii" to the system path:
+current_file_path = os.path.dirname(os.path.abspath(__file__))
+huemin_kojii_path = os.path.join(current_file_path, "huemin_kojii")
+sys.path.append(huemin_kojii_path)
+
 # Eden imports:
+from huemin_kojii.source import generate_from_config
 from nsfw_detection import lewd_detection
 from io_utils import *
 from pipe import pipe_manager
@@ -121,7 +127,7 @@ class Predictor(BasePredictor):
         # Universal args
         mode: str = Input(
             description="Mode", default="create",
-            choices=["create", "remix", "upscale", "blend", "controlnet", "interpolate", "real2real", "real2real_audio", "interrogate"]
+            choices=["create", "remix", "upscale", "blend", "controlnet", "interpolate", "real2real", "real2real_audio", "interrogate", "kojii_huemin"]
         ),
         stream: bool = Input(
             description="yield individual results if True", default=False
@@ -427,6 +433,25 @@ class Predictor(BasePredictor):
         pprint.pprint(asdict(args), indent=4)
         print("---------------------------------")
 
+        # huemin:
+        if mode == "kojii_huemin":
+            out_paths = []
+            for batch_i in range(args.n_samples):
+                out_img = generate_from_config(settings_path = os.path.join(huemin_kojii_path, "settings.json"))
+                out_path = out_dir / f"kojii_huemin_{time.time()}.jpg"
+                out_img.save(out_path, format='JPEG', quality=95)
+                out_paths.append(out_path)
+                
+            attributes = {}
+            attributes['nsfw_scores'] = lewd_detection(out_paths)
+            attributes['job_time_seconds'] = time.time() - t_start
+            if DEBUG_MODE:
+                for index, out_path in enumerate(out_paths):
+                    shutil.copyfile(out_path, os.path.join(debug_output_dir, prediction_name + f"_{index}.jpg"))
+                yield out_paths[0]
+            else:
+                yield CogOutput(files=out_paths, name=args.name, thumbnails=out_paths, attributes=attributes, isFinal=True, progress=1.0)
+
         if mode == "interrogate":
             interrogation = generation.interrogate(args)
             out_path = out_dir / f"interrogation.txt"
@@ -482,10 +507,7 @@ class Predictor(BasePredictor):
                 batch_i_args.name = "Eden creation" #Make sure we always have a non-emtpy name
 
             if DEBUG_MODE:
-                print(attributes)
                 for index, out_path in enumerate(out_paths):
-                    print(f'Orig image: {out_path}')
-                    print(f"Copying image to {debug_output_dir}..")
                     shutil.copyfile(out_path, os.path.join(debug_output_dir, prediction_name + f"_{index}.jpg"))
                 yield out_paths[0]
             else:

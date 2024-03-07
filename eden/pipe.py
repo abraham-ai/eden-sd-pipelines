@@ -353,11 +353,16 @@ def blend_conditions(embeds1, embeds2, args,
         if verbose:
             print(f"Setting token_scale to {args.token_scale:.2f} (lora_scale = {args.lora_scale}, power = {token_scale_power})")
             print('-------------------------')
-
-    c   = (1 - args.token_scale) * c1   + args.token_scale * c2
-    uc  = (1 - args.token_scale) * uc1  + args.token_scale * uc2
-    pc  = (1 - args.token_scale) * pc1  + args.token_scale * pc2
-    puc = (1 - args.token_scale) * puc1 + args.token_scale * puc2
+    try:
+        c   = (1 - args.token_scale) * c1   + args.token_scale * c2
+        pc  = (1 - args.token_scale) * pc1  + args.token_scale * pc2
+        uc  = (1 - args.token_scale) * uc1  + args.token_scale * uc2
+        puc = (1 - args.token_scale) * puc1 + args.token_scale * puc2
+    except:
+        c   = c1
+        pc  = pc1
+        uc  = uc1
+        puc = puc1
 
     return c, uc, pc, puc
 
