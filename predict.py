@@ -34,13 +34,7 @@ sys.path.extend([
     "/clip-interrogator",
 ])
 
-# add the subfolder "huemin_kojii" to the system path:
-current_file_path = os.path.dirname(os.path.abspath(__file__))
-huemin_kojii_path = os.path.join(current_file_path, "huemin_kojii")
-sys.path.append(huemin_kojii_path)
-
 # Eden imports:
-from huemin_kojii.source import generate_from_config
 from nsfw_detection import lewd_detection
 from io_utils import *
 from pipe import pipe_manager
@@ -127,7 +121,7 @@ class Predictor(BasePredictor):
         # Universal args
         mode: str = Input(
             description="Mode", default="create",
-            choices=["create", "remix", "upscale", "blend", "controlnet", "interpolate", "real2real", "real2real_audio", "interrogate", "kojii_huemin"]
+            choices=["create", "remix", "upscale", "blend", "controlnet", "interpolate", "real2real", "real2real_audio", "interrogate", "kojii/huemin"]
         ),
         stream: bool = Input(
             description="yield individual results if True", default=False
@@ -434,14 +428,31 @@ class Predictor(BasePredictor):
         print("---------------------------------")
 
         # huemin:
-        if mode == "kojii_huemin":
+        if mode == "kojii/huemin":
+            # add the subfolder "huemin_kojii" to the system path:
+            current_file_path = os.path.dirname(os.path.abspath(__file__))
+            huemin_kojii_path = os.path.join(current_file_path, "huemin_kojii")
+            sys.path.append(huemin_kojii_path)
+            from huemin_kojii.source import generate_from_args, Config, Generator
+
             out_paths = []
+            settings_path = os.path.join(huemin_kojii_path, "settings.json")
+            huemin_args = Config().from_json(settings_path)
+            huemin_args.prompt = text_input
+
+            args.ckpt = huemin_args.model
+            pipe = pipe_manager.get_pipe(args)
+            
+
             for batch_i in range(args.n_samples):
-                out_img = generate_from_config(settings_path = os.path.join(huemin_kojii_path, "settings.json"))
+                huemin_args.seed = args.seed + batch_i
+                out_img, huemin_args = generate_from_args(pipe, huemin_args)
                 out_path = out_dir / f"kojii_huemin_{time.time()}.jpg"
                 out_img.save(out_path, format='JPEG', quality=95)
                 out_paths.append(out_path)
-                
+
+            args.name = huemin_args.prompt
+
             attributes = {}
             attributes['nsfw_scores'] = lewd_detection(out_paths)
             attributes['job_time_seconds'] = time.time() - t_start
@@ -452,7 +463,7 @@ class Predictor(BasePredictor):
             else:
                 yield CogOutput(files=out_paths, name=args.name, thumbnails=out_paths, attributes=attributes, isFinal=True, progress=1.0)
 
-        if mode == "interrogate":
+        elif mode == "interrogate":
             interrogation = generation.interrogate(args)
             out_path = out_dir / f"interrogation.txt"
             with open(out_path, 'w', encoding='utf-8') as f:

@@ -1,0 +1,15 @@
+{
+    "seed": 2,
+    "device": "cuda",
+    "model": "protogentkxl",
+    "prompt": "isometric generative landscape orthographic abstract aj casson perlin noise 3d shaders areal embroidery minimalism claude monet oil painting pastel (((lava waterfall hawaii smoke steam)))",
+    "negative_prompt": "blurry bad dull green",
+    "height": 1024,
+    "width": 1344,
+    "steps": 25,
+    "scale": 5,
+    "strength": 0.75,
+    "batch": "test",
+    "save_image": true,
+    "save_preview": false
+}

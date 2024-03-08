@@ -46,8 +46,6 @@ from ip_adapter.ip_adapter import IPAdapterXL
 from eden_utils import *
 from settings import _device
 
-_local_files_only = False
-
 # Disable gradients everywhere:
 torch.set_grad_enabled(False)
 
@@ -138,7 +136,6 @@ class PipeManager:
                 self.pipe.scheduler = LCMScheduler.from_config(self.pipe.scheduler.config)
                 self.pipe.to(_device)
                 adapter_id = os.path.join(LORA_PATH, "lcm_sdxl_lora.safetensors")
-                #adapter_id = "latent-consistency/lcm-lora-ssd-1b"
                 print(f"Loading lcm-loa from {adapter_id}...")
                 self.pipe.load_lora_weights(adapter_id)
                 self.pipe.fuse_lora()
@@ -216,14 +213,18 @@ def load_pipe(args):
 
     location = args.ckpt
     if os.path.isdir(os.path.join(CHECKPOINTS_PATH, args.ckpt)):
+        print(f"Loading from folder: {args.ckpt}")
         location = os.path.join(CHECKPOINTS_PATH, args.ckpt)
         safetensor_files = [f for f in os.listdir(location) if f.endswith(".safetensors")]
         if len(safetensor_files) == 1:
             load_from_single_file = True
             location = os.path.join(location, safetensor_files[0])
+            print(f"Loading from single file: {location}")
         else:
             load_from_single_file = False
+            print(f"Loading from folder: {location}")
     else:
+        print(f"Could not find folder: {os.path.join(CHECKPOINTS_PATH, args.ckpt)}, will try to download model from HF...")
         # load from hf hub:
         load_from_single_file = False
 
